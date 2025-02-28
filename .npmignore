@@ -1,0 +1,6 @@
+# Исключаем всё, кроме dist/
+*
+!dist
+!package.json
+!README.md
+!LICENSE

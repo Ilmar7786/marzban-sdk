@@ -1,0 +1,50 @@
+{
+  "name": "marzban-sdk",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Fully typed and implementing all marzban methods",
+  "private": false,
+  "author": "ilmar7786",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "clean": "rimraf dist",
+    "dev": "tsup --watch",
+    "codegen": "rm -rf src/generated-sources; openapi-generator-cli generate -i ./docs/openapi.json -g typescript-axios -o src/generated-sources --additional-properties=supportsES6=true,npmVersion=6.9.0,typescriptThreePlus=true",
+    "start": "node ./dist/index.js"
+  },
+  "keywords": [
+    "marzban",
+    "marzban api",
+    "marzban api client",
+    "marzban vpn",
+    "marzban vpn api",
+    "marzban vpn api client",
+    "vpn"
+  ],
+  "dependencies": {
+    "axios": "^1.7.9"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.17.0",
+    "@types/node": "^22.13.4",
+    "esbuild": "^0.25.0",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ilmar7786/marzban-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Ilmar7786/marzban-sdk/issues"
+  },
+  "homepage": "https://github.com/Ilmar7786/marzban-sdk#readme",
+  "files": [
+    "dist"
+  ]
+}

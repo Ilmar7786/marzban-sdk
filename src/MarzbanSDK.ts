@@ -21,26 +21,26 @@ export class MarzbanSDK {
   private client: AxiosInstance;
   private configuration: Configuration;
   admin: AdminApi;
-  coreApi: CoreApi;
-  nodeApi: NodeApi;
-  userApi: UserApi;
-  systemApi: SystemApi;
-  defaultApi: DefaultApi;
-  subscriptionApi: SubscriptionApi;
-  userTemplateApi: UserTemplateApi;
+  core: CoreApi;
+  node: NodeApi;
+  user: UserApi;
+  system: SystemApi;
+  default: DefaultApi;
+  subscription: SubscriptionApi;
+  userTemplate: UserTemplateApi;
 
   constructor(config: Config) {
     this.configuration = this.createConfiguration(config);
     this.client = this.createAxiosClient(config.baseUrl);
 
     this.admin = new AdminApi(this.configuration, undefined, this.client);
-    this.coreApi = new CoreApi(this.configuration, undefined, this.client);
-    this.nodeApi = new NodeApi(this.configuration, undefined, this.client);
-    this.userApi = new UserApi(this.configuration, undefined, this.client);
-    this.systemApi = new SystemApi(this.configuration, undefined, this.client);
-    this.defaultApi = new DefaultApi(this.configuration, undefined, this.client);
-    this.subscriptionApi = new SubscriptionApi(this.configuration, undefined, this.client);
-    this.userTemplateApi = new UserTemplateApi(this.configuration, undefined, this.client);
+    this.core = new CoreApi(this.configuration, undefined, this.client);
+    this.node = new NodeApi(this.configuration, undefined, this.client);
+    this.user = new UserApi(this.configuration, undefined, this.client);
+    this.system = new SystemApi(this.configuration, undefined, this.client);
+    this.default = new DefaultApi(this.configuration, undefined, this.client);
+    this.subscription = new SubscriptionApi(this.configuration, undefined, this.client);
+    this.userTemplate = new UserTemplateApi(this.configuration, undefined, this.client);
 
     this.setupInterceptors(config);
     this.authenticate(config);

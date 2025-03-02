@@ -5,15 +5,19 @@
   "description": "Fully typed and implementing all marzban methods",
   "private": false,
   "author": "ilmar7786",
-  "main": "dist/index.js",
+  "sideEffects": false,
+  "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    "import": "./dist/index.mjs",
+    "require": "./dist/index.cjs"
+  },
   "scripts": {
     "build": "tsup",
     "clean": "rimraf dist",
     "dev": "tsup --watch",
-    "codegen": "rm -rf src/generated-sources; openapi-generator-cli generate -i ./docs/openapi.json -g typescript-axios -o src/generated-sources --additional-properties=supportsES6=true,npmVersion=6.9.0,typescriptThreePlus=true",
-    "start": "node ./dist/index.js"
+    "codegen": "rm -rf src/generated-sources; openapi-generator-cli generate -i ./docs/openapi.json -g typescript-axios -o src/generated-sources --additional-properties=supportsES6=true,npmVersion=6.9.0,typescriptThreePlus=true"
   },
   "keywords": [
     "marzban",
@@ -29,7 +33,7 @@
   },
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "^2.17.0",
-    "@types/node": "^22.13.4",
+    "@types/node": "^22.13.8",
     "esbuild": "^0.25.0",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",

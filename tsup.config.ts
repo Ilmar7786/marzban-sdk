@@ -4,10 +4,11 @@ export default defineConfig({
   entry: ["src/index.ts"],
   format: ["cjs", "esm"],
   dts: true,
-  splitting: false,
-  sourcemap: true,
-  clean: true,
   minify: true,
+  sourcemap: false,
+  splitting: false,
+  clean: true,
   treeshake: true,
-  skipNodeModulesBundle: true,
+  target: "esnext",
+  shims: true
 });

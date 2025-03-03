@@ -1,6 +1,6 @@
 {
   "name": "marzban-sdk",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "license": "MIT",
   "description": "Fully typed and implementing all marzban methods",
   "private": false,
@@ -17,7 +17,7 @@
     "build": "tsup",
     "clean": "rimraf dist",
     "dev": "tsup --watch",
-    "codegen": "rm -rf src/generated-sources; openapi-generator-cli generate -i ./docs/openapi.json -g typescript-axios -o src/generated-sources --additional-properties=supportsES6=true,npmVersion=6.9.0,typescriptThreePlus=true"
+    "codegen": "rm -rf src/generated-sources; openapi-generator-cli generate -i ./docs/openapi.json -g typescript-axios -o src/generated-sources --additional-properties=supportsES6=true,npmVersion=6.9.0,typescriptThreePlus=true --template-dir ./codegen-template/typescript-axios"
   },
   "keywords": [
     "marzban",

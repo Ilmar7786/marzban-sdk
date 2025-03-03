@@ -1,6 +1,6 @@
 {
   "name": "marzban-sdk",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "license": "MIT",
   "description": "Fully typed and implementing all marzban methods",
   "private": false,

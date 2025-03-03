@@ -2309,7 +2309,7 @@ export class AdminApi extends BaseAPI {
      * @memberof AdminApi
      */
     public activateAllDisabledUsers(username: string, options?: RawAxiosRequestConfig) {
-        return AdminApiFp(this.configuration).activateAllDisabledUsers(username, options).then((request) => request(this.axios, this.basePath));
+        return AdminApiFp(this.configuration).activateAllDisabledUsers(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2326,7 +2326,7 @@ export class AdminApi extends BaseAPI {
      * @memberof AdminApi
      */
     public adminToken(username: string, password: string, grantType?: string | null, scope?: string, clientId?: string | null, clientSecret?: string | null, options?: RawAxiosRequestConfig) {
-        return AdminApiFp(this.configuration).adminToken(username, password, grantType, scope, clientId, clientSecret, options).then((request) => request(this.axios, this.basePath));
+        return AdminApiFp(this.configuration).adminToken(username, password, grantType, scope, clientId, clientSecret, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2338,7 +2338,7 @@ export class AdminApi extends BaseAPI {
      * @memberof AdminApi
      */
     public createAdmin(adminCreate: AdminCreate, options?: RawAxiosRequestConfig) {
-        return AdminApiFp(this.configuration).createAdmin(adminCreate, options).then((request) => request(this.axios, this.basePath));
+        return AdminApiFp(this.configuration).createAdmin(adminCreate, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2350,7 +2350,7 @@ export class AdminApi extends BaseAPI {
      * @memberof AdminApi
      */
     public disableAllActiveUsers(username: string, options?: RawAxiosRequestConfig) {
-        return AdminApiFp(this.configuration).disableAllActiveUsers(username, options).then((request) => request(this.axios, this.basePath));
+        return AdminApiFp(this.configuration).disableAllActiveUsers(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2362,7 +2362,7 @@ export class AdminApi extends BaseAPI {
      * @memberof AdminApi
      */
     public getAdminUsage(username: string, options?: RawAxiosRequestConfig) {
-        return AdminApiFp(this.configuration).getAdminUsage(username, options).then((request) => request(this.axios, this.basePath));
+        return AdminApiFp(this.configuration).getAdminUsage(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2376,7 +2376,7 @@ export class AdminApi extends BaseAPI {
      * @memberof AdminApi
      */
     public getAdmins(offset?: number | null, limit?: number | null, username?: string | null, options?: RawAxiosRequestConfig) {
-        return AdminApiFp(this.configuration).getAdmins(offset, limit, username, options).then((request) => request(this.axios, this.basePath));
+        return AdminApiFp(this.configuration).getAdmins(offset, limit, username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2387,7 +2387,7 @@ export class AdminApi extends BaseAPI {
      * @memberof AdminApi
      */
     public getCurrentAdmin(options?: RawAxiosRequestConfig) {
-        return AdminApiFp(this.configuration).getCurrentAdmin(options).then((request) => request(this.axios, this.basePath));
+        return AdminApiFp(this.configuration).getCurrentAdmin(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2400,7 +2400,7 @@ export class AdminApi extends BaseAPI {
      * @memberof AdminApi
      */
     public modifyAdmin(username: string, adminModify: AdminModify, options?: RawAxiosRequestConfig) {
-        return AdminApiFp(this.configuration).modifyAdmin(username, adminModify, options).then((request) => request(this.axios, this.basePath));
+        return AdminApiFp(this.configuration).modifyAdmin(username, adminModify, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2412,7 +2412,7 @@ export class AdminApi extends BaseAPI {
      * @memberof AdminApi
      */
     public removeAdmin(username: string, options?: RawAxiosRequestConfig) {
-        return AdminApiFp(this.configuration).removeAdmin(username, options).then((request) => request(this.axios, this.basePath));
+        return AdminApiFp(this.configuration).removeAdmin(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2424,7 +2424,7 @@ export class AdminApi extends BaseAPI {
      * @memberof AdminApi
      */
     public resetAdminUsage(username: string, options?: RawAxiosRequestConfig) {
-        return AdminApiFp(this.configuration).resetAdminUsage(username, options).then((request) => request(this.axios, this.basePath));
+        return AdminApiFp(this.configuration).resetAdminUsage(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 }
 
@@ -2702,7 +2702,7 @@ export class CoreApi extends BaseAPI {
      * @memberof CoreApi
      */
     public getCoreConfig(options?: RawAxiosRequestConfig) {
-        return CoreApiFp(this.configuration).getCoreConfig(options).then((request) => request(this.axios, this.basePath));
+        return CoreApiFp(this.configuration).getCoreConfig(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2713,7 +2713,7 @@ export class CoreApi extends BaseAPI {
      * @memberof CoreApi
      */
     public getCoreStats(options?: RawAxiosRequestConfig) {
-        return CoreApiFp(this.configuration).getCoreStats(options).then((request) => request(this.axios, this.basePath));
+        return CoreApiFp(this.configuration).getCoreStats(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2725,7 +2725,7 @@ export class CoreApi extends BaseAPI {
      * @memberof CoreApi
      */
     public modifyCoreConfig(body: object, options?: RawAxiosRequestConfig) {
-        return CoreApiFp(this.configuration).modifyCoreConfig(body, options).then((request) => request(this.axios, this.basePath));
+        return CoreApiFp(this.configuration).modifyCoreConfig(body, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -2736,7 +2736,7 @@ export class CoreApi extends BaseAPI {
      * @memberof CoreApi
      */
     public restartCore(options?: RawAxiosRequestConfig) {
-        return CoreApiFp(this.configuration).restartCore(options).then((request) => request(this.axios, this.basePath));
+        return CoreApiFp(this.configuration).restartCore(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 }
 
@@ -2837,7 +2837,7 @@ export class DefaultApi extends BaseAPI {
      * @memberof DefaultApi
      */
     public base(options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).base(options).then((request) => request(this.axios, this.basePath));
+        return DefaultApiFp(this.configuration).base(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 }
 
@@ -3382,7 +3382,7 @@ export class NodeApi extends BaseAPI {
      * @memberof NodeApi
      */
     public addNode(nodeCreate: NodeCreate, options?: RawAxiosRequestConfig) {
-        return NodeApiFp(this.configuration).addNode(nodeCreate, options).then((request) => request(this.axios, this.basePath));
+        return NodeApiFp(this.configuration).addNode(nodeCreate, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -3394,7 +3394,7 @@ export class NodeApi extends BaseAPI {
      * @memberof NodeApi
      */
     public getNode(nodeId: number, options?: RawAxiosRequestConfig) {
-        return NodeApiFp(this.configuration).getNode(nodeId, options).then((request) => request(this.axios, this.basePath));
+        return NodeApiFp(this.configuration).getNode(nodeId, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -3405,7 +3405,7 @@ export class NodeApi extends BaseAPI {
      * @memberof NodeApi
      */
     public getNodeSettings(options?: RawAxiosRequestConfig) {
-        return NodeApiFp(this.configuration).getNodeSettings(options).then((request) => request(this.axios, this.basePath));
+        return NodeApiFp(this.configuration).getNodeSettings(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -3416,7 +3416,7 @@ export class NodeApi extends BaseAPI {
      * @memberof NodeApi
      */
     public getNodes(options?: RawAxiosRequestConfig) {
-        return NodeApiFp(this.configuration).getNodes(options).then((request) => request(this.axios, this.basePath));
+        return NodeApiFp(this.configuration).getNodes(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -3429,7 +3429,7 @@ export class NodeApi extends BaseAPI {
      * @memberof NodeApi
      */
     public getUsage(start?: string, end?: string, options?: RawAxiosRequestConfig) {
-        return NodeApiFp(this.configuration).getUsage(start, end, options).then((request) => request(this.axios, this.basePath));
+        return NodeApiFp(this.configuration).getUsage(start, end, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -3442,7 +3442,7 @@ export class NodeApi extends BaseAPI {
      * @memberof NodeApi
      */
     public modifyNode(nodeId: number, nodeModify: NodeModify, options?: RawAxiosRequestConfig) {
-        return NodeApiFp(this.configuration).modifyNode(nodeId, nodeModify, options).then((request) => request(this.axios, this.basePath));
+        return NodeApiFp(this.configuration).modifyNode(nodeId, nodeModify, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -3454,7 +3454,7 @@ export class NodeApi extends BaseAPI {
      * @memberof NodeApi
      */
     public reconnectNode(nodeId: number, options?: RawAxiosRequestConfig) {
-        return NodeApiFp(this.configuration).reconnectNode(nodeId, options).then((request) => request(this.axios, this.basePath));
+        return NodeApiFp(this.configuration).reconnectNode(nodeId, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -3466,7 +3466,7 @@ export class NodeApi extends BaseAPI {
      * @memberof NodeApi
      */
     public removeNode(nodeId: number, options?: RawAxiosRequestConfig) {
-        return NodeApiFp(this.configuration).removeNode(nodeId, options).then((request) => request(this.axios, this.basePath));
+        return NodeApiFp(this.configuration).removeNode(nodeId, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 }
 
@@ -3546,12 +3546,11 @@ export const SubscriptionApiAxiosParamCreator = function (configuration?: Config
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
+
+    
             if (userAgent != null) {
                 localVarHeaderParameter['user-agent'] = String(userAgent);
             }
-
-
-    
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -3623,12 +3622,11 @@ export const SubscriptionApiAxiosParamCreator = function (configuration?: Config
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
+
+    
             if (userAgent != null) {
                 localVarHeaderParameter['user-agent'] = String(userAgent);
             }
-
-
-    
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
@@ -3781,7 +3779,7 @@ export class SubscriptionApi extends BaseAPI {
      * @memberof SubscriptionApi
      */
     public userGetUsage(token: string, start?: string, end?: string, options?: RawAxiosRequestConfig) {
-        return SubscriptionApiFp(this.configuration).userGetUsage(token, start, end, options).then((request) => request(this.axios, this.basePath));
+        return SubscriptionApiFp(this.configuration).userGetUsage(token, start, end, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -3794,7 +3792,7 @@ export class SubscriptionApi extends BaseAPI {
      * @memberof SubscriptionApi
      */
     public userSubscription(token: string, userAgent?: string, options?: RawAxiosRequestConfig) {
-        return SubscriptionApiFp(this.configuration).userSubscription(token, userAgent, options).then((request) => request(this.axios, this.basePath));
+        return SubscriptionApiFp(this.configuration).userSubscription(token, userAgent, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -3806,7 +3804,7 @@ export class SubscriptionApi extends BaseAPI {
      * @memberof SubscriptionApi
      */
     public userSubscriptionInfo(token: string, options?: RawAxiosRequestConfig) {
-        return SubscriptionApiFp(this.configuration).userSubscriptionInfo(token, options).then((request) => request(this.axios, this.basePath));
+        return SubscriptionApiFp(this.configuration).userSubscriptionInfo(token, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -3820,7 +3818,7 @@ export class SubscriptionApi extends BaseAPI {
      * @memberof SubscriptionApi
      */
     public userSubscriptionWithClientType(clientType: string, token: string, userAgent?: string, options?: RawAxiosRequestConfig) {
-        return SubscriptionApiFp(this.configuration).userSubscriptionWithClientType(clientType, token, userAgent, options).then((request) => request(this.axios, this.basePath));
+        return SubscriptionApiFp(this.configuration).userSubscriptionWithClientType(clientType, token, userAgent, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 }
 
@@ -4098,7 +4096,7 @@ export class SystemApi extends BaseAPI {
      * @memberof SystemApi
      */
     public getHosts(options?: RawAxiosRequestConfig) {
-        return SystemApiFp(this.configuration).getHosts(options).then((request) => request(this.axios, this.basePath));
+        return SystemApiFp(this.configuration).getHosts(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -4109,7 +4107,7 @@ export class SystemApi extends BaseAPI {
      * @memberof SystemApi
      */
     public getInbounds(options?: RawAxiosRequestConfig) {
-        return SystemApiFp(this.configuration).getInbounds(options).then((request) => request(this.axios, this.basePath));
+        return SystemApiFp(this.configuration).getInbounds(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -4120,7 +4118,7 @@ export class SystemApi extends BaseAPI {
      * @memberof SystemApi
      */
     public getSystemStats(options?: RawAxiosRequestConfig) {
-        return SystemApiFp(this.configuration).getSystemStats(options).then((request) => request(this.axios, this.basePath));
+        return SystemApiFp(this.configuration).getSystemStats(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -4132,7 +4130,7 @@ export class SystemApi extends BaseAPI {
      * @memberof SystemApi
      */
     public modifyHosts(requestBody: { [key: string]: Array<ProxyHost>; }, options?: RawAxiosRequestConfig) {
-        return SystemApiFp(this.configuration).modifyHosts(requestBody, options).then((request) => request(this.axios, this.basePath));
+        return SystemApiFp(this.configuration).modifyHosts(requestBody, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 }
 
@@ -5146,7 +5144,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public activeNextPlan(username: string, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).activeNextPlan(username, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).activeNextPlan(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5158,7 +5156,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public addUser(userCreate: UserCreate, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).addUser(userCreate, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).addUser(userCreate, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5171,7 +5169,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public deleteExpiredUsers(expiredAfter?: string | null, expiredBefore?: string | null, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).deleteExpiredUsers(expiredAfter, expiredBefore, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).deleteExpiredUsers(expiredAfter, expiredBefore, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5184,7 +5182,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public getExpiredUsers(expiredAfter?: string | null, expiredBefore?: string | null, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).getExpiredUsers(expiredAfter, expiredBefore, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).getExpiredUsers(expiredAfter, expiredBefore, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5196,7 +5194,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public getUser(username: string, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).getUser(username, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).getUser(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5210,7 +5208,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public getUserUsage(username: string, start?: string, end?: string, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).getUserUsage(username, start, end, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).getUserUsage(username, start, end, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5228,7 +5226,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public getUsers(offset?: number, limit?: number, username?: Array<string>, search?: string | null, admin?: Array<string> | null, status?: UserStatus, sort?: string, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).getUsers(offset, limit, username, search, admin, status, sort, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).getUsers(offset, limit, username, search, admin, status, sort, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5242,7 +5240,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public getUsersUsage(start?: string, end?: string, admin?: Array<string> | null, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).getUsersUsage(start, end, admin, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).getUsersUsage(start, end, admin, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5255,7 +5253,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public modifyUser(username: string, userModify: UserModify, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).modifyUser(username, userModify, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).modifyUser(username, userModify, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5267,7 +5265,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public removeUser(username: string, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).removeUser(username, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).removeUser(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5279,7 +5277,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public resetUserDataUsage(username: string, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).resetUserDataUsage(username, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).resetUserDataUsage(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5290,7 +5288,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public resetUsersDataUsage(options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).resetUsersDataUsage(options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).resetUsersDataUsage(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5302,7 +5300,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public revokeUserSubscription(username: string, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).revokeUserSubscription(username, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).revokeUserSubscription(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5315,7 +5313,7 @@ export class UserApi extends BaseAPI {
      * @memberof UserApi
      */
     public setOwner(username: string, adminUsername: string, options?: RawAxiosRequestConfig) {
-        return UserApiFp(this.configuration).setOwner(username, adminUsername, options).then((request) => request(this.axios, this.basePath));
+        return UserApiFp(this.configuration).setOwner(username, adminUsername, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 }
 
@@ -5689,7 +5687,7 @@ export class UserTemplateApi extends BaseAPI {
      * @memberof UserTemplateApi
      */
     public addUserTemplate(userTemplateCreate: UserTemplateCreate, options?: RawAxiosRequestConfig) {
-        return UserTemplateApiFp(this.configuration).addUserTemplate(userTemplateCreate, options).then((request) => request(this.axios, this.basePath));
+        return UserTemplateApiFp(this.configuration).addUserTemplate(userTemplateCreate, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5701,7 +5699,7 @@ export class UserTemplateApi extends BaseAPI {
      * @memberof UserTemplateApi
      */
     public getUserTemplateEndpoint(templateId: number, options?: RawAxiosRequestConfig) {
-        return UserTemplateApiFp(this.configuration).getUserTemplateEndpoint(templateId, options).then((request) => request(this.axios, this.basePath));
+        return UserTemplateApiFp(this.configuration).getUserTemplateEndpoint(templateId, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5714,7 +5712,7 @@ export class UserTemplateApi extends BaseAPI {
      * @memberof UserTemplateApi
      */
     public getUserTemplates(offset?: number, limit?: number, options?: RawAxiosRequestConfig) {
-        return UserTemplateApiFp(this.configuration).getUserTemplates(offset, limit, options).then((request) => request(this.axios, this.basePath));
+        return UserTemplateApiFp(this.configuration).getUserTemplates(offset, limit, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5727,7 +5725,7 @@ export class UserTemplateApi extends BaseAPI {
      * @memberof UserTemplateApi
      */
     public modifyUserTemplate(templateId: number, userTemplateModify: UserTemplateModify, options?: RawAxiosRequestConfig) {
-        return UserTemplateApiFp(this.configuration).modifyUserTemplate(templateId, userTemplateModify, options).then((request) => request(this.axios, this.basePath));
+        return UserTemplateApiFp(this.configuration).modifyUserTemplate(templateId, userTemplateModify, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 
     /**
@@ -5739,7 +5737,7 @@ export class UserTemplateApi extends BaseAPI {
      * @memberof UserTemplateApi
      */
     public removeUserTemplate(templateId: number, options?: RawAxiosRequestConfig) {
-        return UserTemplateApiFp(this.configuration).removeUserTemplate(templateId, options).then((request) => request(this.axios, this.basePath));
+        return UserTemplateApiFp(this.configuration).removeUserTemplate(templateId, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
     }
 }
 

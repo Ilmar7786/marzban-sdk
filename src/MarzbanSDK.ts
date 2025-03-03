@@ -62,7 +62,7 @@ export class MarzbanSDK {
 
   private async authenticate(config: Config): Promise<void> {
     try {
-      const { data } = await this.admin.adminToken(
+      const data = await this.admin.adminToken(
         config.username,
         config.password
       );
@@ -97,7 +97,7 @@ export class MarzbanSDK {
     if (error?.response?.status === 401 && !errorConfig?.sent) {
       errorConfig.sent = true;
       try {
-        const { data } = await this.admin.adminToken(
+        const data = await this.admin.adminToken(
           config.username,
           config.password
         );

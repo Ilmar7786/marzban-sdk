@@ -1,6 +1,6 @@
 {
   "name": "marzban-sdk",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "license": "MIT",
   "description": "Fully typed and implementing all marzban methods",
   "private": false,
@@ -26,7 +26,24 @@
     "marzban vpn",
     "marzban vpn api",
     "marzban vpn api client",
-    "vpn"
+    "vpn",
+    "http-client",
+    "api-client",
+    "vpn",
+    "proxy",
+    "shadowsocks",
+    "v2ray",
+    "xray",
+    "trojan",
+    "wireguard",
+    "ssr",
+    "vmess",
+    "vless",
+    "hysteria",
+    "tuic",
+    "rest-api",
+    "http",
+    "networking"
   ],
   "dependencies": {
     "axios": "^1.7.9"

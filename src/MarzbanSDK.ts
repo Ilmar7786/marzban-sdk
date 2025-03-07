@@ -20,6 +20,8 @@ export interface Config {
 export class MarzbanSDK {
   private client: AxiosInstance;
   private configuration: Configuration;
+  private authPromise: Promise<void> | null = null;
+
   admin: AdminApi;
   core: CoreApi;
   node: NodeApi;
@@ -39,11 +41,19 @@ export class MarzbanSDK {
     this.user = new UserApi(this.configuration, undefined, this.client);
     this.system = new SystemApi(this.configuration, undefined, this.client);
     this.default = new DefaultApi(this.configuration, undefined, this.client);
-    this.subscription = new SubscriptionApi(this.configuration, undefined, this.client);
-    this.userTemplate = new UserTemplateApi(this.configuration, undefined, this.client);
+    this.subscription = new SubscriptionApi(
+      this.configuration,
+      undefined,
+      this.client
+    );
+    this.userTemplate = new UserTemplateApi(
+      this.configuration,
+      undefined,
+      this.client
+    );
 
     this.setupInterceptors(config);
-    this.authenticate(config);
+    this.authPromise = this.authenticate(config);
   }
 
   private createConfiguration(config: Config): Configuration {
@@ -61,22 +71,30 @@ export class MarzbanSDK {
   }
 
   private async authenticate(config: Config): Promise<void> {
-    try {
-      const data = await this.admin.adminToken(
-        config.username,
-        config.password
-      );
-      if (data?.access_token) {
-        this.configuration.accessToken = data.access_token;
+    this.authPromise = new Promise(async (resolve, reject) => {
+      try {
+        const admin = new AdminApi(this.configuration);
+        const data = await admin.adminToken(config.username, config.password);
+        if (data?.access_token) {
+          this.configuration.accessToken = data.access_token;
+
+          resolve();
+        } else {
+          reject(new Error("Failed to retrieve access token"));
+        }
+      } catch (error) {
+        console.error("Authentication failed", error);
+        reject(error);
       }
-    } catch (error) {
-      console.error("Authentication failed", error);
-    }
+    });
+
+    return this.authPromise;
   }
 
   private setupInterceptors(config: Config): void {
     this.client.interceptors.request.use(
-      (requestConfig) => {
+      async (requestConfig) => {
+        await this.waitForAuth();
         const accessToken = this.configuration.accessToken;
         requestConfig.headers.authorization = accessToken
           ? `Bearer ${accessToken}`
@@ -92,18 +110,21 @@ export class MarzbanSDK {
     );
   }
 
+  private async waitForAuth(): Promise<void> {
+    if (this.authPromise) {
+      await this.authPromise;
+    }
+  }
+
   private async handleUnauthorizedError(error: any, config: Config) {
     const errorConfig = error?.config;
     if (error?.response?.status === 401 && !errorConfig?.sent) {
       errorConfig.sent = true;
       try {
-        const data = await this.admin.adminToken(
-          config.username,
-          config.password
-        );
-        if (data?.access_token) {
-          this.configuration.accessToken = data.access_token;
-          errorConfig.headers.authorization = `Bearer ${data.access_token}`;
+        await this.authenticate(config);
+        const accessToken = this.configuration.accessToken;
+        if (accessToken) {
+          errorConfig.headers.authorization = `Bearer ${accessToken}`;
           return axios(errorConfig);
         }
       } catch (err) {

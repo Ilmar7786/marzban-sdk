@@ -37,4 +37,12 @@ export class AuthService {
       await this.authPromise;
     }
   }
+
+  get accessToken() {
+    return this.configuration.accessToken?.toString() || ""
+  }
+
+  set accessToken(token: string) {
+    this.configuration.accessToken = token
+  }
 }

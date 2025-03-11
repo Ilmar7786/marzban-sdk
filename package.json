@@ -1,6 +1,6 @@
 {
   "name": "marzban-sdk",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "license": "MIT",
   "description": "Fully typed and implementing all marzban methods",
   "private": false,
@@ -46,7 +46,8 @@
     "networking"
   ],
   "dependencies": {
-    "axios": "^1.7.9"
+    "axios": "^1.7.9",
+    "axios-retry": "^4.5.0"
   },
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "^2.17.0",

@@ -4,10 +4,19 @@ import { createAxiosClient } from "./createAxiosClient";
 import { AuthService } from "./authService";
 import { setupInterceptors } from "./interceptors";
 
+/**
+ * Configuration interface for MarzbanSDK.
+ * 
+ * @property {string} baseUrl - The base URL for the API.
+ * @property {string} username - The username for authentication.
+ * @property {string} password - The password for authentication.
+ * @property {number} [retries] - Optional number of retries for failed requests.
+ */
 export interface Config {
   baseUrl: string;
   username: string;
   password: string;
+  retries?: number
 }
 
 export class MarzbanSDK {
@@ -31,7 +40,7 @@ export class MarzbanSDK {
       password: config.password,
     });
 
-    this.client = createAxiosClient(config.baseUrl);
+    this.client = createAxiosClient(config.baseUrl, { retries: config.retries });
     this.authService = new AuthService(this.configuration);
 
     this.admin = new AdminApi(this.configuration, undefined, this.client);

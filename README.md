@@ -8,6 +8,7 @@ The Marzban SDK is a fully typed client library for interacting with the Marzban
 - Automatic token refresh.
 - Automatic retry mechanism for network requests.
 - Comprehensive method support.
+- WebSocket support for real-time log streaming core service and Nodes.
 
 ## Installation
 

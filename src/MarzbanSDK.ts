@@ -3,6 +3,7 @@ import { Configuration, AdminApi, CoreApi, NodeApi, UserApi, SystemApi, DefaultA
 import { createAxiosClient } from "./createAxiosClient";
 import { AuthService } from "./authService";
 import { setupInterceptors } from "./interceptors";
+import { LogsApi } from "./LogsApi";
 
 /**
  * Configuration interface for MarzbanSDK.
@@ -32,6 +33,7 @@ export class MarzbanSDK {
   default: DefaultApi;
   subscription: SubscriptionApi;
   userTemplate: UserTemplateApi;
+  logs: LogsApi;
 
   constructor(config: Config) {
     this.configuration = new Configuration({
@@ -51,6 +53,7 @@ export class MarzbanSDK {
     this.default = new DefaultApi(this.configuration, undefined, this.client);
     this.subscription = new SubscriptionApi(this.configuration, undefined, this.client);
     this.userTemplate = new UserTemplateApi(this.configuration, undefined, this.client);
+    this.logs = new LogsApi(config.baseUrl, this.authService)
 
     setupInterceptors(this.client, this.authService, config);
     this.authService.authenticate(config.username, config.password);

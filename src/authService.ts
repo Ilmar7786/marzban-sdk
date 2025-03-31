@@ -33,16 +33,29 @@ export class AuthService {
   }
 
   async waitForAuth(): Promise<void> {
-    if (this.authPromise) {
-      await this.authPromise;
-    }
+    let promises = true;
+
+    while (promises)
+      if (this.authPromise) {
+        promises = true;
+        await this.authPromise;
+      } else {
+        promises = false;
+      }
+  }
+
+  retryAuth() {
+    return this.authenticate(
+      this.configuration.username!,
+      this.configuration.password!
+    );
   }
 
   get accessToken() {
-    return this.configuration.accessToken?.toString() || ""
+    return this.configuration.accessToken?.toString() || "";
   }
 
   set accessToken(token: string) {
-    this.configuration.accessToken = token
+    this.configuration.accessToken = token;
   }
 }

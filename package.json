@@ -1,17 +1,24 @@
 {
   "name": "marzban-sdk",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "license": "MIT",
   "description": "The Marzban SDK is a fully typed client library for interacting with the Marzban API. It works in both browser and Node.js environments",
   "private": false,
   "author": "ilmar7786",
   "sideEffects": false,
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
-    "import": "./dist/index.mjs",
-    "require": "./dist/index.js"
+    "import": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "require": {
+      "types": "./dist/index.d.cts",
+      "require": "./dist/index.cjs"
+    }
   },
   "scripts": {
     "build": "tsup",
@@ -47,11 +54,13 @@
   ],
   "dependencies": {
     "axios": "^1.7.9",
-    "axios-retry": "^4.5.0"
+    "axios-retry": "^4.5.0",
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "^2.17.0",
-    "@types/node": "^22.13.8",
+    "@types/node": "^22.13.14",
+    "@types/ws": "^8.18.0",
     "esbuild": "^0.25.0",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",

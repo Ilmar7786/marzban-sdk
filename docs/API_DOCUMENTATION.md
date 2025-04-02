@@ -1,396 +1,433 @@
-# API Documentation
+# API Documentation 🚀
 
-## AdminApi
+Welcome to the API documentation. This document describes the available API endpoints, their parameters, and how to use them effectively.
+
+## Table of Contents
+
+- [AdminApi](#adminapi)
+- [CoreApi](#coreapi)
+- [DefaultApi](#defaultapi)
+- [NodeApi](#nodeapi)
+- [SubscriptionApi](#subscriptionapi)
+- [SystemApi](#systemapi)
+- [UserApi](#userapi)
+- [UserTemplateApi](#usertemplateapi)
+
+
+---
+## 🏢 AdminApi
+---
 Description of the **AdminApi** class.
 
-### activateAllDisabledUsers
+### 🛠 activateAllDisabledUsers
 Activate all disabled users under a specific admin
 
 **Parameters:**
-- `username` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### adminToken
+### 🛠 adminToken
 Authenticate an admin and issue a token.
 
 **Parameters:**
-- `username` (string)
-- `password` (string)
-- `grantType?` (string | null)
-- `scope?` (string)
-- `clientId?` (string | null)
-- `clientSecret?` (string | null)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `password` (*string*) – Description here.
+- `grantType?` (*string | null*) – Description here.
+- `scope?` (*string*) – Description here.
+- `clientId?` (*string | null*) – Description here.
+- `clientSecret?` (*string | null*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### createAdmin
+### 🛠 createAdmin
 Create a new admin if the current admin has sudo privileges.
 
 **Parameters:**
-- `adminCreate` (AdminCreate)
-- `options?` (RawAxiosRequestConfig)
+- `adminCreate` (*AdminCreate*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### disableAllActiveUsers
+### 🛠 disableAllActiveUsers
 Disable all active users under a specific admin
 
 **Parameters:**
-- `username` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getAdminUsage
+### 🛠 getAdminUsage
 Retrieve the usage of given admin.
 
 **Parameters:**
-- `username` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getAdmins
+### 🛠 getAdmins
 Fetch a list of admins with optional filters for pagination and username.
 
 **Parameters:**
-- `offset?` (number | null)
-- `limit?` (number | null)
-- `username?` (string | null)
-- `options?` (RawAxiosRequestConfig)
+- `offset?` (*number | null*) – Description here.
+- `limit?` (*number | null*) – Description here.
+- `username?` (*string | null*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getCurrentAdmin
+### 🛠 getCurrentAdmin
 Retrieve the current authenticated admin.
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### modifyAdmin
+### 🛠 modifyAdmin
 Modify an existing admin\'s details.
 
 **Parameters:**
-- `username` (string)
-- `adminModify` (AdminModify)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `adminModify` (*AdminModify*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### removeAdmin
+### 🛠 removeAdmin
 Remove an admin from the database.
 
 **Parameters:**
-- `username` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### resetAdminUsage
+### 🛠 resetAdminUsage
 Resets usage of admin.
 
 **Parameters:**
-- `username` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-## CoreApi
+
+---
+## 🏢 CoreApi
+---
 Description of the **CoreApi** class.
 
-### getCoreConfig
+### 🛠 getCoreConfig
 Get the current core configuration.
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getCoreStats
+### 🛠 getCoreStats
 Retrieve core statistics such as version and uptime.
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### modifyCoreConfig
+### 🛠 modifyCoreConfig
 Modify the core configuration and restart the core.
 
 **Parameters:**
-- `body` (object)
-- `options?` (RawAxiosRequestConfig)
+- `body` (*object*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### restartCore
+### 🛠 restartCore
 Restart the core and all connected nodes.
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-## DefaultApi
+
+---
+## 🏢 DefaultApi
+---
 Description of the **DefaultApi** class.
 
-### base
+### 🛠 base
 
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-## NodeApi
+
+---
+## 🏢 NodeApi
+---
 Description of the **NodeApi** class.
 
-### addNode
+### 🛠 addNode
 Add a new node to the database and optionally add it as a host.
 
 **Parameters:**
-- `nodeCreate` (NodeCreate)
-- `options?` (RawAxiosRequestConfig)
+- `nodeCreate` (*NodeCreate*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getNode
+### 🛠 getNode
 Retrieve details of a specific node by its ID.
 
 **Parameters:**
-- `nodeId` (number)
-- `options?` (RawAxiosRequestConfig)
+- `nodeId` (*number*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getNodeSettings
+### 🛠 getNodeSettings
 Retrieve the current node settings, including TLS certificate.
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getNodes
+### 🛠 getNodes
 Retrieve a list of all nodes. Accessible only to sudo admins.
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getUsage
+### 🛠 getUsage
 Retrieve usage statistics for nodes within a specified date range.
 
 **Parameters:**
-- `start?` (string)
-- `end?` (string)
-- `options?` (RawAxiosRequestConfig)
+- `start?` (*string*) – Description here.
+- `end?` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### modifyNode
+### 🛠 modifyNode
 Update a node\'s details. Only accessible to sudo admins.
 
 **Parameters:**
-- `nodeId` (number)
-- `nodeModify` (NodeModify)
-- `options?` (RawAxiosRequestConfig)
+- `nodeId` (*number*) – Description here.
+- `nodeModify` (*NodeModify*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### reconnectNode
+### 🛠 reconnectNode
 Trigger a reconnection for the specified node. Only accessible to sudo admins.
 
 **Parameters:**
-- `nodeId` (number)
-- `options?` (RawAxiosRequestConfig)
+- `nodeId` (*number*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### removeNode
+### 🛠 removeNode
 Delete a node and remove it from xray in the background.
 
 **Parameters:**
-- `nodeId` (number)
-- `options?` (RawAxiosRequestConfig)
+- `nodeId` (*number*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-## SubscriptionApi
+
+---
+## 🏢 SubscriptionApi
+---
 Description of the **SubscriptionApi** class.
 
-### userGetUsage
+### 🛠 userGetUsage
 Fetches the usage statistics for the user within a specified date range.
 
 **Parameters:**
-- `token` (string)
-- `start?` (string)
-- `end?` (string)
-- `options?` (RawAxiosRequestConfig)
+- `token` (*string*) – Description here.
+- `start?` (*string*) – Description here.
+- `end?` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### userSubscription
+### 🛠 userSubscription
 Provides a subscription link based on the user agent (Clash, V2Ray, etc.).
 
 **Parameters:**
-- `token` (string)
-- `userAgent?` (string)
-- `options?` (RawAxiosRequestConfig)
+- `token` (*string*) – Description here.
+- `userAgent?` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### userSubscriptionInfo
+### 🛠 userSubscriptionInfo
 Retrieves detailed information about the user\'s subscription.
 
 **Parameters:**
-- `token` (string)
-- `options?` (RawAxiosRequestConfig)
+- `token` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### userSubscriptionWithClientType
+### 🛠 userSubscriptionWithClientType
 Provides a subscription link based on the specified client type (e.g., Clash, V2Ray).
 
 **Parameters:**
-- `clientType` (string)
-- `token` (string)
-- `userAgent?` (string)
-- `options?` (RawAxiosRequestConfig)
+- `clientType` (*string*) – Description here.
+- `token` (*string*) – Description here.
+- `userAgent?` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-## SystemApi
+
+---
+## 🏢 SystemApi
+---
 Description of the **SystemApi** class.
 
-### getHosts
+### 🛠 getHosts
 Get a list of proxy hosts grouped by inbound tag.
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getInbounds
+### 🛠 getInbounds
 Retrieve inbound configurations grouped by protocol.
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getSystemStats
+### 🛠 getSystemStats
 Fetch system stats including memory, CPU, and user metrics.
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### modifyHosts
+### 🛠 modifyHosts
 Modify proxy hosts and update the configuration.
 
 **Parameters:**
-- `requestBody` ({ [key)
-- `options?` (RawAxiosRequestConfig)
+- `requestBody` (*{ [key*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-## UserApi
+
+---
+## 🏢 UserApi
+---
 Description of the **UserApi** class.
 
-### activeNextPlan
+### 🛠 activeNextPlan
 Reset user by next plan
 
 **Parameters:**
-- `username` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### addUser
+### 🛠 addUser
 Add a new user  - **username**: 3 to 32 characters, can include a-z, 0-9, and underscores. - **status**: User\'s status, defaults to `active`. Special rules if `on_hold`. - **expire**: UTC timestamp for account expiration. Use `0` for unlimited. - **data_limit**: Max data usage in bytes (e.g., `1073741824` for 1GB). `0` means unlimited. - **data_limit_reset_strategy**: Defines how/if data limit resets. `no_reset` means it never resets. - **proxies**: Dictionary of protocol settings (e.g., `vmess`, `vless`). - **inbounds**: Dictionary of protocol tags to specify inbound connections. - **note**: Optional text field for additional user information or notes. - **on_hold_timeout**: UTC timestamp when `on_hold` status should start or end. - **on_hold_expire_duration**: Duration (in seconds) for how long the user should stay in `on_hold` status. - **next_plan**: Next user plan (resets after use).
 
 **Parameters:**
-- `userCreate` (UserCreate)
-- `options?` (RawAxiosRequestConfig)
+- `userCreate` (*UserCreate*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### deleteExpiredUsers
+### 🛠 deleteExpiredUsers
 Delete users who have expired within the specified date range.  - **expired_after** UTC datetime (optional) - **expired_before** UTC datetime (optional) - At least one of expired_after or expired_before must be provided
 
 **Parameters:**
-- `expiredAfter?` (string | null)
-- `expiredBefore?` (string | null)
-- `options?` (RawAxiosRequestConfig)
+- `expiredAfter?` (*string | null*) – Description here.
+- `expiredBefore?` (*string | null*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getExpiredUsers
+### 🛠 getExpiredUsers
 Get users who have expired within the specified date range.  - **expired_after** UTC datetime (optional) - **expired_before** UTC datetime (optional) - At least one of expired_after or expired_before must be provided for filtering - If both are omitted, returns all expired users
 
 **Parameters:**
-- `expiredAfter?` (string | null)
-- `expiredBefore?` (string | null)
-- `options?` (RawAxiosRequestConfig)
+- `expiredAfter?` (*string | null*) – Description here.
+- `expiredBefore?` (*string | null*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getUser
+### 🛠 getUser
 Get user information
 
 **Parameters:**
-- `username` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getUserUsage
+### 🛠 getUserUsage
 Get users usage
 
 **Parameters:**
-- `username` (string)
-- `start?` (string)
-- `end?` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `start?` (*string*) – Description here.
+- `end?` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getUsers
+### 🛠 getUsers
 Get all users
 
 **Parameters:**
-- `offset?` (number)
-- `limit?` (number)
-- `username?` (Array<string>)
-- `search?` (string | null)
-- `admin?` (Array<string> | null)
-- `status?` (UserStatus)
-- `sort?` (string)
-- `options?` (RawAxiosRequestConfig)
+- `offset?` (*number*) – Description here.
+- `limit?` (*number*) – Description here.
+- `username?` (*Array<string>*) – Description here.
+- `search?` (*string | null*) – Description here.
+- `admin?` (*Array<string> | null*) – Description here.
+- `status?` (*UserStatus*) – Description here.
+- `sort?` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getUsersUsage
+### 🛠 getUsersUsage
 Get all users usage
 
 **Parameters:**
-- `start?` (string)
-- `end?` (string)
-- `admin?` (Array<string> | null)
-- `options?` (RawAxiosRequestConfig)
+- `start?` (*string*) – Description here.
+- `end?` (*string*) – Description here.
+- `admin?` (*Array<string> | null*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### modifyUser
+### 🛠 modifyUser
 Modify an existing user  - **username**: Cannot be changed. Used to identify the user. - **status**: User\'s new status. Can be \'active\', \'disabled\', \'on_hold\', \'limited\', or \'expired\'. - **expire**: UTC timestamp for new account expiration. Set to `0` for unlimited, `null` for no change. - **data_limit**: New max data usage in bytes (e.g., `1073741824` for 1GB). Set to `0` for unlimited, `null` for no change. - **data_limit_reset_strategy**: New strategy for data limit reset. Options include \'daily\', \'weekly\', \'monthly\', or \'no_reset\'. - **proxies**: Dictionary of new protocol settings (e.g., `vmess`, `vless`). Empty dictionary means no change. - **inbounds**: Dictionary of new protocol tags to specify inbound connections. Empty dictionary means no change. - **note**: New optional text for additional user information or notes. `null` means no change. - **on_hold_timeout**: New UTC timestamp for when `on_hold` status should start or end. Only applicable if status is changed to \'on_hold\'. - **on_hold_expire_duration**: New duration (in seconds) for how long the user should stay in `on_hold` status. Only applicable if status is changed to \'on_hold\'. - **next_plan**: Next user plan (resets after use).  Note: Fields set to `null` or omitted will not be modified.
 
 **Parameters:**
-- `username` (string)
-- `userModify` (UserModify)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `userModify` (*UserModify*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### removeUser
+### 🛠 removeUser
 Remove a user
 
 **Parameters:**
-- `username` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### resetUserDataUsage
+### 🛠 resetUserDataUsage
 Reset user data usage
 
 **Parameters:**
-- `username` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### resetUsersDataUsage
+### 🛠 resetUsersDataUsage
 Reset all users data usage
 
 **Parameters:**
-- `options?` (RawAxiosRequestConfig)
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### revokeUserSubscription
+### 🛠 revokeUserSubscription
 Revoke users subscription (Subscription link and proxies)
 
 **Parameters:**
-- `username` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### setOwner
+### 🛠 setOwner
 Set a new owner (admin) for a user.
 
 **Parameters:**
-- `username` (string)
-- `adminUsername` (string)
-- `options?` (RawAxiosRequestConfig)
+- `username` (*string*) – Description here.
+- `adminUsername` (*string*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-## UserTemplateApi
+
+---
+## 🏢 UserTemplateApi
+---
 Description of the **UserTemplateApi** class.
 
-### addUserTemplate
+### 🛠 addUserTemplate
 Add a new user template  - **name** can be up to 64 characters - **data_limit** must be in bytes and larger or equal to 0 - **expire_duration** must be in seconds and larger or equat to 0 - **inbounds** dictionary of protocol:inbound_tags, empty means all inbounds
 
 **Parameters:**
-- `userTemplateCreate` (UserTemplateCreate)
-- `options?` (RawAxiosRequestConfig)
+- `userTemplateCreate` (*UserTemplateCreate*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getUserTemplateEndpoint
+### 🛠 getUserTemplateEndpoint
 Get User Template information with id
 
 **Parameters:**
-- `templateId` (number)
-- `options?` (RawAxiosRequestConfig)
+- `templateId` (*number*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### getUserTemplates
+### 🛠 getUserTemplates
 Get a list of User Templates with optional pagination
 
 **Parameters:**
-- `offset?` (number)
-- `limit?` (number)
-- `options?` (RawAxiosRequestConfig)
+- `offset?` (*number*) – Description here.
+- `limit?` (*number*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### modifyUserTemplate
+### 🛠 modifyUserTemplate
 Modify User Template  - **name** can be up to 64 characters - **data_limit** must be in bytes and larger or equal to 0 - **expire_duration** must be in seconds and larger or equat to 0 - **inbounds** dictionary of protocol:inbound_tags, empty means all inbounds
 
 **Parameters:**
-- `templateId` (number)
-- `userTemplateModify` (UserTemplateModify)
-- `options?` (RawAxiosRequestConfig)
+- `templateId` (*number*) – Description here.
+- `userTemplateModify` (*UserTemplateModify*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 
-### removeUserTemplate
+### 🛠 removeUserTemplate
 Remove a User Template by its ID
 
 **Parameters:**
-- `templateId` (number)
-- `options?` (RawAxiosRequestConfig)
+- `templateId` (*number*) – Description here.
+- `options?` (*RawAxiosRequestConfig*) – Description here.
 

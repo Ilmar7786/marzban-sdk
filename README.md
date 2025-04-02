@@ -1,47 +1,55 @@
-# Marzban SDK
+<div align="center">
+  <img src="./docs/logo.png" alt="MarzbanSDK" width="320px" height="320px" />
+</div>
 
-The Marzban SDK is a fully typed client library for interacting with the Marzban API. It works in both browser and Node.js environments.
+# 🚀 MarzbanSDK
 
-## Features
+<div align="center">
 
-- Full TypeScript typing and schema definitions for all parameters, responses, and methods.
-- Automatic token refresh.
-- Automatic retry mechanism for network requests.
-- Comprehensive method support.
-- WebSocket support for real-time log streaming core service and Nodes.
+![npm version](https://img.shields.io/npm/v/marzban-sdk)
+![npm downloads](https://img.shields.io/npm/dm/marzban-sdk)
+![npm downloads](https://img.shields.io/npm/dt/marzban-sdk)
+![npm license](https://img.shields.io/npm/l/marzban-sdk)
+![github starts](https://img.shields.io/github/stars/Ilmar7786/marzban-sdk)
 
-## Installation
+</div>
+MarzbanSDK is a fully typed client library for interacting with the Marzban API. It supports both browser and Node.js environments, providing seamless integration and enhanced developer experience.
+
+## 📖 Table of Contents
+
+- [✨ Features](#-features)
+- [📦 Installation](#-installation)
+- [🚀 Quick Start](#-quick-start)
+- [🔍 How It Works](#-how-it-works)
+- [📚 API Documentation](#-api-documentation)
+- [📡 WebSocket Support](#-websocket-support)
+- [🤝 Contributing](#-contributing)
+- [📜 License](#-license)
+- [⭐ Support the Project](#-support-the-project)
+
+## ✨ Features
+
+- ✅ **Full TypeScript Support** – Schema definitions for all parameters, responses, and methods.
+- 🔄 **Automatic Token Refresh** – Keeps your session alive without manual intervention.
+- 🔁 **Retry Mechanism** – Ensures resilience against network failures.
+- 🛠️ **Comprehensive API Support** – Access all Marzban API features.
+- 📡 **[WebSocket Support](./docs/WEBSOCKET.md)** – Real-time log streaming from core services and nodes.
+
+## 📦 Installation
+
+Install MarzbanSDK via npm:
 
 ```sh
 npm install marzban-sdk
 ```
 
-## Full Typing and Schema
+Or using yarn:
 
-The SDK provides full TypeScript typing and schema definitions for all parameters, responses, and methods. This ensures type safety and better development experience.
-
-## Generated Sources
-
-The SDK uses generated sources from the OpenAPI specification to ensure up-to-date and accurate API methods. The entry point for the SDK is the `MarzbanSDK` class.
-
-## Usage
-
-### Importing the SDK
-
-```typescript
-import { MarzbanSDK, Config } from "marzban-sdk";
+```sh
+yarn add marzban-sdk
 ```
 
-### Configuration
-
-The `MarzbanSDK` constructor requires a configuration object with the following properties:
-
-- `baseUrl`: The base URL of the Marzban API.
-- `username`: The username for authentication.
-- `password`: The password for authentication.
-- `retries`: Optional parameter. Number of retry requests.
-
-### Example
+## 🚀 Quick Start
 
 ```typescript
 import { MarzbanSDK, Config } from "marzban-sdk";
@@ -50,87 +58,55 @@ const config: Config = {
   baseUrl: "https://api.example.com",
   username: "your-username",
   password: "your-password",
-  retries: 3, // optional parameter
+  retries: 3, // default 3
 };
 
 const sdk = new MarzbanSDK(config);
 
-// Example usage of a method
+// Fetch user details
 sdk.user.getUserById("user-id").then((user) => {
   console.log(user);
 });
 ```
 
-## API Documentation
+## 🔍 How It Works
 
-For detailed API documentation, please refer to the [API Documentation](./docs/API_DOCUMENTATION.md).
+### **1️⃣ Full Typing and Schema**
 
-## Logs Service via MarzbanSDK
+MarzbanSDK provides full TypeScript typing and schema definitions for all API methods, parameters, and responses.
 
-The `LogsApi` module in the `MarzbanSDK` allows you to connect to logs via WebSocket. This service supports automatic token refresh and retry mechanisms for failed connections.
+### **2️⃣ Generated Sources**
 
-### Connecting to Core Logs
+The SDK is **auto-generated from the OpenAPI specification**, ensuring it stays up-to-date with API changes.
 
-To connect to core logs, use the `connectByCore` method. It accepts an options object with callbacks for handling messages and errors. The `onError` callback is optional.
+- The entry point for the SDK is the **`MarzbanSDK`** class.
+- All API methods are dynamically generated based on the OpenAPI schema.
 
-```typescript
-import { MarzbanSDK, Config } from "marzban-sdk";
+## 📚 API Documentation
 
-const config: Config = {
-  baseUrl: "https://api.example.com",
-  username: "your-username",
-  password: "your-password",
-  retries: 3,
-};
+For detailed API reference, visit the [API Documentation](./docs/API_DOCUMENTATION.md).
 
-const sdk = new MarzbanSDK(config);
+## 📡 WebSocket Support
 
-const closeConnection = await sdk.logs.connectByCore({
-  interval: 5, // Interval for sending messages (in seconds)
-  onMessage: (data) => {
-    console.log("Received message:", data);
-  },
-  // Optional error handler
-  onError: (error) => {
-    console.error("Connection error:", error);
-  },
-});
+MarzbanSDK supports WebSocket for **real-time log streaming**.  
+You can receive logs from both the **core server** and individual **nodes**.
 
-// To close the connection, call the returned function
-closeConnection();
-```
+For more details, check the [WebSocket Guide](./docs/WEBSOCKET.md).
 
-### Connecting to Node Logs
+## 🤝 Contributing
 
-To connect to logs for a specific node, use the `connectByNode` method. Provide the node ID and an options object. The `onError` callback is optional.
+We welcome contributions! If you'd like to improve MarzbanSDK, please:
 
-```typescript
-const nodes = await sdk.node.getNodes();
+1. Fork the repository 🚀
+2. Create a new branch 🔧
+3. Submit a pull request 🎉
 
-const closeNodeConnection = await sdk.logs.connectByNode(nodes[0].id, {
-  interval: 10,
-  onMessage: (data) => {
-    console.log("Node logs:", data);
-  },
-  // Optional error handler
-  onError: (error) => {
-    console.error("Node connection error:", error);
-  },
-});
+For details, check our [Contribution Guidelines](./CONTRIBUTING.md).
 
-// To close the connection, call the returned function
-closeNodeConnection();
-```
-
-### Closing All Connections
-
-You can close all active WebSocket connections using the `closeAllConnections` method.
-
-```typescript
-sdk.logs.closeAllConnections();
-console.log("All WebSocket connections closed.");
-```
-
-## License
+## 📜 License
 
 This project is licensed under the MIT License.
+
+## ⭐ Support the Project
+
+If you find marzban-sdk useful, please give it a star on [GitHub](https://github.com/Ilmar7786/marzban-sdk)! It helps us stay motivated and grow the project.

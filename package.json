@@ -1,6 +1,6 @@
 {
   "name": "marzban-sdk",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "license": "MIT",
   "description": "The Marzban SDK is a fully typed client library for interacting with the Marzban API. It works in both browser and Node.js environments",
   "private": false,
@@ -8,7 +8,7 @@
   "sideEffects": false,
   "type": "module",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     "import": {
@@ -24,7 +24,8 @@
     "build": "tsup",
     "clean": "rimraf dist",
     "dev": "tsup --watch",
-    "codegen": "rm -rf src/generated-sources; openapi-generator-cli generate -i ./openapi/openapi.json -g typescript-axios -o src/generated-sources --additional-properties=supportsES6=true,npmVersion=6.9.0,typescriptThreePlus=true --template-dir ./codegen/typescript-axios"
+    "codegen": "rm -rf src/generated-sources; openapi-generator-cli generate -i ./openapi/openapi.json -g typescript-axios -o src/generated-sources --additional-properties=supportsES6=true,npmVersion=6.9.0,typescriptThreePlus=true --template-dir ./codegen/typescript-axios",
+    "generate:docs": "node ./tools/generateDocs.js"
   },
   "keywords": [
     "marzban-sdk",

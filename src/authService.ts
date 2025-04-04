@@ -19,10 +19,12 @@ export class AuthService {
           this.configuration.accessToken = data.access_token;
           resolve();
         } else {
+          this.configuration.accessToken = undefined
           reject(new Error("Failed to retrieve access token"));
         }
       } catch (error) {
         console.error("Authentication failed", error);
+        this.configuration.accessToken = undefined
         reject(error);
       } finally {
         this.authPromise = null;

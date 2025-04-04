@@ -58,7 +58,8 @@ const config: Config = {
   baseUrl: "https://api.example.com",
   username: "your-username",
   password: "your-password",
-  retries: 3, // default 3
+  retries: 3, // Option. default 3
+  token: 'token' // Option
 };
 
 const sdk = new MarzbanSDK(config);
@@ -66,6 +67,11 @@ const sdk = new MarzbanSDK(config);
 // Fetch user details
 sdk.user.getUserById("user-id").then((user) => {
   console.log(user);
+});
+
+// get an authorization token
+sdk.getAuthToken().then((token) => {
+  console.log(token)
 });
 ```
 

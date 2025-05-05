@@ -1,21 +1,21 @@
-import { AuthService } from "./authService";
-import { configurationUrlWs } from "./utils/configurationUrlWs";
-import { BaseWebSocketClient, WebSocketClient, WebSocketEventMap } from "./WebSocketClient";
+import { AuthService } from './AuthService'
+import { configurationUrlWs } from './utils/configurationUrlWs'
+import { BaseWebSocketClient, WebSocketClient, WebSocketEventMap } from './WebSocketClient'
 
 export interface LogOptions {
   /** Interval for sending messages (in seconds) */
-  interval?: number;
+  interval?: number
   /** Callback triggered when a message is received */
-  onMessage: (data: WebSocketEventMap["message"]["data"]) => void;
+  onMessage: (data: WebSocketEventMap['message']['data']) => void
   /** Callback triggered when a connection error occurs */
-  onError?: (data: WebSocketEventMap["error"]) => void;
+  onError?: (data: WebSocketEventMap['error']) => void
 }
 
 export class LogsApi {
-  private basePath: string;
-  private authService: AuthService;
-  private activeConnections: Set<BaseWebSocketClient> = new Set();
-  private maxRetries = 3;
+  private basePath: string
+  private authService: AuthService
+  private activeConnections: Set<BaseWebSocketClient> = new Set()
+  private maxRetries = 3
 
   /**
    * Creates an API instance for handling logs via WebSocket.
@@ -23,8 +23,8 @@ export class LogsApi {
    * @param authService Authentication service for managing tokens.
    */
   constructor(basePath: string, authService: AuthService) {
-    this.basePath = basePath;
-    this.authService = authService;
+    this.basePath = basePath
+    this.authService = authService
   }
 
   /**
@@ -33,8 +33,8 @@ export class LogsApi {
    */
   private async ensureAuthenticated() {
     if (!this.authService.accessToken) {
-      await this.authService.waitForAuth();
-      await this.authService.retryAuth();
+      await this.authService.waitForAuth()
+      await this.authService.retryAuth()
     }
   }
 
@@ -46,56 +46,52 @@ export class LogsApi {
    * @param retryCount The number of retry attempts in case of failure (default is 0).
    * @returns A function to close the WebSocket connection.
    */
-  private async connect(
-    endpoint: string,
-    options: LogOptions,
-    retryCount = 0
-  ): Promise<() => void> {
-    await this.ensureAuthenticated();
+  private async connect(endpoint: string, options: LogOptions, retryCount = 0): Promise<() => void> {
+    await this.ensureAuthenticated()
 
     const wsUrl = configurationUrlWs({
       basePath: this.basePath,
       endpoint,
       token: this.authService.accessToken,
       interval: options?.interval ?? 1,
-    });
+    })
 
-    const wsClient = WebSocketClient.create(wsUrl);
-    this.activeConnections.add(wsClient);
+    const wsClient = WebSocketClient.create(wsUrl)
+    this.activeConnections.add(wsClient)
 
-    wsClient.on("open", () => console.log(`Connected to ${endpoint}`));
-    wsClient.on("message", ({ data }) => options.onMessage(data));
+    wsClient.on('open', () => console.log(`Connected to ${endpoint}`))
+    wsClient.on('message', ({ data }) => options.onMessage(data))
 
-    wsClient.on("error", async (event) => {
-      const errorMessage = (event as any).message || "";
+    wsClient.on('error', async event => {
+      const errorMessage = (event as Event & { message: string }).message || ''
 
-      console.error(`WebSocket error (${endpoint}):`, errorMessage);
+      console.error(`WebSocket error (${endpoint}):`, errorMessage)
 
-      if (errorMessage.includes("403")) {
-        console.warn(`Received 403 (retry ${retryCount + 1}/${this.maxRetries})`);
+      if (errorMessage.includes('403')) {
+        console.warn(`Received 403 (retry ${retryCount + 1}/${this.maxRetries})`)
 
         if (retryCount >= this.maxRetries) {
-          console.error("Max retries reached. Connection failed.");
-          options.onError?.(event);
-          return;
+          console.error('Max retries reached. Connection failed.')
+          options.onError?.(event)
+          return
         }
 
-        await this.authService.retryAuth();
-        return this.connect(endpoint, options, retryCount + 1);
+        await this.authService.retryAuth()
+        return this.connect(endpoint, options, retryCount + 1)
       }
 
-      options.onError?.(event);
-    });
+      options.onError?.(event)
+    })
 
-    wsClient.on("close", () => {
-      this.activeConnections.delete(wsClient);
-      console.log(`Disconnected from ${endpoint}`);
-    });
+    wsClient.on('close', () => {
+      this.activeConnections.delete(wsClient)
+      console.log(`Disconnected from ${endpoint}`)
+    })
 
     return () => {
-      wsClient.close();
-      this.activeConnections.delete(wsClient);
-    };
+      wsClient.close()
+      this.activeConnections.delete(wsClient)
+    }
   }
 
   /**
@@ -104,7 +100,7 @@ export class LogsApi {
    * @returns A function to close the WebSocket connection.
    */
   async connectByCore(options: LogOptions) {
-    return this.connect("/api/core/logs", options);
+    return this.connect('/api/core/logs', options)
   }
 
   /**
@@ -114,15 +110,15 @@ export class LogsApi {
    * @returns A function to close the WebSocket connection.
    */
   async connectByNode(nodeId: number | string, options: LogOptions) {
-    return this.connect(`/api/node/${nodeId}/logs`, options);
+    return this.connect(`/api/node/${nodeId}/logs`, options)
   }
 
   /**
    * Closes all active WebSocket connections.
    */
   closeAllConnections() {
-    this.activeConnections.forEach((wsClient) => wsClient.close());
-    this.activeConnections.clear();
-    console.log("All WebSocket connections closed.");
+    this.activeConnections.forEach(wsClient => wsClient.close())
+    this.activeConnections.clear()
+    console.log('All WebSocket connections closed.')
   }
 }

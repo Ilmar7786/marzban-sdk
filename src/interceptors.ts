@@ -1,6 +1,6 @@
-import { AxiosInstance } from "axios";
+import { AxiosInstance } from 'axios'
 
-import { AuthService } from "./authService";
+import { AuthService } from './AuthService'
 
 /**
  * Sets up interceptors for the Axios client.
@@ -17,35 +17,33 @@ export const setupInterceptors = (
   config: { username: string; password: string }
 ) => {
   client.interceptors.request.use(
-    async (requestConfig) => {
-      await authService.waitForAuth();
-      const accessToken = authService.accessToken;
-      requestConfig.headers.authorization = accessToken
-        ? `Bearer ${accessToken}`
-        : undefined;
-      return requestConfig;
+    async requestConfig => {
+      await authService.waitForAuth()
+      const accessToken = authService.accessToken
+      requestConfig.headers.authorization = accessToken ? `Bearer ${accessToken}` : undefined
+      return requestConfig
     },
-    (error) => Promise.reject(error)
-  );
+    error => Promise.reject(error)
+  )
 
   client.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      const retryConfig = error?.config;
+    response => response,
+    async error => {
+      const retryConfig = error?.config
       if (error?.response?.status === 401 && !retryConfig?.sent) {
-        retryConfig.sent = true;
+        retryConfig.sent = true
         try {
-          await authService.authenticate(config.username, config.password);
-          const accessToken = authService.accessToken;
+          await authService.authenticate(config.username, config.password)
+          const accessToken = authService.accessToken
           if (accessToken) {
-            retryConfig.headers.authorization = `Bearer ${accessToken}`;
-            return client(retryConfig);
+            retryConfig.headers.authorization = `Bearer ${accessToken}`
+            return client(retryConfig)
           }
         } catch (err) {
-          return Promise.reject(err);
+          return Promise.reject(err)
         }
       }
-      return Promise.reject(error);
+      return Promise.reject(error)
     }
-  );
-};
+  )
+}

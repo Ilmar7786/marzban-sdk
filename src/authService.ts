@@ -1,63 +1,63 @@
-import { Configuration, AdminApi } from "./generated-sources";
+import { AdminApi, Configuration } from './generated-sources'
 
 export class AuthService {
-  private configuration: Configuration;
-  private authPromise: Promise<void> | null = null;
+  private configuration: Configuration
+  private authPromise: Promise<void> | null = null
 
   constructor(configuration: Configuration) {
-    this.configuration = configuration;
+    this.configuration = configuration
   }
 
   async authenticate(username: string, password: string): Promise<void> {
-    if (this.authPromise) return this.authPromise;
+    if (this.authPromise) return this.authPromise
 
-    this.authPromise = new Promise(async (resolve, reject) => {
-      try {
-        const admin = new AdminApi(this.configuration);
-        const data = await admin.adminToken(username, password);
-        if (data?.access_token) {
-          this.configuration.accessToken = data.access_token;
-          resolve();
-        } else {
+    this.authPromise = new Promise((resolve, reject) => {
+      const authenticateAsync = async () => {
+        try {
+          const admin = new AdminApi(this.configuration)
+          const data = await admin.adminToken(username, password)
+          if (data?.access_token) {
+            this.configuration.accessToken = data.access_token
+            resolve()
+          } else {
+            this.configuration.accessToken = undefined
+            reject(new Error('Failed to retrieve access token'))
+          }
+        } catch (error) {
+          console.error('Authentication failed', error)
           this.configuration.accessToken = undefined
-          reject(new Error("Failed to retrieve access token"));
+          reject(error)
+        } finally {
+          this.authPromise = null
         }
-      } catch (error) {
-        console.error("Authentication failed", error);
-        this.configuration.accessToken = undefined
-        reject(error);
-      } finally {
-        this.authPromise = null;
       }
-    });
+      authenticateAsync()
+    })
 
-    return this.authPromise;
+    return this.authPromise
   }
 
   async waitForAuth(): Promise<void> {
-    let promises = true;
+    let promises = true
 
     while (promises)
       if (this.authPromise) {
-        promises = true;
-        await this.authPromise;
+        promises = true
+        await this.authPromise
       } else {
-        promises = false;
+        promises = false
       }
   }
 
   retryAuth() {
-    return this.authenticate(
-      this.configuration.username!,
-      this.configuration.password!
-    );
+    return this.authenticate(this.configuration.username!, this.configuration.password!)
   }
 
   get accessToken() {
-    return this.configuration.accessToken?.toString() || "";
+    return this.configuration.accessToken?.toString() || ''
   }
 
   set accessToken(token: string) {
-    this.configuration.accessToken = token;
+    this.configuration.accessToken = token
   }
 }

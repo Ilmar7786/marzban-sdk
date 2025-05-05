@@ -52,27 +52,27 @@ yarn add marzban-sdk
 ## 🚀 Quick Start
 
 ```typescript
-import { MarzbanSDK, Config } from "marzban-sdk";
+import { MarzbanSDK, Config } from 'marzban-sdk'
 
 const config: Config = {
-  baseUrl: "https://api.example.com",
-  username: "your-username",
-  password: "your-password",
+  baseUrl: 'https://api.example.com',
+  username: 'your-username',
+  password: 'your-password',
   retries: 3, // Option. default 3
-  token: 'token' // Option
-};
+  token: 'token', // Option
+}
 
-const sdk = new MarzbanSDK(config);
+const sdk = new MarzbanSDK(config)
 
 // Fetch user details
-sdk.user.getUserById("user-id").then((user) => {
-  console.log(user);
-});
+sdk.user.getUserById('user-id').then(user => {
+  console.log(user)
+})
 
 // get an authorization token
-sdk.getAuthToken().then((token) => {
+sdk.getAuthToken().then(token => {
   console.log(token)
-});
+})
 ```
 
 ## 🔍 How It Works

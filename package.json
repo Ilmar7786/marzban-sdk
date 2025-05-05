@@ -1,6 +1,6 @@
 {
   "name": "marzban-sdk",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "license": "MIT",
   "description": "The Marzban SDK is a fully typed client library for interacting with the Marzban API. It works in both browser and Node.js environments",
   "private": false,
@@ -25,7 +25,10 @@
     "clean": "rimraf dist",
     "dev": "tsup --watch",
     "codegen": "rm -rf src/generated-sources; openapi-generator-cli generate -i ./openapi/openapi.json -g typescript-axios -o src/generated-sources --additional-properties=supportsES6=true,npmVersion=6.9.0,typescriptThreePlus=true --template-dir ./codegen/typescript-axios",
-    "generate:docs": "node ./tools/generateDocs.js"
+    "generate:docs": "node ./tools/generateDocs.js",
+    "commitlint": "commitlint --edit",
+    "prepare": "husky",
+    "format": "prettier --write ."
   },
   "keywords": [
     "marzban-sdk",
@@ -54,15 +57,20 @@
     "networking"
   ],
   "dependencies": {
-    "axios": "^1.7.9",
+    "axios": "^1.8.4",
     "axios-retry": "^4.5.0",
+    "prettier": "^3.5.3",
     "ws": "^8.18.1"
   },
   "devDependencies": {
-    "@openapitools/openapi-generator-cli": "^2.17.0",
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
+    "@openapitools/openapi-generator-cli": "^2.20.0",
     "@types/node": "^22.13.14",
     "@types/ws": "^8.18.0",
     "esbuild": "^0.25.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.1",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
     "tsup": "^8.3.6",

@@ -14,12 +14,21 @@
 
 
 
-export * from './apis/admin-api';
-export * from './apis/core-api';
-export * from './apis/default-api';
-export * from './apis/node-api';
-export * from './apis/subscription-api';
-export * from './apis/system-api';
-export * from './apis/user-api';
-export * from './apis/user-template-api';
+/**
+ * 
+ * @export
+ * @enum {string}
+ */
+
+export const UserDataLimitResetStrategy = {
+    NoReset: 'no_reset',
+    Day: 'day',
+    Week: 'week',
+    Month: 'month',
+    Year: 'year'
+} as const;
+
+export type UserDataLimitResetStrategy = typeof UserDataLimitResetStrategy[keyof typeof UserDataLimitResetStrategy];
+
+
 

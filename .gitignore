@@ -136,3 +136,5 @@ dist
 .pnp.*
 
 .vscode
+
+.openapi-generator

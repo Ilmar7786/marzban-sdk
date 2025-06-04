@@ -14,12 +14,17 @@
 
 
 
-export * from './apis/admin-api';
-export * from './apis/core-api';
-export * from './apis/default-api';
-export * from './apis/node-api';
-export * from './apis/subscription-api';
-export * from './apis/system-api';
-export * from './apis/user-api';
-export * from './apis/user-template-api';
+/**
+ * 
+ * @export
+ * @interface Unauthorized
+ */
+export interface Unauthorized {
+    /**
+     * 
+     * @type {string}
+     * @memberof Unauthorized
+     */
+    'detail'?: string;
+}
 

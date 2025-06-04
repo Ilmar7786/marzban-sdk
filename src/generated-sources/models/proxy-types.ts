@@ -14,12 +14,20 @@
 
 
 
-export * from './apis/admin-api';
-export * from './apis/core-api';
-export * from './apis/default-api';
-export * from './apis/node-api';
-export * from './apis/subscription-api';
-export * from './apis/system-api';
-export * from './apis/user-api';
-export * from './apis/user-template-api';
+/**
+ * 
+ * @export
+ * @enum {string}
+ */
+
+export const ProxyTypes = {
+    Vmess: 'vmess',
+    Vless: 'vless',
+    Trojan: 'trojan',
+    Shadowsocks: 'shadowsocks'
+} as const;
+
+export type ProxyTypes = typeof ProxyTypes[keyof typeof ProxyTypes];
+
+
 

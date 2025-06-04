@@ -14,12 +14,23 @@
 
 
 
-export * from './apis/admin-api';
-export * from './apis/core-api';
-export * from './apis/default-api';
-export * from './apis/node-api';
-export * from './apis/subscription-api';
-export * from './apis/system-api';
-export * from './apis/user-api';
-export * from './apis/user-template-api';
+/**
+ * 
+ * @export
+ * @enum {string}
+ */
+
+export const ProxyHostALPN = {
+    Empty: '',
+    H3: 'h3',
+    H2: 'h2',
+    Http11: 'http/1.1',
+    H3h2http11: 'h3,h2,http/1.1',
+    H3h2: 'h3,h2',
+    H2http11: 'h2,http/1.1'
+} as const;
+
+export type ProxyHostALPN = typeof ProxyHostALPN[keyof typeof ProxyHostALPN];
+
+
 

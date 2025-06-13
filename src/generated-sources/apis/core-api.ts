@@ -31,7 +31,6 @@ import type { HTTPValidationError } from '../models';
 import type { Unauthorized } from '../models';
 /**
  * CoreApi - axios parameter creator
- * @export
  */
 export const CoreApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
@@ -182,7 +181,6 @@ export const CoreApiAxiosParamCreator = function (configuration?: Configuration)
 
 /**
  * CoreApi - functional programming interface
- * @export
  */
 export const CoreApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = CoreApiAxiosParamCreator(configuration)
@@ -241,7 +239,6 @@ export const CoreApiFp = function(configuration?: Configuration) {
 
 /**
  * CoreApi - factory interface
- * @export
  */
 export const CoreApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = CoreApiFp(configuration)
@@ -288,9 +285,9 @@ export const CoreApiFactory = function (configuration?: Configuration, basePath?
 
 /**
  * CoreApi - object-oriented interface
- * @export
  * @class CoreApi
  * @extends {BaseAPI}
+ * @hideconstructor
  */
 export class CoreApi extends BaseAPI {
     /**
@@ -298,7 +295,6 @@ export class CoreApi extends BaseAPI {
      * @summary Get Core Config
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof CoreApi
      */
     public getCoreConfig(options?: RawAxiosRequestConfig) {
         return CoreApiFp(this.configuration).getCoreConfig(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -309,7 +305,6 @@ export class CoreApi extends BaseAPI {
      * @summary Get Core Stats
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof CoreApi
      */
     public getCoreStats(options?: RawAxiosRequestConfig) {
         return CoreApiFp(this.configuration).getCoreStats(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -321,7 +316,6 @@ export class CoreApi extends BaseAPI {
      * @param {object} body 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof CoreApi
      */
     public modifyCoreConfig(body: object, options?: RawAxiosRequestConfig) {
         return CoreApiFp(this.configuration).modifyCoreConfig(body, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -332,7 +326,6 @@ export class CoreApi extends BaseAPI {
      * @summary Restart Core
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof CoreApi
      */
     public restartCore(options?: RawAxiosRequestConfig) {
         return CoreApiFp(this.configuration).restartCore(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);

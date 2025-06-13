@@ -31,7 +31,6 @@ import type { UserTemplateModify } from '../models';
 import type { UserTemplateResponse } from '../models';
 /**
  * UserTemplateApi - axios parameter creator
- * @export
  */
 export const UserTemplateApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
@@ -244,7 +243,6 @@ export const UserTemplateApiAxiosParamCreator = function (configuration?: Config
 
 /**
  * UserTemplateApi - functional programming interface
- * @export
  */
 export const UserTemplateApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = UserTemplateApiAxiosParamCreator(configuration)
@@ -321,7 +319,6 @@ export const UserTemplateApiFp = function(configuration?: Configuration) {
 
 /**
  * UserTemplateApi - factory interface
- * @export
  */
 export const UserTemplateApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = UserTemplateApiFp(configuration)
@@ -383,9 +380,9 @@ export const UserTemplateApiFactory = function (configuration?: Configuration, b
 
 /**
  * UserTemplateApi - object-oriented interface
- * @export
  * @class UserTemplateApi
  * @extends {BaseAPI}
+ * @hideconstructor
  */
 export class UserTemplateApi extends BaseAPI {
     /**
@@ -394,7 +391,6 @@ export class UserTemplateApi extends BaseAPI {
      * @param {UserTemplateCreate} userTemplateCreate 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserTemplateApi
      */
     public addUserTemplate(userTemplateCreate: UserTemplateCreate, options?: RawAxiosRequestConfig) {
         return UserTemplateApiFp(this.configuration).addUserTemplate(userTemplateCreate, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -406,7 +402,6 @@ export class UserTemplateApi extends BaseAPI {
      * @param {number} templateId 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserTemplateApi
      */
     public getUserTemplateEndpoint(templateId: number, options?: RawAxiosRequestConfig) {
         return UserTemplateApiFp(this.configuration).getUserTemplateEndpoint(templateId, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -419,7 +414,6 @@ export class UserTemplateApi extends BaseAPI {
      * @param {number} [limit] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserTemplateApi
      */
     public getUserTemplates(offset?: number, limit?: number, options?: RawAxiosRequestConfig) {
         return UserTemplateApiFp(this.configuration).getUserTemplates(offset, limit, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -432,7 +426,6 @@ export class UserTemplateApi extends BaseAPI {
      * @param {UserTemplateModify} userTemplateModify 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserTemplateApi
      */
     public modifyUserTemplate(templateId: number, userTemplateModify: UserTemplateModify, options?: RawAxiosRequestConfig) {
         return UserTemplateApiFp(this.configuration).modifyUserTemplate(templateId, userTemplateModify, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -444,7 +437,6 @@ export class UserTemplateApi extends BaseAPI {
      * @param {number} templateId 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserTemplateApi
      */
     public removeUserTemplate(templateId: number, options?: RawAxiosRequestConfig) {
         return UserTemplateApiFp(this.configuration).removeUserTemplate(templateId, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);

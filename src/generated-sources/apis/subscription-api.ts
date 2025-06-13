@@ -27,7 +27,6 @@ import type { HTTPValidationError } from '../models';
 import type { SubscriptionUserResponse } from '../models';
 /**
  * SubscriptionApi - axios parameter creator
- * @export
  */
 export const SubscriptionApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
@@ -194,7 +193,6 @@ export const SubscriptionApiAxiosParamCreator = function (configuration?: Config
 
 /**
  * SubscriptionApi - functional programming interface
- * @export
  */
 export const SubscriptionApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = SubscriptionApiAxiosParamCreator(configuration)
@@ -261,7 +259,6 @@ export const SubscriptionApiFp = function(configuration?: Configuration) {
 
 /**
  * SubscriptionApi - factory interface
- * @export
  */
 export const SubscriptionApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = SubscriptionApiFp(configuration)
@@ -316,9 +313,9 @@ export const SubscriptionApiFactory = function (configuration?: Configuration, b
 
 /**
  * SubscriptionApi - object-oriented interface
- * @export
  * @class SubscriptionApi
  * @extends {BaseAPI}
+ * @hideconstructor
  */
 export class SubscriptionApi extends BaseAPI {
     /**
@@ -329,7 +326,6 @@ export class SubscriptionApi extends BaseAPI {
      * @param {string} [end] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof SubscriptionApi
      */
     public userGetUsage(token: string, start?: string, end?: string, options?: RawAxiosRequestConfig) {
         return SubscriptionApiFp(this.configuration).userGetUsage(token, start, end, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -342,7 +338,6 @@ export class SubscriptionApi extends BaseAPI {
      * @param {string} [userAgent] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof SubscriptionApi
      */
     public userSubscription(token: string, userAgent?: string, options?: RawAxiosRequestConfig) {
         return SubscriptionApiFp(this.configuration).userSubscription(token, userAgent, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -354,7 +349,6 @@ export class SubscriptionApi extends BaseAPI {
      * @param {string} token 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof SubscriptionApi
      */
     public userSubscriptionInfo(token: string, options?: RawAxiosRequestConfig) {
         return SubscriptionApiFp(this.configuration).userSubscriptionInfo(token, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -368,7 +362,6 @@ export class SubscriptionApi extends BaseAPI {
      * @param {string} [userAgent] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof SubscriptionApi
      */
     public userSubscriptionWithClientType(clientType: string, token: string, userAgent?: string, options?: RawAxiosRequestConfig) {
         return SubscriptionApiFp(this.configuration).userSubscriptionWithClientType(clientType, token, userAgent, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);

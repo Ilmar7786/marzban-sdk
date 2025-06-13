@@ -49,7 +49,6 @@ import type { UsersResponse } from '../models';
 import type { UsersUsagesResponse } from '../models';
 /**
  * UserApi - axios parameter creator
- * @export
  */
 export const UserApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
@@ -673,7 +672,6 @@ export const UserApiAxiosParamCreator = function (configuration?: Configuration)
 
 /**
  * UserApi - functional programming interface
- * @export
  */
 export const UserApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = UserApiAxiosParamCreator(configuration)
@@ -878,7 +876,6 @@ export const UserApiFp = function(configuration?: Configuration) {
 
 /**
  * UserApi - factory interface
- * @export
  */
 export const UserApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = UserApiFp(configuration)
@@ -1041,9 +1038,9 @@ export const UserApiFactory = function (configuration?: Configuration, basePath?
 
 /**
  * UserApi - object-oriented interface
- * @export
  * @class UserApi
  * @extends {BaseAPI}
+ * @hideconstructor
  */
 export class UserApi extends BaseAPI {
     /**
@@ -1052,7 +1049,6 @@ export class UserApi extends BaseAPI {
      * @param {string} username 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public activeNextPlan(username: string, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).activeNextPlan(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1064,7 +1060,6 @@ export class UserApi extends BaseAPI {
      * @param {UserCreate} userCreate 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public addUser(userCreate: UserCreate, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).addUser(userCreate, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1077,7 +1072,6 @@ export class UserApi extends BaseAPI {
      * @param {string | null} [expiredBefore] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public deleteExpiredUsers(expiredAfter?: string | null, expiredBefore?: string | null, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).deleteExpiredUsers(expiredAfter, expiredBefore, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1090,7 +1084,6 @@ export class UserApi extends BaseAPI {
      * @param {string | null} [expiredBefore] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public getExpiredUsers(expiredAfter?: string | null, expiredBefore?: string | null, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).getExpiredUsers(expiredAfter, expiredBefore, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1102,7 +1095,6 @@ export class UserApi extends BaseAPI {
      * @param {string} username 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public getUser(username: string, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).getUser(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1116,7 +1108,6 @@ export class UserApi extends BaseAPI {
      * @param {string} [end] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public getUserUsage(username: string, start?: string, end?: string, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).getUserUsage(username, start, end, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1134,7 +1125,6 @@ export class UserApi extends BaseAPI {
      * @param {string} [sort] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public getUsers(offset?: number, limit?: number, username?: Array<string>, search?: string | null, admin?: Array<string> | null, status?: UserStatus, sort?: string, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).getUsers(offset, limit, username, search, admin, status, sort, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1148,7 +1138,6 @@ export class UserApi extends BaseAPI {
      * @param {Array<string> | null} [admin] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public getUsersUsage(start?: string, end?: string, admin?: Array<string> | null, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).getUsersUsage(start, end, admin, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1161,7 +1150,6 @@ export class UserApi extends BaseAPI {
      * @param {UserModify} userModify 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public modifyUser(username: string, userModify: UserModify, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).modifyUser(username, userModify, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1173,7 +1161,6 @@ export class UserApi extends BaseAPI {
      * @param {string} username 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public removeUser(username: string, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).removeUser(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1185,7 +1172,6 @@ export class UserApi extends BaseAPI {
      * @param {string} username 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public resetUserDataUsage(username: string, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).resetUserDataUsage(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1196,7 +1182,6 @@ export class UserApi extends BaseAPI {
      * @summary Reset Users Data Usage
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public resetUsersDataUsage(options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).resetUsersDataUsage(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1208,7 +1193,6 @@ export class UserApi extends BaseAPI {
      * @param {string} username 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public revokeUserSubscription(username: string, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).revokeUserSubscription(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -1221,7 +1205,6 @@ export class UserApi extends BaseAPI {
      * @param {string} adminUsername 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof UserApi
      */
     public setOwner(username: string, adminUsername: string, options?: RawAxiosRequestConfig) {
         return UserApiFp(this.configuration).setOwner(username, adminUsername, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);

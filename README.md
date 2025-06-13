@@ -107,7 +107,7 @@ We welcome contributions! If you'd like to improve MarzbanSDK, please:
 2. Create a new branch 🔧
 3. Submit a pull request 🎉
 
-For details, check our [Contribution Guidelines](./docs/CONTRIBUTING.md).
+For details, check our [Contribution Guidelines](./CONTRIBUTING.md).
 
 ## 📜 License
 

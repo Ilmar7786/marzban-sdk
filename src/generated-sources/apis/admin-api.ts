@@ -41,7 +41,6 @@ import type { Token } from '../models';
 import type { Unauthorized } from '../models';
 /**
  * AdminApi - axios parameter creator
- * @export
  */
 export const AdminApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
@@ -475,7 +474,6 @@ export const AdminApiAxiosParamCreator = function (configuration?: Configuration
 
 /**
  * AdminApi - functional programming interface
- * @export
  */
 export const AdminApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = AdminApiAxiosParamCreator(configuration)
@@ -622,7 +620,6 @@ export const AdminApiFp = function(configuration?: Configuration) {
 
 /**
  * AdminApi - factory interface
- * @export
  */
 export const AdminApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = AdminApiFp(configuration)
@@ -739,9 +736,9 @@ export const AdminApiFactory = function (configuration?: Configuration, basePath
 
 /**
  * AdminApi - object-oriented interface
- * @export
  * @class AdminApi
  * @extends {BaseAPI}
+ * @hideconstructor
  */
 export class AdminApi extends BaseAPI {
     /**
@@ -750,7 +747,6 @@ export class AdminApi extends BaseAPI {
      * @param {string} username 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof AdminApi
      */
     public activateAllDisabledUsers(username: string, options?: RawAxiosRequestConfig) {
         return AdminApiFp(this.configuration).activateAllDisabledUsers(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -767,7 +763,6 @@ export class AdminApi extends BaseAPI {
      * @param {string | null} [clientSecret] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof AdminApi
      */
     public adminToken(username: string, password: string, grantType?: string | null, scope?: string, clientId?: string | null, clientSecret?: string | null, options?: RawAxiosRequestConfig) {
         return AdminApiFp(this.configuration).adminToken(username, password, grantType, scope, clientId, clientSecret, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -779,7 +774,6 @@ export class AdminApi extends BaseAPI {
      * @param {AdminCreate} adminCreate 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof AdminApi
      */
     public createAdmin(adminCreate: AdminCreate, options?: RawAxiosRequestConfig) {
         return AdminApiFp(this.configuration).createAdmin(adminCreate, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -791,7 +785,6 @@ export class AdminApi extends BaseAPI {
      * @param {string} username 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof AdminApi
      */
     public disableAllActiveUsers(username: string, options?: RawAxiosRequestConfig) {
         return AdminApiFp(this.configuration).disableAllActiveUsers(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -803,7 +796,6 @@ export class AdminApi extends BaseAPI {
      * @param {string} username 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof AdminApi
      */
     public getAdminUsage(username: string, options?: RawAxiosRequestConfig) {
         return AdminApiFp(this.configuration).getAdminUsage(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -817,7 +809,6 @@ export class AdminApi extends BaseAPI {
      * @param {string | null} [username] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof AdminApi
      */
     public getAdmins(offset?: number | null, limit?: number | null, username?: string | null, options?: RawAxiosRequestConfig) {
         return AdminApiFp(this.configuration).getAdmins(offset, limit, username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -828,7 +819,6 @@ export class AdminApi extends BaseAPI {
      * @summary Get Current Admin
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof AdminApi
      */
     public getCurrentAdmin(options?: RawAxiosRequestConfig) {
         return AdminApiFp(this.configuration).getCurrentAdmin(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -841,7 +831,6 @@ export class AdminApi extends BaseAPI {
      * @param {AdminModify} adminModify 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof AdminApi
      */
     public modifyAdmin(username: string, adminModify: AdminModify, options?: RawAxiosRequestConfig) {
         return AdminApiFp(this.configuration).modifyAdmin(username, adminModify, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -853,7 +842,6 @@ export class AdminApi extends BaseAPI {
      * @param {string} username 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof AdminApi
      */
     public removeAdmin(username: string, options?: RawAxiosRequestConfig) {
         return AdminApiFp(this.configuration).removeAdmin(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -865,7 +853,6 @@ export class AdminApi extends BaseAPI {
      * @param {string} username 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof AdminApi
      */
     public resetAdminUsage(username: string, options?: RawAxiosRequestConfig) {
         return AdminApiFp(this.configuration).resetAdminUsage(username, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);

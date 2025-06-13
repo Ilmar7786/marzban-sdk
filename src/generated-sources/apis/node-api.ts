@@ -41,7 +41,6 @@ import type { NodesUsageResponse } from '../models';
 import type { Unauthorized } from '../models';
 /**
  * NodeApi - axios parameter creator
- * @export
  */
 export const NodeApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
@@ -360,7 +359,6 @@ export const NodeApiAxiosParamCreator = function (configuration?: Configuration)
 
 /**
  * NodeApi - functional programming interface
- * @export
  */
 export const NodeApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = NodeApiAxiosParamCreator(configuration)
@@ -474,7 +472,6 @@ export const NodeApiFp = function(configuration?: Configuration) {
 
 /**
  * NodeApi - factory interface
- * @export
  */
 export const NodeApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = NodeApiFp(configuration)
@@ -564,9 +561,9 @@ export const NodeApiFactory = function (configuration?: Configuration, basePath?
 
 /**
  * NodeApi - object-oriented interface
- * @export
  * @class NodeApi
  * @extends {BaseAPI}
+ * @hideconstructor
  */
 export class NodeApi extends BaseAPI {
     /**
@@ -575,7 +572,6 @@ export class NodeApi extends BaseAPI {
      * @param {NodeCreate} nodeCreate 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof NodeApi
      */
     public addNode(nodeCreate: NodeCreate, options?: RawAxiosRequestConfig) {
         return NodeApiFp(this.configuration).addNode(nodeCreate, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -587,7 +583,6 @@ export class NodeApi extends BaseAPI {
      * @param {number} nodeId 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof NodeApi
      */
     public getNode(nodeId: number, options?: RawAxiosRequestConfig) {
         return NodeApiFp(this.configuration).getNode(nodeId, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -598,7 +593,6 @@ export class NodeApi extends BaseAPI {
      * @summary Get Node Settings
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof NodeApi
      */
     public getNodeSettings(options?: RawAxiosRequestConfig) {
         return NodeApiFp(this.configuration).getNodeSettings(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -609,7 +603,6 @@ export class NodeApi extends BaseAPI {
      * @summary Get Nodes
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof NodeApi
      */
     public getNodes(options?: RawAxiosRequestConfig) {
         return NodeApiFp(this.configuration).getNodes(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -622,7 +615,6 @@ export class NodeApi extends BaseAPI {
      * @param {string} [end] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof NodeApi
      */
     public getUsage(start?: string, end?: string, options?: RawAxiosRequestConfig) {
         return NodeApiFp(this.configuration).getUsage(start, end, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -635,7 +627,6 @@ export class NodeApi extends BaseAPI {
      * @param {NodeModify} nodeModify 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof NodeApi
      */
     public modifyNode(nodeId: number, nodeModify: NodeModify, options?: RawAxiosRequestConfig) {
         return NodeApiFp(this.configuration).modifyNode(nodeId, nodeModify, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -647,7 +638,6 @@ export class NodeApi extends BaseAPI {
      * @param {number} nodeId 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof NodeApi
      */
     public reconnectNode(nodeId: number, options?: RawAxiosRequestConfig) {
         return NodeApiFp(this.configuration).reconnectNode(nodeId, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -659,7 +649,6 @@ export class NodeApi extends BaseAPI {
      * @param {number} nodeId 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof NodeApi
      */
     public removeNode(nodeId: number, options?: RawAxiosRequestConfig) {
         return NodeApiFp(this.configuration).removeNode(nodeId, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);

@@ -35,7 +35,6 @@ import type { SystemStats } from '../models';
 import type { Unauthorized } from '../models';
 /**
  * SystemApi - axios parameter creator
- * @export
  */
 export const SystemApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
@@ -186,7 +185,6 @@ export const SystemApiAxiosParamCreator = function (configuration?: Configuratio
 
 /**
  * SystemApi - functional programming interface
- * @export
  */
 export const SystemApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = SystemApiAxiosParamCreator(configuration)
@@ -245,7 +243,6 @@ export const SystemApiFp = function(configuration?: Configuration) {
 
 /**
  * SystemApi - factory interface
- * @export
  */
 export const SystemApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = SystemApiFp(configuration)
@@ -292,9 +289,9 @@ export const SystemApiFactory = function (configuration?: Configuration, basePat
 
 /**
  * SystemApi - object-oriented interface
- * @export
  * @class SystemApi
  * @extends {BaseAPI}
+ * @hideconstructor
  */
 export class SystemApi extends BaseAPI {
     /**
@@ -302,7 +299,6 @@ export class SystemApi extends BaseAPI {
      * @summary Get Hosts
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof SystemApi
      */
     public getHosts(options?: RawAxiosRequestConfig) {
         return SystemApiFp(this.configuration).getHosts(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -313,7 +309,6 @@ export class SystemApi extends BaseAPI {
      * @summary Get Inbounds
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof SystemApi
      */
     public getInbounds(options?: RawAxiosRequestConfig) {
         return SystemApiFp(this.configuration).getInbounds(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -324,7 +319,6 @@ export class SystemApi extends BaseAPI {
      * @summary Get System Stats
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof SystemApi
      */
     public getSystemStats(options?: RawAxiosRequestConfig) {
         return SystemApiFp(this.configuration).getSystemStats(options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);
@@ -336,7 +330,6 @@ export class SystemApi extends BaseAPI {
      * @param {{ [key: string]: Array<ProxyHost>; }} requestBody 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
-     * @memberof SystemApi
      */
     public modifyHosts(requestBody: { [key: string]: Array<ProxyHost>; }, options?: RawAxiosRequestConfig) {
         return SystemApiFp(this.configuration).modifyHosts(requestBody, options).then((request) => request(this.axios, this.basePath)).then(({data}) => data);

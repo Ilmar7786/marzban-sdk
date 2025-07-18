@@ -6,14 +6,19 @@
 
 <div align="center">
 
-![npm version](https://img.shields.io/npm/v/marzban-sdk)
-![npm downloads](https://img.shields.io/npm/dm/marzban-sdk)
-![npm downloads](https://img.shields.io/npm/dt/marzban-sdk)
-![npm license](https://img.shields.io/npm/l/marzban-sdk)
-![github starts](https://img.shields.io/github/stars/Ilmar7786/marzban-sdk)
+[![npm version](https://img.shields.io/npm/v/marzban-sdk)](https://www.npmjs.com/package/marzban-sdk/v/latest)
+[![npm downloads](https://img.shields.io/npm/dm/marzban-sdk)](https://www.npmjs.com/package/marzban-sdk)
+[![total downloads](https://img.shields.io/npm/dt/marzban-sdk)](https://www.npmjs.com/package/marzban-sdk)
+[![license](https://img.shields.io/npm/l/marzban-sdk)](https://github.com/Ilmar7786/marzban-sdk/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Ilmar7786/marzban-sdk)](https://github.com/Ilmar7786/marzban-sdk)
 
 </div>
-MarzbanSDK is a fully typed client library for interacting with the Marzban API. It supports both browser and Node.js environments, providing seamless integration and enhanced developer experience.
+
+**MarzbanSDK** is a fully typed, auto-generated client library for interacting with the [Marzban](https://github.com/Gozargah/Marzban) API.
+
+It works seamlessly in both **Node.js** and **browser environments**, giving developers a clean, strongly-typed interface to Marzban’s full feature set — including real-time WebSocket support, token refresh handling, and robust retry mechanisms.
+
+👉 [View on GitHub](https://github.com/Ilmar7786/marzban-sdk)
 
 ## 📖 Table of Contents
 
@@ -29,11 +34,12 @@ MarzbanSDK is a fully typed client library for interacting with the Marzban API.
 
 ## ✨ Features
 
-- ✅ **Full TypeScript Support** – Schema definitions for all parameters, responses, and methods.
-- 🔄 **Automatic Token Refresh** – Keeps your session alive without manual intervention.
-- 🔁 **Retry Mechanism** – Ensures resilience against network failures.
-- 🛠️ **Comprehensive API Support** – Access all Marzban API features.
-- 📡 **[WebSocket Support](./docs/WEBSOCKET.md)** – Real-time log streaming from core services and nodes.
+- ✅ **First-class TypeScript Support** – Autocomplete and type safety for all inputs and responses.
+- 🔐 **Manual or Automatic Authorization** – Choose between explicit login with full error handling, or backward-compatible automatic login.
+- 🔄 **Auto Token Refresh** – Seamless handling of session expiration.
+- 🔁 **Built-in Retry Logic** – Robust handling of network errors and downtime.
+- 📡 **[Real-time WebSocket Logging](./docs/WEBSOCKET.md)** – Stream logs from the core and nodes with ease.
+- 📘 **Generated from OpenAPI** – Always up-to-date with the official Marzban API.
 
 ## 📦 Installation
 
@@ -58,8 +64,8 @@ const config: Config = {
   baseUrl: 'https://api.example.com',
   username: 'your-username',
   password: 'your-password',
-  retries: 3, // Option. default 3
-  token: 'token', // Option
+  token: 'your-token', // Optional if already available
+  retries: 3, // Optional
 }
 
 const sdk = new MarzbanSDK(config)

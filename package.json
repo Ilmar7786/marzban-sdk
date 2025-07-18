@@ -2,7 +2,7 @@
   "name": "marzban-sdk",
   "version": "1.3.3",
   "license": "MIT",
-  "description": "The Marzban SDK is a fully typed client library for interacting with the Marzban API. It works in both browser and Node.js environments",
+  "description": "Fully typed client SDK for the Marzban API, supporting both browser and Node.js environments.",
   "private": false,
   "author": "ilmar7786",
   "sideEffects": false,

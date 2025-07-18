@@ -25,6 +25,8 @@ It works seamlessly in both **Node.js** and **browser environments**, giving dev
 - [✨ Features](#-features)
 - [📦 Installation](#-installation)
 - [🚀 Quick Start](#-quick-start)
+- [📑 Configuration Options](#-configuration-options)
+- [🔐 Authorization Control](#-authorization-control)
 - [🔍 How It Works](#-how-it-works)
 - [📚 API Documentation](#-api-documentation)
 - [📡 WebSocket Support](#-websocket-support)
@@ -55,27 +57,81 @@ Or using yarn:
 yarn add marzban-sdk
 ```
 
+## 📑 Configuration Options
+
+The `Config` object is used to initialize the MarzbanSDK instance. Below are all available options:
+
+| Name                 | Type    | Required | Default | Description                                                                                        |
+| -------------------- | ------- | -------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `baseUrl`            | string  | Yes      | —       | The base URL of the Marzban API instance. Example: `https://api.example.com`                       |
+| `username`           | string  | Yes      | —       | The username for authentication.                                                                   |
+| `password`           | string  | Yes      | —       | The password for authentication.                                                                   |
+| `token`              | string  | No       | —       | Optional JWT token for direct authorization. If provided, SDK uses this token for requests.        |
+| `retries`            | number  | No       | 3       | Number of automatic retries for failed HTTP requests.                                              |
+| `authenticateOnInit` | boolean | No       | true    | If true (default), SDK authenticates automatically on init. If false, call `authorize()` manually. |
+
+## 🔐 Authorization Control
+
+MarzbanSDK gives you full control over authentication:
+
+- **Automatic authentication** (default): The SDK logs in as soon as you create an instance.
+- **Manual authentication**: Set `authenticateOnInit: false` to delay login and handle errors yourself.
+
+```typescript
+import { MarzbanSDK, AuthenticationError } from 'marzban-sdk'
+
+const sdk = new MarzbanSDK({
+  baseUrl: 'https://api.example.com',
+  username: 'admin',
+  password: 'secret',
+  authenticateOnInit: false, // Manual mode
+})
+
+try {
+  await sdk.authorize() // Explicit login
+  // Now you can make authenticated requests
+} catch (e) {
+  if (e instanceof AuthenticationError) {
+    // Handle authentication failure
+  }
+}
+```
+
+You can also force re-authentication at any time:
+
+```typescript
+await sdk.authorize(true) // Force a new login, even if already authenticated
+```
+
+See [Config interface documentation](./src/MarzbanSDK.ts) for all available options.
+
 ## 🚀 Quick Start
 
 ```typescript
 import { MarzbanSDK, Config } from 'marzban-sdk'
 
-const config: Config = {
+// Automatic authentication (default)
+const sdk = new MarzbanSDK({
   baseUrl: 'https://api.example.com',
   username: 'your-username',
   password: 'your-password',
-  token: 'your-token', // Optional if already available
-  retries: 3, // Optional
-}
+})
 
-const sdk = new MarzbanSDK(config)
+// Manual authentication
+const sdkManual = new MarzbanSDK({
+  baseUrl: 'https://api.example.com',
+  username: 'your-username',
+  password: 'your-password',
+  authenticateOnInit: false,
+})
+await sdkManual.authorize()
 
 // Fetch user details
 sdk.user.getUserById('user-id').then(user => {
   console.log(user)
 })
 
-// get an authorization token
+// Get an authorization token
 sdk.getAuthToken().then(token => {
   console.log(token)
 })

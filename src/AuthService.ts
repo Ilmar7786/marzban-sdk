@@ -1,8 +1,16 @@
 import { AdminApi, Configuration } from './generated-sources'
 
+export class AuthenticationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'AuthenticationError'
+  }
+}
+
 export class AuthService {
   private configuration: Configuration
-  private authPromise: Promise<void> | null = null
+  public authPromise: Promise<void> | null = null
+  public isAuthenticating = false
 
   constructor(configuration: Configuration) {
     this.configuration = configuration
@@ -11,6 +19,7 @@ export class AuthService {
   async authenticate(username: string, password: string): Promise<void> {
     if (this.authPromise) return this.authPromise
 
+    this.isAuthenticating = true
     this.authPromise = new Promise((resolve, reject) => {
       const authenticateAsync = async () => {
         try {
@@ -21,14 +30,15 @@ export class AuthService {
             resolve()
           } else {
             this.configuration.accessToken = undefined
-            reject(new Error('Failed to retrieve access token'))
+            reject(new AuthenticationError('Failed to retrieve access token'))
           }
         } catch (error) {
           console.error('Authentication failed', error)
           this.configuration.accessToken = undefined
-          reject(error)
+          reject(new AuthenticationError('Authentication failed'))
         } finally {
           this.authPromise = null
+          this.isAuthenticating = false
         }
       }
       authenticateAsync()

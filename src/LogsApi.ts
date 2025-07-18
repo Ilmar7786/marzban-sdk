@@ -32,8 +32,9 @@ export class LogsApi {
    * @private
    */
   private async ensureAuthenticated() {
+    await this.authService.waitForAuth()
+
     if (!this.authService.accessToken) {
-      await this.authService.waitForAuth()
       await this.authService.retryAuth()
     }
   }

@@ -1,6 +1,6 @@
 {
   "name": "marzban-sdk",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "license": "MIT",
   "description": "Fully typed client SDK for the Marzban API, supporting both browser and Node.js environments.",
   "private": false,

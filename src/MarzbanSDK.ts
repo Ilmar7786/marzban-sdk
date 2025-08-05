@@ -151,7 +151,7 @@ export class MarzbanSDK {
     setupInterceptors(this.client, this.authService, config)
 
     if (!config.token && config.authenticateOnInit !== false) {
-      this.authService.authenticate(config.username, config.password)
+      this.authService.authenticate({ username: config.username, password: config.password })
     }
   }
 
@@ -166,7 +166,7 @@ export class MarzbanSDK {
    */
   async getAuthToken(): Promise<string> {
     await this.authService.waitForAuth()
-    return this.authService.accessToken
+    return this.authService.getAccessToken()
   }
 
   /**
@@ -200,9 +200,9 @@ export class MarzbanSDK {
    * await sdk.authorize(true);
    */
   authorize(force = false): Promise<void> {
-    if (this.authService.isAuthenticating && !force) {
-      return this.authService.authPromise!
+    if (this.authService.isAuthInProgress && !force) {
+      return this.authService.waitForAuth()
     }
-    return this.authService.authenticate(this.configuration.username!, this.configuration.password!)
+    return this.authService.retryAuth()
   }
 }

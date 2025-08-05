@@ -19,7 +19,7 @@ export const setupInterceptors = (
   client.interceptors.request.use(
     async requestConfig => {
       await authService.waitForAuth()
-      const accessToken = authService.accessToken
+      const accessToken = authService.getAccessToken()
       requestConfig.headers.authorization = accessToken ? `Bearer ${accessToken}` : undefined
       return requestConfig
     },
@@ -33,8 +33,8 @@ export const setupInterceptors = (
       if (error?.response?.status === 401 && !retryConfig?.sent) {
         retryConfig.sent = true
         try {
-          await authService.authenticate(config.username, config.password)
-          const accessToken = authService.accessToken
+          await authService.authenticate({ username: config.username, password: config.password })
+          const accessToken = authService.getAccessToken()
           if (accessToken) {
             retryConfig.headers.authorization = `Bearer ${accessToken}`
             return client(retryConfig)

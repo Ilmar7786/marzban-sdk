@@ -34,7 +34,7 @@ export class LogsApi {
   private async ensureAuthenticated() {
     await this.authService.waitForAuth()
 
-    if (!this.authService.accessToken) {
+    if (!this.authService.isAuthenticated()) {
       await this.authService.retryAuth()
     }
   }
@@ -53,7 +53,7 @@ export class LogsApi {
     const wsUrl = configurationUrlWs({
       basePath: this.basePath,
       endpoint,
-      token: this.authService.accessToken,
+      token: this.authService.getAccessToken(),
       interval: options?.interval ?? 1,
     })
 

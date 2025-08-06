@@ -20,13 +20,6 @@ export interface Credentials {
 }
 
 /**
- * Interface for authentication token
- */
-export interface AuthToken {
-  access_token: string
-}
-
-/**
  * Interface for authentication service
  */
 export interface IAuthService {

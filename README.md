@@ -103,7 +103,22 @@ You can also force re-authentication at any time:
 await sdk.authorize(true) // Force a new login, even if already authenticated
 ```
 
-See [Config interface documentation](./src/MarzbanSDK.ts) for all available options.
+### Asynchronous Initialization
+
+For convenient asynchronous initialization with error handling, use the static method:
+
+```typescript
+try {
+  const sdk = await MarzbanSDK.createAsync({
+    baseUrl: 'https://api.example.com',
+    username: 'your-username',
+    password: 'your-password',
+  })
+  // Now you can perform requests
+} catch (e) {
+  // Handle authentication error
+}
+```
 
 ## 🚀 Quick Start
 
@@ -125,6 +140,18 @@ const sdkManual = new MarzbanSDK({
   authenticateOnInit: false,
 })
 await sdkManual.authorize()
+
+// Asynchronous factory with authentication and error handling
+try {
+  const sdkAsync = await MarzbanSDK.createAsync({
+    baseUrl: 'https://api.example.com',
+    username: 'your-username',
+    password: 'your-password',
+  })
+  // Use sdkAsync for authenticated requests
+} catch (e) {
+  // Handle authentication error
+}
 
 // Fetch user details
 sdk.user.getUserById('user-id').then(user => {

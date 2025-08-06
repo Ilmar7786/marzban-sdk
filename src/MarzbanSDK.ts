@@ -205,4 +205,33 @@ export class MarzbanSDK {
     }
     return this.authService.retryAuth()
   }
+
+  /**
+   * Asynchronously creates and initializes a MarzbanSDK instance with authentication.
+   *
+   * This static factory method allows you to create an SDK instance and immediately perform authentication.
+   * If authentication fails, the error will be thrown and can be caught using try/catch.
+   *
+   * @param {Config} config - The configuration object for the SDK. All options are supported.
+   * @returns {Promise<MarzbanSDK>} A promise that resolves to an authenticated MarzbanSDK instance.
+   *
+   * @throws {AuthenticationError} Throws if authentication fails (e.g., invalid credentials, network error).
+   *
+   * @example
+   * try {
+   *   const sdk = await MarzbanSDK.createAsync({
+   *     baseUrl: 'https://api.example.com',
+   *     username: 'admin',
+   *     password: 'secret',
+   *   });
+   *   // Now you can use the SDK
+   * } catch (e) {
+   *   // Handle authentication error
+   * }
+   */
+  static async createAsync(config: Config): Promise<MarzbanSDK> {
+    const sdk = new MarzbanSDK({ ...config, authenticateOnInit: false })
+    await sdk.authorize()
+    return sdk
+  }
 }

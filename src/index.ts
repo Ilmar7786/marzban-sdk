@@ -1,4 +1,5 @@
 export { AuthenticationError } from './AuthService'
 export type * from './generated-sources/api'
+export { Logger, LoggerConfig, LoggerOptions, LogLevel } from './logger'
 export type * from './LogsApi'
 export * from './MarzbanSDK'

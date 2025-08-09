@@ -14,6 +14,7 @@ import {
   UserTemplateApi,
 } from './generated-sources'
 import { setupInterceptors } from './interceptors'
+import { createLogger, Logger, LoggerConfig, setupLoggingInterceptors } from './logger'
 import { LogsApi } from './LogsApi'
 
 /**
@@ -33,6 +34,7 @@ export interface Config {
   token?: string
   retries?: number
   authenticateOnInit?: boolean
+  logger?: LoggerConfig
 }
 
 /**
@@ -45,6 +47,7 @@ export class MarzbanSDK {
   private client: AxiosInstance
   private configuration: Configuration
   private authService: AuthService
+  private logger: Logger
 
   /**
    * API module for administrative operations.
@@ -124,7 +127,12 @@ export class MarzbanSDK {
    * await sdk.authorize();
    */
   constructor(config: Config) {
+    this.logger = createLogger(config.logger)
+
+    this.logger.info('Initializing')
+
     if (!config.username || !config.password) {
+      this.logger.error('No credentials provided for authentication', null)
       throw new Error('No credentials provided for authentication')
     }
 
@@ -136,7 +144,7 @@ export class MarzbanSDK {
     })
 
     this.client = createAxiosClient(config.baseUrl, { retries: config.retries })
-    this.authService = new AuthService(this.configuration)
+    this.authService = new AuthService(this.configuration, this.logger)
 
     this.admin = new AdminApi(this.configuration, config.baseUrl, this.client)
     this.core = new CoreApi(this.configuration, config.baseUrl, this.client)
@@ -146,11 +154,13 @@ export class MarzbanSDK {
     this.default = new DefaultApi(this.configuration, config.baseUrl, this.client)
     this.subscription = new SubscriptionApi(this.configuration, config.baseUrl, this.client)
     this.userTemplate = new UserTemplateApi(this.configuration, config.baseUrl, this.client)
-    this.logs = new LogsApi(config.baseUrl, this.authService)
+    this.logs = new LogsApi(config.baseUrl, this.authService, this.logger)
 
-    setupInterceptors(this.client, this.authService, config)
+    setupInterceptors(this.client, this.authService, config, this.logger)
+    setupLoggingInterceptors(this.client, this.logger)
 
     if (!config.token && config.authenticateOnInit !== false) {
+      this.logger.info('No token provided, starting authentication on init')
       this.authService.authenticate({ username: config.username, password: config.password })
     }
   }
@@ -165,8 +175,11 @@ export class MarzbanSDK {
    * // Use token for custom requests
    */
   async getAuthToken(): Promise<string> {
+    this.logger.debug('Retrieving auth token')
     await this.authService.waitForAuth()
-    return this.authService.getAccessToken()
+    const token = this.authService.getAccessToken()
+    this.logger.debug(`Auth token retrieved: token = ${token}`)
+    return token
   }
 
   /**
@@ -200,10 +213,17 @@ export class MarzbanSDK {
    * await sdk.authorize(true);
    */
   authorize(force = false): Promise<void> {
+    this.logger.info(`Authorize called with force=${force}`)
     if (this.authService.isAuthInProgress && !force) {
+      this.logger.debug('Auth in progress, waiting for it to complete')
       return this.authService.waitForAuth()
     }
-    return this.authService.retryAuth()
+
+    this.logger.debug('Starting/retrying authentication')
+    return this.authService.authenticate({
+      username: this.configuration.username!,
+      password: this.configuration.password!,
+    })
   }
 
   /**
@@ -231,7 +251,9 @@ export class MarzbanSDK {
    */
   static async createAsync(config: Config): Promise<MarzbanSDK> {
     const sdk = new MarzbanSDK({ ...config, authenticateOnInit: false })
+    sdk.logger.info('Creating SDK instance asynchronously with authentication')
     await sdk.authorize()
+    sdk.logger.info('SDK instance created and authenticated')
     return sdk
   }
 }

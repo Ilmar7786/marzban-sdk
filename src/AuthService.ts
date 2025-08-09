@@ -1,4 +1,5 @@
 import { AdminApi, Configuration } from './generated-sources'
+import { Logger } from './logger'
 
 /**
  * Error message constants
@@ -56,18 +57,20 @@ export class AuthenticationError extends Error {
  *
  * @example
  * ```typescript
- * const authService = new AuthService(configuration)
+ * const authService = new AuthService(configuration, logger)
  * await authService.authenticate({ username: 'admin', password: 'password' })
  * ```
  */
 export class AuthService implements IAuthService {
   private readonly configuration: Configuration
+  private readonly logger: Logger
   private authPromise: Promise<void> | null = null
   private isAuthenticating = false
   private readonly adminApi: AdminApi
 
-  constructor(configuration: Configuration) {
+  constructor(configuration: Configuration, logger: Logger) {
     this.configuration = configuration
+    this.logger = logger
     this.adminApi = new AdminApi(configuration)
   }
 
@@ -78,10 +81,12 @@ export class AuthService implements IAuthService {
    * @throws {AuthenticationError} When authentication fails
    */
   async authenticate(credentials: Credentials): Promise<void> {
+    this.logger.debug('Starting authentication process', 'AuthService')
     this.validateCredentials(credentials)
 
     // If authentication is already in progress, return existing Promise
     if (this.authPromise) {
+      this.logger.info('Authentication already in progress, returning existing promise', 'AuthService')
       return this.authPromise
     }
 
@@ -95,6 +100,7 @@ export class AuthService implements IAuthService {
    * Waits for current authentication to complete
    */
   async waitForAuth(): Promise<void> {
+    this.logger.debug('Waiting for authentication to complete', 'AuthService')
     return this.authPromise ?? Promise.resolve()
   }
 
@@ -104,8 +110,10 @@ export class AuthService implements IAuthService {
    * @throws {AuthenticationError} When credentials are not configured
    */
   async retryAuth(): Promise<void> {
+    this.logger.info('Retrying authentication with stored credentials', 'AuthService')
     const credentials = this.getStoredCredentials()
     if (!credentials) {
+      this.logger.error(ERROR_MESSAGES.MISSING_CREDENTIALS, undefined, 'AuthService')
       throw new AuthenticationError(ERROR_MESSAGES.MISSING_CREDENTIALS, undefined, 'MISSING_CREDENTIALS')
     }
 
@@ -126,8 +134,10 @@ export class AuthService implements IAuthService {
    */
   setAccessToken(token: string): void {
     if (!token || typeof token !== 'string') {
+      this.logger.error(ERROR_MESSAGES.INVALID_TOKEN, undefined, 'AuthService')
       throw new AuthenticationError(ERROR_MESSAGES.INVALID_TOKEN, undefined, 'INVALID_TOKEN')
     }
+    this.logger.debug('Access token set successfully', 'AuthService')
     this.configuration.accessToken = token
   }
 
@@ -142,6 +152,7 @@ export class AuthService implements IAuthService {
    * Clears authentication data
    */
   clearAuth(): void {
+    this.logger.warn('Clearing authentication data', 'AuthService')
     this.configuration.accessToken = undefined
     this.authPromise = null
     this.isAuthenticating = false
@@ -161,15 +172,20 @@ export class AuthService implements IAuthService {
    * @throws {AuthenticationError} When credentials are invalid
    */
   private validateCredentials(credentials: Credentials): void {
+    this.logger.debug('Validating credentials', 'AuthService')
+
     if (!credentials) {
+      this.logger.error(ERROR_MESSAGES.MISSING_CREDENTIALS, undefined, 'AuthService')
       throw new AuthenticationError(ERROR_MESSAGES.MISSING_CREDENTIALS, undefined, 'MISSING_CREDENTIALS')
     }
 
     if (!credentials.username || typeof credentials.username !== 'string') {
+      this.logger.error(ERROR_MESSAGES.INVALID_CREDENTIALS, undefined, 'AuthService')
       throw new AuthenticationError(ERROR_MESSAGES.INVALID_CREDENTIALS, undefined, 'INVALID_USERNAME')
     }
 
     if (!credentials.password || typeof credentials.password !== 'string') {
+      this.logger.error(ERROR_MESSAGES.INVALID_CREDENTIALS, undefined, 'AuthService')
       throw new AuthenticationError(ERROR_MESSAGES.INVALID_CREDENTIALS, undefined, 'INVALID_PASSWORD')
     }
   }
@@ -180,14 +196,17 @@ export class AuthService implements IAuthService {
    * @param credentials - Object containing credentials
    */
   private async performAuthentication(credentials: Credentials): Promise<void> {
+    this.logger.debug('Performing authentication request', 'AuthService')
     try {
       const tokenData = await this.adminApi.adminToken(credentials.username, credentials.password)
 
       if (!tokenData?.access_token) {
+        this.logger.error(ERROR_MESSAGES.TOKEN_RETRIEVAL_FAILED, undefined, 'AuthService')
         throw new AuthenticationError(ERROR_MESSAGES.TOKEN_RETRIEVAL_FAILED, undefined, 'TOKEN_RETRIEVAL_FAILED')
       }
 
       this.configuration.accessToken = tokenData.access_token
+      this.logger.info('Authentication successful', 'AuthService')
     } catch (error) {
       const authError = this.handleAuthenticationError(error)
       this.clearAuth()
@@ -208,8 +227,7 @@ export class AuthService implements IAuthService {
       return error
     }
 
-    console.error('Authentication failed:', error)
-
+    this.logger.error(ERROR_MESSAGES.AUTHENTICATION_FAILED, error, 'AuthService')
     return new AuthenticationError(
       ERROR_MESSAGES.AUTHENTICATION_FAILED,
       error instanceof Error ? error : undefined,

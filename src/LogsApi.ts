@@ -1,4 +1,5 @@
 import { AuthService } from './AuthService'
+import { Logger } from './logger'
 import { configurationUrlWs } from './utils/configurationUrlWs'
 import { BaseWebSocketClient, WebSocketClient, WebSocketEventMap } from './WebSocketClient'
 
@@ -16,15 +17,18 @@ export class LogsApi {
   private authService: AuthService
   private activeConnections: Set<BaseWebSocketClient> = new Set()
   private maxRetries = 3
+  private logger: Logger
 
   /**
    * Creates an API instance for handling logs via WebSocket.
    * @param basePath The base URL for WebSocket connections.
    * @param authService Authentication service for managing tokens.
+   * @param logger Optional logger instance
    */
-  constructor(basePath: string, authService: AuthService) {
+  constructor(basePath: string, authService: AuthService, logger: Logger) {
     this.basePath = basePath
     this.authService = authService
+    this.logger = logger
   }
 
   /**
@@ -32,10 +36,14 @@ export class LogsApi {
    * @private
    */
   private async ensureAuthenticated() {
+    this.logger.debug('Waiting for authentication...', 'LogsApi')
     await this.authService.waitForAuth()
 
     if (!this.authService.isAuthenticated()) {
+      this.logger.info('Not authenticated, retrying auth...', 'LogsApi')
       await this.authService.retryAuth()
+    } else {
+      this.logger.debug('Authentication verified.', 'LogsApi')
     }
   }
 
@@ -57,22 +65,25 @@ export class LogsApi {
       interval: options?.interval ?? 1,
     })
 
-    const wsClient = WebSocketClient.create(wsUrl)
+    this.logger.info(`Connecting to WebSocket at ${wsUrl}`, 'LogsApi')
+    const wsClient = WebSocketClient.create(wsUrl, this.logger)
     this.activeConnections.add(wsClient)
 
-    wsClient.on('open', () => console.log(`Connected to ${endpoint}`))
-    wsClient.on('message', ({ data }) => options.onMessage(data))
+    wsClient.on('open', () => this.logger.info(`Connected to ${endpoint}`, 'LogsApi'))
+    wsClient.on('message', ({ data }) => {
+      this.logger.debug(`Received message from ${endpoint}`, 'LogsApi')
+      options.onMessage(data)
+    })
 
     wsClient.on('error', async event => {
       const errorMessage = (event as Event & { message: string }).message || ''
-
-      console.error(`WebSocket error (${endpoint}):`, errorMessage)
+      this.logger.error(`WebSocket error (${endpoint}): ${errorMessage}`, event, 'LogsApi')
 
       if (errorMessage.includes('403')) {
-        console.warn(`Received 403 (retry ${retryCount + 1}/${this.maxRetries})`)
+        this.logger.warn(`Received 403 (retry ${retryCount + 1}/${this.maxRetries})`, 'LogsApi')
 
         if (retryCount >= this.maxRetries) {
-          console.error('Max retries reached. Connection failed.')
+          this.logger.error('Max retries reached. Connection failed.', undefined, 'LogsApi')
           options.onError?.(event)
           return
         }
@@ -86,10 +97,11 @@ export class LogsApi {
 
     wsClient.on('close', () => {
       this.activeConnections.delete(wsClient)
-      console.log(`Disconnected from ${endpoint}`)
+      this.logger.info(`Disconnected from ${endpoint}`, 'LogsApi')
     })
 
     return () => {
+      this.logger.info(`Closing WebSocket connection to ${endpoint}`, 'LogsApi')
       wsClient.close()
       this.activeConnections.delete(wsClient)
     }
@@ -120,6 +132,6 @@ export class LogsApi {
   closeAllConnections() {
     this.activeConnections.forEach(wsClient => wsClient.close())
     this.activeConnections.clear()
-    console.log('All WebSocket connections closed.')
+    this.logger.info('All WebSocket connections closed.', 'LogsApi')
   }
 }

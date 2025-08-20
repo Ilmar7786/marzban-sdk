@@ -7,7 +7,7 @@
   "author": "ilmar7786",
   "sideEffects": false,
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -27,7 +27,8 @@
     "commitlint": "commitlint --edit",
     "prepare": "husky",
     "format": "prettier --write .",
-    "lint": "eslint --fix ."
+    "lint": "eslint --fix .",
+    "codegen": "kubb generate"
   },
   "keywords": [
     "marzban-sdk",
@@ -64,12 +65,19 @@
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@eslint/js": "^9.33.0",
+    "@kubb/cli": "^3.18.0",
+    "@kubb/core": "^3.18.0",
+    "@kubb/plugin-client": "^3.18.0",
+    "@kubb/plugin-oas": "^3.18.0",
+    "@kubb/plugin-ts": "^3.18.0",
+    "@kubb/plugin-zod": "^3.18.0",
     "@types/node": "^24.3.0",
     "@types/ws": "^8.18.1",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.2.0",
     "globals": "^16.3.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.5",

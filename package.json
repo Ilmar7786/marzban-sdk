@@ -25,11 +25,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "rimraf": "rimraf",
-    "clean": "rimraf dist",
     "dev": "tsup --watch",
-    "codegen": "openapi-generator-cli generate --generator-key v1",
-    "openapi-generator-cli": "openapi-generator-cli",
     "generate:docs": "node ./tools/generateDocs.js",
     "commitlint": "commitlint --edit",
     "prepare": "husky",

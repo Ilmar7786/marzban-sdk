@@ -1,20 +1,7 @@
-import { AxiosInstance } from 'axios'
-
-import { AuthService } from './AuthService'
-import { createAxiosClient } from './createAxiosClient'
-import {
-  AdminApi,
-  Configuration,
-  CoreApi,
-  DefaultApi,
-  NodeApi,
-  SubscriptionApi,
-  SystemApi,
-  UserApi,
-  UserTemplateApi,
-} from './generated-sources'
-import { setupInterceptors } from './interceptors'
-import { LogsApi } from './LogsApi'
+import { AuthManager, Configuration } from './core/auth'
+import { configureHttpClient } from './core/http'
+import { LogsStream } from './core/ws'
+import { adminApi, base, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from './gen/api'
 
 /**
  * Configuration options for initializing the MarzbanSDK client.
@@ -42,54 +29,53 @@ export interface Config {
  * and handles authentication, request retries, and interceptor setup.
  */
 export class MarzbanSDK {
-  private client: AxiosInstance
   private configuration: Configuration
-  private authService: AuthService
+  private authService: AuthManager
 
   /**
    * API module for administrative operations.
    */
-  admin: AdminApi
+  admin: ReturnType<typeof adminApi>
 
   /**
    * API module for core operations.
    */
-  core: CoreApi
+  core: ReturnType<typeof coreApi>
 
   /**
    * API module for node-related operations.
    */
-  node: NodeApi
+  node: ReturnType<typeof nodeApi>
 
   /**
    * API module for user-related operations.
    */
-  user: UserApi
+  user: ReturnType<typeof userApi>
 
   /**
    * API module for system-related operations.
    */
-  system: SystemApi
+  system: ReturnType<typeof systemApi>
 
   /**
    * API module for default operations.
    */
-  default: DefaultApi
+  default: { base: typeof base }
 
   /**
    * API module for subscription-related operations.
    */
-  subscription: SubscriptionApi
+  subscription: ReturnType<typeof subscriptionApi>
 
   /**
    * API module for user template operations.
    */
-  userTemplate: UserTemplateApi
+  userTemplate: ReturnType<typeof userTemplateApi>
 
   /**
    * API module for logs-related operations.
    */
-  logs: LogsApi
+  logs: LogsStream
 
   /**
    * Instantiates the MarzbanSDK client for interacting with the Marzban API.
@@ -128,27 +114,20 @@ export class MarzbanSDK {
       throw new Error('No credentials provided for authentication')
     }
 
-    this.configuration = new Configuration({
-      basePath: config.baseUrl,
-      username: config.username,
-      password: config.password,
-      accessToken: config.token,
-    })
+    this.configuration = config
 
-    this.client = createAxiosClient(config.baseUrl, { retries: config.retries })
-    this.authService = new AuthService(this.configuration)
+    this.authService = new AuthManager(this.configuration)
+    configureHttpClient(config.baseUrl, this.authService, config)
 
-    this.admin = new AdminApi(this.configuration, config.baseUrl, this.client)
-    this.core = new CoreApi(this.configuration, config.baseUrl, this.client)
-    this.node = new NodeApi(this.configuration, config.baseUrl, this.client)
-    this.user = new UserApi(this.configuration, config.baseUrl, this.client)
-    this.system = new SystemApi(this.configuration, config.baseUrl, this.client)
-    this.default = new DefaultApi(this.configuration, config.baseUrl, this.client)
-    this.subscription = new SubscriptionApi(this.configuration, config.baseUrl, this.client)
-    this.userTemplate = new UserTemplateApi(this.configuration, config.baseUrl, this.client)
-    this.logs = new LogsApi(config.baseUrl, this.authService)
-
-    setupInterceptors(this.client, this.authService, config)
+    this.admin = adminApi()
+    this.core = coreApi()
+    this.node = nodeApi()
+    this.user = userApi()
+    this.system = systemApi()
+    this.default = { base }
+    this.subscription = subscriptionApi()
+    this.userTemplate = userTemplateApi()
+    this.logs = new LogsStream(config.baseUrl, this.authService)
 
     if (!config.token && config.authenticateOnInit !== false) {
       this.authService.authenticate(config.username, config.password)

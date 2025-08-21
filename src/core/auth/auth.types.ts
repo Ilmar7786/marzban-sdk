@@ -1,5 +1,5 @@
-export interface Configuration {
-  username?: string
-  password?: string
+export interface Storage {
   accessToken?: string
+  username: string
+  password: string
 }

@@ -2,8 +2,8 @@ import type { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } fro
 import axios from 'axios'
 import axiosRetry from 'axios-retry'
 
-import { Config } from '../../MarzbanSDK'
-import { AuthManager } from '../auth/auth.manager'
+import { Config } from '../../config'
+import { AuthManager } from '../auth'
 import { setupAuthInterceptors } from './interceptors'
 
 /**

@@ -1,15 +1,15 @@
 import { adminApi } from '../../gen/api'
-import { AuthenticationError } from '../errors'
+import { AuthError, AuthTokenError } from '../errors'
 import { getPublicInstance } from '../http'
-import { Configuration } from './auth.types'
+import { Storage } from './auth.types'
 
 export class AuthManager {
-  private configuration: Configuration
+  private readonly storage: Storage
   public authPromise: Promise<void> | null = null
   public isAuthenticating = false
 
-  constructor(configuration: Configuration) {
-    this.configuration = configuration
+  constructor(storage: Storage) {
+    this.storage = storage
   }
 
   async authenticate(username: string, password: string): Promise<void> {
@@ -22,16 +22,16 @@ export class AuthManager {
           const admin = adminApi()
           const data = await admin.adminToken({ username, password }, { client: getPublicInstance() })
           if (data?.access_token) {
-            this.configuration.accessToken = data.access_token
+            this.storage.accessToken = data.access_token
             resolve()
           } else {
-            this.configuration.accessToken = undefined
-            reject(new AuthenticationError('Failed to retrieve access token'))
+            this.storage.accessToken = undefined
+            reject(new AuthTokenError())
           }
         } catch (error) {
           console.error('Authentication failed', error)
-          this.configuration.accessToken = undefined
-          reject(new AuthenticationError('Authentication failed'))
+          this.storage.accessToken = undefined
+          reject(new AuthError(error))
         } finally {
           this.authPromise = null
           this.isAuthenticating = false
@@ -48,14 +48,14 @@ export class AuthManager {
   }
 
   retryAuth() {
-    return this.authenticate(this.configuration.username!, this.configuration.password!)
+    return this.authenticate(this.storage.username, this.storage.password)
   }
 
   get accessToken() {
-    return this.configuration.accessToken?.toString() || ''
+    return this.storage.accessToken?.toString() || ''
   }
 
   set accessToken(token: string) {
-    this.configuration.accessToken = token
+    this.storage.accessToken = token
   }
 }

@@ -1,26 +1,8 @@
-import { AuthManager, Configuration } from './core/auth'
+import { Config, validateConfig } from './config'
+import { AuthManager } from './core/auth'
 import { configureHttpClient } from './core/http'
 import { LogsStream } from './core/ws'
 import { adminApi, base, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from './gen/api'
-
-/**
- * Configuration options for initializing the MarzbanSDK client.
- *
- * @property {string} baseUrl - The base URL of the Marzban API instance. Example: 'https://api.example.com'.
- * @property {string} username - The username for authentication. Required for all authenticated operations.
- * @property {string} password - The password for authentication. Required for all authenticated operations.
- * @property {string} [token] - Optional JWT token for direct authorization. If provided, the SDK will use this token for requests instead of performing authentication.
- * @property {number} [retries] - Optional number of automatic retries for failed HTTP requests. Default is 3.
- * @property {boolean} [authenticateOnInit=true] - If true or omitted, the SDK will automatically perform authentication during initialization using the provided credentials. If set to false, authentication will not be performed automatically; you must call {@link MarzbanSDK.authorize} manually to obtain an access token.
- */
-export interface Config {
-  baseUrl: string
-  username: string
-  password: string
-  token?: string
-  retries?: number
-  authenticateOnInit?: boolean
-}
 
 /**
  * The main SDK class for interacting with the Marzban API.
@@ -29,7 +11,7 @@ export interface Config {
  * and handles authentication, request retries, and interceptor setup.
  */
 export class MarzbanSDK {
-  private configuration: Configuration
+  private config: Config
   private authService: AuthManager
 
   /**
@@ -110,13 +92,9 @@ export class MarzbanSDK {
    * await sdk.authorize();
    */
   constructor(config: Config) {
-    if (!config.username || !config.password) {
-      throw new Error('No credentials provided for authentication')
-    }
+    this.config = validateConfig(config)
 
-    this.configuration = config
-
-    this.authService = new AuthManager(this.configuration)
+    this.authService = new AuthManager(this.config)
     configureHttpClient(config.baseUrl, this.authService, config)
 
     this.admin = adminApi()
@@ -182,6 +160,6 @@ export class MarzbanSDK {
     if (this.authService.isAuthenticating && !force) {
       return this.authService.authPromise!
     }
-    return this.authService.authenticate(this.configuration.username!, this.configuration.password!)
+    return this.authService.authenticate(this.config.username, this.config.password)
   }
 }

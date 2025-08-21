@@ -40,5 +40,3 @@ export const subscriptionUserResponseSchema = z.object({
   links: z.array(z.string()).optional(),
   subscription_url: z.string().default(''),
 }) as unknown as ToZod<SubscriptionUserResponse>
-
-export type SubscriptionUserResponseSchema = SubscriptionUserResponse

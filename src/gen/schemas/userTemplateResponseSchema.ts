@@ -12,5 +12,3 @@ export const userTemplateResponseSchema = z.object({
   inbounds: z.object({}).catchall(z.array(z.string())).default({}),
   id: z.int(),
 }) as unknown as ToZod<UserTemplateResponse>
-
-export type UserTemplateResponseSchema = UserTemplateResponse

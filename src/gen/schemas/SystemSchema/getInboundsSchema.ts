@@ -12,15 +12,9 @@ export const getInbounds200Schema = z
   .object({})
   .catchall(z.array(proxyInboundSchema)) as unknown as ToZod<GetInbounds200>
 
-export type GetInbounds200Schema = GetInbounds200
-
 /**
  * @description Unauthorized
  */
 export const getInbounds401Schema = unauthorizedSchema as unknown as ToZod<GetInbounds401>
 
-export type GetInbounds401Schema = GetInbounds401
-
 export const getInboundsQueryResponseSchema = getInbounds200Schema as unknown as ToZod<GetInboundsQueryResponse>
-
-export type GetInboundsQueryResponseSchema = GetInboundsQueryResponse

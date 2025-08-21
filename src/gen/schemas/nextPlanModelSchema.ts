@@ -9,5 +9,3 @@ export const nextPlanModelSchema = z.object({
   add_remaining_traffic: z.boolean().default(false),
   fire_on_either: z.boolean().default(true),
 }) as unknown as ToZod<NextPlanModel>
-
-export type NextPlanModelSchema = NextPlanModel

@@ -48,5 +48,3 @@ export const userResponseSchema = z.object({
     return z.union([adminSchema, z.null()]).optional()
   },
 }) as unknown as ToZod<UserResponse>
-
-export type UserResponseSchema = UserResponse

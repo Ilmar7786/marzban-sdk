@@ -10,5 +10,3 @@ export const usersResponseSchema = z.object({
   },
   total: z.int(),
 }) as unknown as ToZod<UsersResponse>
-
-export type UsersResponseSchema = UsersResponse

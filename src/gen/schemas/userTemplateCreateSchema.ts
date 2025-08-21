@@ -11,5 +11,3 @@ export const userTemplateCreateSchema = z.object({
   username_suffix: z.union([z.string(), z.null()]).optional(),
   inbounds: z.object({}).catchall(z.array(z.string())).default({}),
 }) as unknown as ToZod<UserTemplateCreate>
-
-export type UserTemplateCreateSchema = UserTemplateCreate

@@ -6,5 +6,3 @@ import type { HTTPException } from '../models/HTTPException.ts'
 export const HTTPExceptionSchema = z.object({
   detail: z.string(),
 }) as unknown as ToZod<HTTPException>
-
-export type HTTPExceptionSchema = HTTPException

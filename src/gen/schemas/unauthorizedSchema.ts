@@ -6,5 +6,3 @@ import type { Unauthorized } from '../models/Unauthorized.ts'
 export const unauthorizedSchema = z.object({
   detail: z.string().default('Not authenticated'),
 }) as unknown as ToZod<Unauthorized>
-
-export type UnauthorizedSchema = Unauthorized

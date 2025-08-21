@@ -9,5 +9,3 @@ export const nodeUsageResponseSchema = z.object({
   uplink: z.int(),
   downlink: z.int(),
 }) as unknown as ToZod<NodeUsageResponse>
-
-export type NodeUsageResponseSchema = NodeUsageResponse

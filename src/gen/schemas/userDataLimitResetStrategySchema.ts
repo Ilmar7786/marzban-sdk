@@ -10,5 +10,3 @@ export const userDataLimitResetStrategySchema = z.enum([
   'month',
   'year',
 ]) as unknown as ToZod<UserDataLimitResetStrategy>
-
-export type UserDataLimitResetStrategySchema = UserDataLimitResetStrategy

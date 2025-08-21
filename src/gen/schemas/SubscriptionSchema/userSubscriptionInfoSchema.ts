@@ -14,23 +14,15 @@ export const userSubscriptionInfoPathParamsSchema = z.object({
   token: z.string(),
 }) as unknown as ToZod<UserSubscriptionInfoPathParams>
 
-export type UserSubscriptionInfoPathParamsSchema = UserSubscriptionInfoPathParams
-
 /**
  * @description Successful Response
  */
 export const userSubscriptionInfo200Schema = subscriptionUserResponseSchema as unknown as ToZod<UserSubscriptionInfo200>
-
-export type UserSubscriptionInfo200Schema = UserSubscriptionInfo200
 
 /**
  * @description Validation Error
  */
 export const userSubscriptionInfo422Schema = HTTPValidationErrorSchema as unknown as ToZod<UserSubscriptionInfo422>
 
-export type UserSubscriptionInfo422Schema = UserSubscriptionInfo422
-
 export const userSubscriptionInfoQueryResponseSchema =
   userSubscriptionInfo200Schema as unknown as ToZod<UserSubscriptionInfoQueryResponse>
-
-export type UserSubscriptionInfoQueryResponseSchema = UserSubscriptionInfoQueryResponse

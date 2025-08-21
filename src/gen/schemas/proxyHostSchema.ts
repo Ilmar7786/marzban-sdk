@@ -30,5 +30,3 @@ export const proxyHostSchema = z.object({
   random_user_agent: z.union([z.boolean(), z.null()]).optional(),
   use_sni_as_host: z.union([z.boolean(), z.null()]).optional(),
 }) as unknown as ToZod<ProxyHost>
-
-export type ProxyHostSchema = ProxyHost

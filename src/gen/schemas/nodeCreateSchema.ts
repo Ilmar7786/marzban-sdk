@@ -11,5 +11,3 @@ export const nodeCreateSchema = z.object({
   usage_coefficient: z.number().default(1),
   add_as_new_host: z.boolean().default(true),
 }) as unknown as ToZod<NodeCreate>
-
-export type NodeCreateSchema = NodeCreate

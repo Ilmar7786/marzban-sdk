@@ -39,5 +39,3 @@ export const userCreateSchema = z.object({
     return userStatusCreateSchema.optional()
   },
 }) as unknown as ToZod<UserCreate>
-
-export type UserCreateSchema = UserCreate

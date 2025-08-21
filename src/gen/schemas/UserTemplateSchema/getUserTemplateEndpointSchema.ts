@@ -14,15 +14,11 @@ export const getUserTemplateEndpointPathParamsSchema = z.object({
   template_id: z.coerce.number().int(),
 }) as unknown as ToZod<GetUserTemplateEndpointPathParams>
 
-export type GetUserTemplateEndpointPathParamsSchema = GetUserTemplateEndpointPathParams
-
 /**
  * @description Successful Response
  */
 export const getUserTemplateEndpoint200Schema =
   userTemplateResponseSchema as unknown as ToZod<GetUserTemplateEndpoint200>
-
-export type GetUserTemplateEndpoint200Schema = GetUserTemplateEndpoint200
 
 /**
  * @description Validation Error
@@ -30,9 +26,5 @@ export type GetUserTemplateEndpoint200Schema = GetUserTemplateEndpoint200
 export const getUserTemplateEndpoint422Schema =
   HTTPValidationErrorSchema as unknown as ToZod<GetUserTemplateEndpoint422>
 
-export type GetUserTemplateEndpoint422Schema = GetUserTemplateEndpoint422
-
 export const getUserTemplateEndpointQueryResponseSchema =
   getUserTemplateEndpoint200Schema as unknown as ToZod<GetUserTemplateEndpointQueryResponse>
-
-export type GetUserTemplateEndpointQueryResponseSchema = GetUserTemplateEndpointQueryResponse

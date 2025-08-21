@@ -1,3 +1,5 @@
+export { Config } from './config'
+export * from './core/errors'
 export * from './core/ws'
 export * from './gen/api'
 export * from './gen/models'

@@ -21,40 +21,26 @@ import { userResponseSchema } from '../userResponseSchema.ts'
  */
 export const addUser200Schema = userResponseSchema as unknown as ToZod<AddUser200>
 
-export type AddUser200Schema = AddUser200
-
 /**
  * @description Bad request
  */
 export const addUser400Schema = HTTPExceptionSchema as unknown as ToZod<AddUser400>
-
-export type AddUser400Schema = AddUser400
 
 /**
  * @description Unauthorized
  */
 export const addUser401Schema = unauthorizedSchema as unknown as ToZod<AddUser401>
 
-export type AddUser401Schema = AddUser401
-
 /**
  * @description Conflict
  */
 export const addUser409Schema = conflictSchema as unknown as ToZod<AddUser409>
-
-export type AddUser409Schema = AddUser409
 
 /**
  * @description Validation Error
  */
 export const addUser422Schema = HTTPValidationErrorSchema as unknown as ToZod<AddUser422>
 
-export type AddUser422Schema = AddUser422
-
 export const addUserMutationRequestSchema = userCreateSchema as unknown as ToZod<AddUserMutationRequest>
 
-export type AddUserMutationRequestSchema = AddUserMutationRequest
-
 export const addUserMutationResponseSchema = addUser200Schema as unknown as ToZod<AddUserMutationResponse>
-
-export type AddUserMutationResponseSchema = AddUserMutationResponse

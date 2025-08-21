@@ -11,5 +11,3 @@ export const bodyAdminTokenApiAdminTokenPostSchema = z.object({
   client_id: z.union([z.string(), z.null()]).optional(),
   client_secret: z.union([z.string(), z.null()]).optional(),
 }) as unknown as ToZod<BodyAdminTokenApiAdminTokenPost>
-
-export type BodyAdminTokenApiAdminTokenPostSchema = BodyAdminTokenApiAdminTokenPost

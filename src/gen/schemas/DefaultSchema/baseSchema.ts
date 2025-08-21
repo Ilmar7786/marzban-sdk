@@ -8,8 +8,4 @@ import type { Base200, BaseQueryResponse } from '../../models/DefaultModel/Base.
  */
 export const base200Schema = z.string() as unknown as ToZod<Base200>
 
-export type Base200Schema = Base200
-
 export const baseQueryResponseSchema = base200Schema as unknown as ToZod<BaseQueryResponse>
-
-export type BaseQueryResponseSchema = BaseQueryResponse

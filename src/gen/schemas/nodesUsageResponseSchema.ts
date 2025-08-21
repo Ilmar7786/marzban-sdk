@@ -9,5 +9,3 @@ export const nodesUsageResponseSchema = z.object({
     return z.array(nodeUsageResponseSchema)
   },
 }) as unknown as ToZod<NodesUsageResponse>
-
-export type NodesUsageResponseSchema = NodesUsageResponse

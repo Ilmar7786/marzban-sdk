@@ -13,15 +13,9 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
  */
 export const getCoreStats200Schema = coreStatsSchema as unknown as ToZod<GetCoreStats200>
 
-export type GetCoreStats200Schema = GetCoreStats200
-
 /**
  * @description Unauthorized
  */
 export const getCoreStats401Schema = unauthorizedSchema as unknown as ToZod<GetCoreStats401>
 
-export type GetCoreStats401Schema = GetCoreStats401
-
 export const getCoreStatsQueryResponseSchema = getCoreStats200Schema as unknown as ToZod<GetCoreStatsQueryResponse>
-
-export type GetCoreStatsQueryResponseSchema = GetCoreStatsQueryResponse

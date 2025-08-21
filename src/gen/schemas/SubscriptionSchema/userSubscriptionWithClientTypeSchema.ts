@@ -15,20 +15,14 @@ export const userSubscriptionWithClientTypePathParamsSchema = z.object({
   token: z.string(),
 }) as unknown as ToZod<UserSubscriptionWithClientTypePathParams>
 
-export type UserSubscriptionWithClientTypePathParamsSchema = UserSubscriptionWithClientTypePathParams
-
 export const userSubscriptionWithClientTypeHeaderParamsSchema = z.object({
   'user-agent': z.string().default(''),
 }) as unknown as ToZod<UserSubscriptionWithClientTypeHeaderParams>
-
-export type UserSubscriptionWithClientTypeHeaderParamsSchema = UserSubscriptionWithClientTypeHeaderParams
 
 /**
  * @description Successful Response
  */
 export const userSubscriptionWithClientType200Schema = z.any() as unknown as ToZod<UserSubscriptionWithClientType200>
-
-export type UserSubscriptionWithClientType200Schema = UserSubscriptionWithClientType200
 
 /**
  * @description Validation Error
@@ -36,9 +30,5 @@ export type UserSubscriptionWithClientType200Schema = UserSubscriptionWithClient
 export const userSubscriptionWithClientType422Schema =
   HTTPValidationErrorSchema as unknown as ToZod<UserSubscriptionWithClientType422>
 
-export type UserSubscriptionWithClientType422Schema = UserSubscriptionWithClientType422
-
 export const userSubscriptionWithClientTypeQueryResponseSchema =
   userSubscriptionWithClientType200Schema as unknown as ToZod<UserSubscriptionWithClientTypeQueryResponse>
-
-export type UserSubscriptionWithClientTypeQueryResponseSchema = UserSubscriptionWithClientTypeQueryResponse

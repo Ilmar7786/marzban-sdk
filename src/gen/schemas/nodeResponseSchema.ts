@@ -17,5 +17,3 @@ export const nodeResponseSchema = z.object({
   },
   message: z.union([z.string(), z.null()]).optional(),
 }) as unknown as ToZod<NodeResponse>
-
-export type NodeResponseSchema = NodeResponse

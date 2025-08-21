@@ -9,5 +9,3 @@ export const HTTPValidationErrorSchema = z.object({
     return z.array(validationErrorSchema).optional()
   },
 }) as unknown as ToZod<HTTPValidationError>
-
-export type HTTPValidationErrorSchema = HTTPValidationError

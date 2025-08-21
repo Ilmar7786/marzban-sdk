@@ -48,7 +48,6 @@ export default defineConfig(() => {
             name: ({ group }) => `${group ?? 'Default'}Schema`.replace(/\s+/g, ''),
           },
           dateType: 'stringOffset',
-          inferred: true,
           typed: true,
           version: '4',
         }),

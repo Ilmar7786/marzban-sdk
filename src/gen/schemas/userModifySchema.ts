@@ -38,5 +38,3 @@ export const userModifySchema = z.object({
     return userStatusModifySchema.optional()
   },
 }) as unknown as ToZod<UserModify>
-
-export type UserModifySchema = UserModify

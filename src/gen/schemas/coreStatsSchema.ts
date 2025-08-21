@@ -8,5 +8,3 @@ export const coreStatsSchema = z.object({
   started: z.boolean(),
   logs_websocket: z.string(),
 }) as unknown as ToZod<CoreStats>
-
-export type CoreStatsSchema = CoreStats

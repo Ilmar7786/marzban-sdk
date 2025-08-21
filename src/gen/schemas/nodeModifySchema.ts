@@ -14,5 +14,3 @@ export const nodeModifySchema = z.object({
     return z.union([nodeStatusSchema, z.null()]).nullable().nullish()
   },
 }) as unknown as ToZod<NodeModify>
-
-export type NodeModifySchema = NodeModify

@@ -10,5 +10,3 @@ export const userStatusSchema = z.enum([
   'expired',
   'on_hold',
 ]) as unknown as ToZod<UserStatus>
-
-export type UserStatusSchema = UserStatus

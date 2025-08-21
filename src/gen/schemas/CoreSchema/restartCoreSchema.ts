@@ -15,22 +15,14 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
  */
 export const restartCore200Schema = z.any() as unknown as ToZod<RestartCore200>
 
-export type RestartCore200Schema = RestartCore200
-
 /**
  * @description Unauthorized
  */
 export const restartCore401Schema = unauthorizedSchema as unknown as ToZod<RestartCore401>
-
-export type RestartCore401Schema = RestartCore401
 
 /**
  * @description Forbidden
  */
 export const restartCore403Schema = forbiddenSchema as unknown as ToZod<RestartCore403>
 
-export type RestartCore403Schema = RestartCore403
-
 export const restartCoreMutationResponseSchema = restartCore200Schema as unknown as ToZod<RestartCoreMutationResponse>
-
-export type RestartCoreMutationResponseSchema = RestartCoreMutationResponse

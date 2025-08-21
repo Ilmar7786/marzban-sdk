@@ -9,5 +9,3 @@ export const adminModifySchema = z.object({
   telegram_id: z.union([z.int(), z.null()]).optional(),
   discord_webhook: z.union([z.string(), z.null()]).optional(),
 }) as unknown as ToZod<AdminModify>
-
-export type AdminModifySchema = AdminModify

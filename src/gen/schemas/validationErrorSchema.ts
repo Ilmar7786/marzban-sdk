@@ -8,5 +8,3 @@ export const validationErrorSchema = z.object({
   msg: z.string(),
   type: z.string(),
 }) as unknown as ToZod<ValidationError>
-
-export type ValidationErrorSchema = ValidationError

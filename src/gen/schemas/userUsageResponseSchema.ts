@@ -8,5 +8,3 @@ export const userUsageResponseSchema = z.object({
   node_name: z.string(),
   used_traffic: z.int(),
 }) as unknown as ToZod<UserUsageResponse>
-
-export type UserUsageResponseSchema = UserUsageResponse

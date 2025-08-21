@@ -21,5 +21,3 @@ export const systemStatsSchema = z.object({
   incoming_bandwidth_speed: z.int(),
   outgoing_bandwidth_speed: z.int(),
 }) as unknown as ToZod<SystemStats>
-
-export type SystemStatsSchema = SystemStats

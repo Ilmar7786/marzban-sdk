@@ -7,5 +7,3 @@ export const nodeSettingsSchema = z.object({
   min_node_version: z.string().default('v0.2.0'),
   certificate: z.string(),
 }) as unknown as ToZod<NodeSettings>
-
-export type NodeSettingsSchema = NodeSettings

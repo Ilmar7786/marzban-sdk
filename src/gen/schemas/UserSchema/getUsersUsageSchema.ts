@@ -18,29 +18,19 @@ export const getUsersUsageQueryParamsSchema = z.object({
   admin: z.union([z.array(z.string()), z.null()]).optional(),
 }) as unknown as ToZod<GetUsersUsageQueryParams>
 
-export type GetUsersUsageQueryParamsSchema = GetUsersUsageQueryParams
-
 /**
  * @description Successful Response
  */
 export const getUsersUsage200Schema = usersUsagesResponseSchema as unknown as ToZod<GetUsersUsage200>
-
-export type GetUsersUsage200Schema = GetUsersUsage200
 
 /**
  * @description Unauthorized
  */
 export const getUsersUsage401Schema = unauthorizedSchema as unknown as ToZod<GetUsersUsage401>
 
-export type GetUsersUsage401Schema = GetUsersUsage401
-
 /**
  * @description Validation Error
  */
 export const getUsersUsage422Schema = HTTPValidationErrorSchema as unknown as ToZod<GetUsersUsage422>
 
-export type GetUsersUsage422Schema = GetUsersUsage422
-
 export const getUsersUsageQueryResponseSchema = getUsersUsage200Schema as unknown as ToZod<GetUsersUsageQueryResponse>
-
-export type GetUsersUsageQueryResponseSchema = GetUsersUsageQueryResponse

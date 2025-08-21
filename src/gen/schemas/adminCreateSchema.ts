@@ -11,5 +11,3 @@ export const adminCreateSchema = z.object({
   users_usage: z.union([z.int(), z.null()]).optional(),
   password: z.string(),
 }) as unknown as ToZod<AdminCreate>
-
-export type AdminCreateSchema = AdminCreate

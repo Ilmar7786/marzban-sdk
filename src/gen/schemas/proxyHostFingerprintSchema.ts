@@ -16,5 +16,3 @@ export const proxyHostFingerprintSchema = z.enum([
   'random',
   'randomized',
 ]) as unknown as ToZod<ProxyHostFingerprint>
-
-export type ProxyHostFingerprintSchema = ProxyHostFingerprint

@@ -17,27 +17,17 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
  */
 export const adminToken200Schema = tokenSchema as unknown as ToZod<AdminToken200>
 
-export type AdminToken200Schema = AdminToken200
-
 /**
  * @description Unauthorized
  */
 export const adminToken401Schema = unauthorizedSchema as unknown as ToZod<AdminToken401>
-
-export type AdminToken401Schema = AdminToken401
 
 /**
  * @description Validation Error
  */
 export const adminToken422Schema = HTTPValidationErrorSchema as unknown as ToZod<AdminToken422>
 
-export type AdminToken422Schema = AdminToken422
-
 export const adminTokenMutationRequestSchema =
   bodyAdminTokenApiAdminTokenPostSchema as unknown as ToZod<AdminTokenMutationRequest>
 
-export type AdminTokenMutationRequestSchema = AdminTokenMutationRequest
-
 export const adminTokenMutationResponseSchema = adminToken200Schema as unknown as ToZod<AdminTokenMutationResponse>
-
-export type AdminTokenMutationResponseSchema = AdminTokenMutationResponse

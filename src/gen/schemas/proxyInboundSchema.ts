@@ -13,5 +13,3 @@ export const proxyInboundSchema = z.object({
   tls: z.string(),
   port: z.union([z.int(), z.string()]),
 }) as unknown as ToZod<ProxyInbound>
-
-export type ProxyInboundSchema = ProxyInbound

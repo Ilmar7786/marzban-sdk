@@ -1,3 +1,3 @@
-export * from './categories/auth.error'
-export * from './categories/configuration.error'
+export * from './categories'
+export * from './guards'
 export * from './sdk.error'

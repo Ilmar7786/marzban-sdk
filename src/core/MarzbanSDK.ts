@@ -1,8 +1,8 @@
-import { Config, validateConfig } from './config'
-import { AuthManager } from './core/auth'
-import { configureHttpClient } from './core/http'
-import { LogsStream } from './core/ws'
-import { adminApi, base, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from './gen/api'
+import { Config, validateConfig } from '../config'
+import { adminApi, base, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from '../gen/api'
+import { AuthManager } from './auth'
+import { configureHttpClient } from './http'
+import { LogsStream } from './ws'
 
 /**
  * The main SDK class for interacting with the Marzban API.
@@ -106,10 +106,6 @@ export class MarzbanSDK {
     this.subscription = subscriptionApi()
     this.userTemplate = userTemplateApi()
     this.logs = new LogsStream(config.baseUrl, this.authService)
-
-    if (!config.token && config.authenticateOnInit !== false) {
-      this.authService.authenticate(config.username, config.password)
-    }
   }
 
   /**
@@ -162,4 +158,14 @@ export class MarzbanSDK {
     }
     return this.authService.authenticate(this.config.username, this.config.password)
   }
+}
+
+export const createMarzbanSDK = async (config: Config): Promise<MarzbanSDK> => {
+  const sdk = new MarzbanSDK(config)
+
+  if (config.authenticateOnInit) {
+    await sdk['authService'].authenticate(config.username, config.password)
+  }
+
+  return sdk
 }

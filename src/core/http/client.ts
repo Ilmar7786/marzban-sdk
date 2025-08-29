@@ -5,7 +5,8 @@ import axiosRetry from 'axios-retry'
 import { Config } from '../../config'
 import { AuthManager } from '../auth'
 import { Logger } from '../logger'
-import { setupAuthInterceptors, setupLoggingInterceptors } from './interceptors'
+import type { PluginRegistry } from '../plugin/plugin.registry'
+import { setupAuthInterceptors, setupLoggingInterceptors, setupPluginInterceptors } from './interceptors'
 
 /**
  * Subset of AxiosRequestConfig
@@ -39,7 +40,8 @@ export const configureHttpClient = (
   baseUrl: string,
   authService: AuthManager,
   config: Config,
-  logger: Logger
+  logger: Logger,
+  plugins?: PluginRegistry
 ): AxiosInstance => {
   logger.info(`Configuring HTTP client with base URL: ${baseUrl}`, 'HttpClient')
   logger.debug(`HTTP client configuration: timeout=${config.timeout}s, retries=${config.retries}`, 'HttpClient')
@@ -52,6 +54,12 @@ export const configureHttpClient = (
 
   logger.debug('Setting up logging interceptors', 'HttpClient')
   setupLoggingInterceptors(axiosInstance, logger)
+
+  // Plugin-driven request/response hooks
+  if (plugins) {
+    logger.debug('Setting up plugin interceptors', 'HttpClient')
+    setupPluginInterceptors(axiosInstance, plugins)
+  }
 
   logger.debug(`Configuring retry logic: ${config?.retries ?? 3} retries with exponential backoff`, 'HttpClient')
   axiosRetry(axiosInstance, {

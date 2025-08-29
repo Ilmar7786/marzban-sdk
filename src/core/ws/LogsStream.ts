@@ -1,5 +1,6 @@
 import { AuthManager } from '../auth/auth.manager'
 import { Logger } from '../logger'
+import type { PluginRegistry } from '../plugin/plugin.registry'
 import { BaseWebSocketClient, WebSocketClient, WebSocketEventMap } from './WebSocketClient'
 import { configurationUrlWs } from './wsUrlBuilder'
 
@@ -17,6 +18,7 @@ export class LogsStream {
   private authService: AuthManager
   private logger: Logger
   private activeConnections: Set<BaseWebSocketClient> = new Set()
+  private plugins?: PluginRegistry
   private maxRetries = 3
 
   /**
@@ -25,10 +27,11 @@ export class LogsStream {
    * @param authService Authentication service for managing tokens.
    * @param logger Logger instance for logging WebSocket events.
    */
-  constructor(basePath: string, authService: AuthManager, logger: Logger) {
+  constructor(basePath: string, authService: AuthManager, logger: Logger, plugins?: PluginRegistry) {
     this.basePath = basePath
     this.authService = authService
     this.logger = logger
+    this.plugins = plugins
     this.logger.debug('LogsStream initialized', 'LogsStream')
   }
 
@@ -68,6 +71,11 @@ export class LogsStream {
     })
 
     this.logger.debug(`WebSocket URL generated: ${wsUrl}`, 'LogsStream')
+    try {
+      await this.plugins?.runWsConnect({ url: wsUrl })
+    } catch {
+      this.logger.warn('Plugin onWsConnect hook failed', 'LogsStream')
+    }
     const wsClient = WebSocketClient.create(wsUrl)
     this.activeConnections.add(wsClient)
 
@@ -75,9 +83,17 @@ export class LogsStream {
       this.logger.info(`WebSocket connection established: ${endpoint}`, 'LogsStream')
     })
 
-    wsClient.on('message', ({ data }) => {
+    wsClient.on('message', async ({ data }) => {
       this.logger.debug(`WebSocket message received from ${endpoint}`, 'LogsStream')
-      options.onMessage(data)
+      let nextData: unknown = data
+      try {
+        nextData = (await this.plugins?.runWsMessage(data, { url: wsUrl })) ?? data
+      } catch {
+        this.logger.warn('Plugin onWsMessage hook failed', 'LogsStream')
+      }
+      // Forward possibly transformed payload
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      options.onMessage(nextData as any)
     })
 
     wsClient.on('error', async event => {
@@ -101,9 +117,14 @@ export class LogsStream {
       options.onError?.(event)
     })
 
-    wsClient.on('close', () => {
+    wsClient.on('close', async () => {
       this.activeConnections.delete(wsClient)
       this.logger.info(`WebSocket connection closed: ${endpoint}`, 'LogsStream')
+      try {
+        await this.plugins?.runWsClose({ url: wsUrl, code: 1000 })
+      } catch {
+        this.logger.warn('Plugin onWsClose hook failed', 'LogsStream')
+      }
     })
 
     return () => {

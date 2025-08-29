@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import type { PluginContext } from '../core/plugin/plugin.types'
+
 const logLevelSchema = z.enum(['debug', 'info', 'warn', 'error'])
 
 const loggerOptionsSchema = z.object({
@@ -21,6 +23,24 @@ const loggerObjectSchema = z.object({
 
 const loggerConfigSchema = z.union([z.literal(false), loggerOptionsSchema, loggerObjectSchema])
 
+// Plugin validation schema - только жизненный цикл, HTTP/WS/Auth регистрируются через enable(ctx)
+const pluginHooksSchema = z
+  .object({
+    onInit: z.custom<(ctx: PluginContext) => void | Promise<void>>().optional(),
+    onReady: z.custom<(ctx: PluginContext) => void | Promise<void>>().optional(),
+  })
+  .optional()
+
+const pluginSchema = z
+  .object({
+    name: z.string().min(1),
+    priority: z.number().optional(),
+    enable: z.custom<(ctx: PluginContext) => void | Promise<void>>().optional(),
+    disable: z.custom<(ctx: PluginContext) => void | Promise<void>>().optional(),
+    hooks: pluginHooksSchema,
+  })
+  .passthrough() // Allow additional properties
+
 export const configSchema = z.object({
   baseUrl: z.url(),
   username: z.string().min(1),
@@ -30,6 +50,7 @@ export const configSchema = z.object({
   token: z.string().optional(),
   authenticateOnInit: z.boolean().optional().default(true),
   logger: loggerConfigSchema.optional(),
+  plugins: z.array(pluginSchema).optional(),
 })
 
 export type Config = z.infer<typeof configSchema>

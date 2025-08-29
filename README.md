@@ -30,6 +30,7 @@ It works seamlessly in both **Node.js** and **browser environments**, giving dev
 - [🔍 How It Works](#-how-it-works)
 - [📚 API Documentation](#-api-documentation)
 - [📡 WebSocket Support](#-websocket-support)
+- [🔌 Plugin System](#-plugin-system)
 - [🤝 Contributing](#-contributing)
 - [📜 License](#-license)
 - [⭐ Support the Project](#-support-the-project)
@@ -41,6 +42,7 @@ It works seamlessly in both **Node.js** and **browser environments**, giving dev
 - 🔄 **Auto Token Refresh** – Seamless handling of session expiration.
 - 🔁 **Built-in Retry Logic** – Robust handling of network errors and downtime.
 - 📡 **[Real-time WebSocket Logging](./docs/WEBSOCKET.md)** – Stream logs from the core and nodes with ease.
+- 🔌 **Extensible Plugin System** – Create custom plugins for HTTP interception, WebSocket handling, authentication events, and more.
 - 📘 **Generated from OpenAPI** – Always up-to-date with the official Marzban API.
 
 ## 📦 Installation
@@ -160,6 +162,22 @@ MarzbanSDK supports WebSocket for **real-time log streaming**.
 You can receive logs from both the **core server** and individual **nodes**.
 
 For more details, check the [WebSocket Guide](./docs/WEBSOCKET.md).
+
+## 🔌 Plugin System
+
+MarzbanSDK features a powerful plugin system that allows you to extend functionality through:
+
+- **HTTP Interceptors** – Modify requests and responses
+- **WebSocket Hooks** – Handle WebSocket events
+- **Authentication Events** – React to auth state changes
+- **Lifecycle Hooks** – Execute code at different stages
+- **Custom Storage** – Persistent data storage for plugins
+- **Priority System** – Control execution order
+
+For comprehensive documentation and examples, see:
+
+- [Plugin System Guide](./docs/PLUGINS.md)
+- [Plugin Examples](./docs/PLUGIN_EXAMPLES.md)
 
 ## 🤝 Contributing
 

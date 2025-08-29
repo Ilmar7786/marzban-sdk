@@ -16,4 +16,9 @@ export const ERROR_CODES: Record<string, FormatCode> = {
 
   AUTH_TOKEN_FAILED: { code: 'AUTH_TOKEN_FAILED', message: 'Failed to retrieve access token' },
   AUTH_FAILED: { code: 'AUTH_FAILED', message: 'Authentication failed' },
+
+  LOGGER_INVALID: {
+    code: 'LOGGER_INVALID',
+    message: 'Invalid logger option: must be false, LoggerOptions, or Logger instance',
+  },
 } as const

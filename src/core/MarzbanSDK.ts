@@ -2,6 +2,7 @@ import { Config, validateConfig } from '../config'
 import { adminApi, base, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from '../gen/api'
 import { AuthManager } from './auth'
 import { configureHttpClient } from './http'
+import { createLogger, Logger } from './logger'
 import { LogsStream } from './ws'
 
 /**
@@ -11,8 +12,9 @@ import { LogsStream } from './ws'
  * and handles authentication, request retries, and interceptor setup.
  */
 export class MarzbanSDK {
-  private config: Config
-  private authService: AuthManager
+  private _config: Config
+  private _authService: AuthManager
+  private _logger: Logger
 
   /**
    * API module for administrative operations.
@@ -67,8 +69,10 @@ export class MarzbanSDK {
    * @param {string} config.username - The username for authentication.
    * @param {string} config.password - The password for authentication.
    * @param {string} [config.token] - Optional JWT token for direct authorization if already authenticated.
-   * @param {number} [config.retries] - Optional number of automatic retries for failed HTTP requests.
+   * @param {number} [config.timeout=0] - Optional HTTP timeout in seconds for requests.
+   * @param {number} [config.retries=3] - Optional number of automatic retries for failed HTTP requests.
    * @param {boolean} [config.authenticateOnInit=true] - If true or omitted, the SDK will automatically perform authentication during initialization using the provided credentials. If set to false, authentication will not be performed automatically; you must call {@link authorize} manually to obtain an access token.
+   * @param {import('./logger').LoggerConfig} [config.logger] - Logger configuration: `false` to disable logging, an options object to use the default logger, or a custom logger instance implementing the `Logger` interface.
    *
    * This option is useful for advanced scenarios where you want to handle authentication errors yourself, or delay authentication until a later point in your application flow.
    *
@@ -80,22 +84,34 @@ export class MarzbanSDK {
    *   baseUrl: 'https://api.example.com',
    *   username: 'admin',
    *   password: 'secret',
+   *   timeout: 15,
+   *   retries: 5,
+   *   logger: { level: 'info', timestamp: true },
    * });
    *
-   * // Manual authentication
+   * @example
+   * // Manual authentication with a custom logger implementation
+   * const customLogger = {
+   *   debug: (m) => console.debug(m),
+   *   info: (m) => console.info(m),
+   *   warn: (m) => console.warn(m),
+   *   error: (m, t) => console.error(m, t),
+   * };
    * const sdk = new MarzbanSDK({
    *   baseUrl: 'https://api.example.com',
    *   username: 'admin',
    *   password: 'secret',
    *   authenticateOnInit: false,
+   *   logger: customLogger,
    * });
    * await sdk.authorize();
    */
   constructor(config: Config) {
-    this.config = validateConfig(config)
+    this._config = validateConfig(config)
+    this._logger = createLogger(config.logger)
+    this._authService = new AuthManager(this._config, this._logger)
 
-    this.authService = new AuthManager(this.config)
-    configureHttpClient(config.baseUrl, this.authService, config)
+    configureHttpClient(config.baseUrl, this._authService, config, this._logger)
 
     this.admin = adminApi()
     this.core = coreApi()
@@ -105,7 +121,7 @@ export class MarzbanSDK {
     this.default = { base }
     this.subscription = subscriptionApi()
     this.userTemplate = userTemplateApi()
-    this.logs = new LogsStream(config.baseUrl, this.authService)
+    this.logs = new LogsStream(config.baseUrl, this._authService, this._logger)
   }
 
   /**
@@ -118,8 +134,8 @@ export class MarzbanSDK {
    * // Use token for custom requests
    */
   async getAuthToken(): Promise<string> {
-    await this.authService.waitForAuth()
-    return this.authService.accessToken
+    await this._authService.waitForAuth()
+    return this._authService.accessToken
   }
 
   /**
@@ -153,18 +169,23 @@ export class MarzbanSDK {
    * await sdk.authorize(true);
    */
   authorize(force = false): Promise<void> {
-    if (this.authService.isAuthenticating && !force) {
-      return this.authService.authPromise!
+    if (this._authService.isAuthenticating && !force) {
+      return this._authService.authPromise!
     }
-    return this.authService.authenticate(this.config.username, this.config.password)
+    return this._authService.authenticate(this._config.username, this._config.password)
   }
 }
 
 export const createMarzbanSDK = async (config: Config): Promise<MarzbanSDK> => {
+  const logger = createLogger(config.logger)
   const sdk = new MarzbanSDK(config)
 
   if (config.authenticateOnInit) {
-    await sdk['authService'].authenticate(config.username, config.password)
+    logger.info('Performing initial authentication as configured', 'MarzbanSDK')
+    await sdk['_authService'].authenticate(config.username, config.password)
+    logger.info('Initial authentication completed successfully', 'MarzbanSDK')
+  } else {
+    logger.debug('Skipping initial authentication as configured', 'MarzbanSDK')
   }
 
   return sdk

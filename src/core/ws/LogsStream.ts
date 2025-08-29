@@ -1,4 +1,5 @@
 import { AuthManager } from '../auth/auth.manager'
+import { Logger } from '../logger'
 import { BaseWebSocketClient, WebSocketClient, WebSocketEventMap } from './WebSocketClient'
 import { configurationUrlWs } from './wsUrlBuilder'
 
@@ -14,6 +15,7 @@ export interface LogOptions {
 export class LogsStream {
   private basePath: string
   private authService: AuthManager
+  private logger: Logger
   private activeConnections: Set<BaseWebSocketClient> = new Set()
   private maxRetries = 3
 
@@ -21,10 +23,13 @@ export class LogsStream {
    * Creates an API instance for handling logs via WebSocket.
    * @param basePath The base URL for WebSocket connections.
    * @param authService Authentication service for managing tokens.
+   * @param logger Logger instance for logging WebSocket events.
    */
-  constructor(basePath: string, authService: AuthManager) {
+  constructor(basePath: string, authService: AuthManager, logger: Logger) {
     this.basePath = basePath
     this.authService = authService
+    this.logger = logger
+    this.logger.debug('LogsStream initialized', 'LogsStream')
   }
 
   /**
@@ -32,10 +37,14 @@ export class LogsStream {
    * @private
    */
   private async ensureAuthenticated() {
+    this.logger.debug('Ensuring authentication for WebSocket connection', 'LogsStream')
     await this.authService.waitForAuth()
 
     if (!this.authService.accessToken) {
+      this.logger.warn('No access token available, attempting to re-authenticate', 'LogsStream')
       await this.authService.retryAuth()
+    } else {
+      this.logger.debug('Access token available for WebSocket connection', 'LogsStream')
     }
   }
 
@@ -48,6 +57,7 @@ export class LogsStream {
    * @returns A function to close the WebSocket connection.
    */
   private async connect(endpoint: string, options: LogOptions, retryCount = 0): Promise<() => void> {
+    this.logger.info(`Establishing WebSocket connection to: ${endpoint}`, 'LogsStream')
     await this.ensureAuthenticated()
 
     const wsUrl = configurationUrlWs({
@@ -57,26 +67,33 @@ export class LogsStream {
       interval: options?.interval ?? 1,
     })
 
+    this.logger.debug(`WebSocket URL generated: ${wsUrl}`, 'LogsStream')
     const wsClient = WebSocketClient.create(wsUrl)
     this.activeConnections.add(wsClient)
 
-    wsClient.on('open', () => console.log(`Connected to ${endpoint}`))
-    wsClient.on('message', ({ data }) => options.onMessage(data))
+    wsClient.on('open', () => {
+      this.logger.info(`WebSocket connection established: ${endpoint}`, 'LogsStream')
+    })
+
+    wsClient.on('message', ({ data }) => {
+      this.logger.debug(`WebSocket message received from ${endpoint}`, 'LogsStream')
+      options.onMessage(data)
+    })
 
     wsClient.on('error', async event => {
       const errorMessage = (event as Event & { message: string }).message || ''
-
-      console.error(`WebSocket error (${endpoint}):`, errorMessage)
+      this.logger.error(`WebSocket error (${endpoint}): ${errorMessage}`, event, 'LogsStream')
 
       if (errorMessage.includes('403')) {
-        console.warn(`Received 403 (retry ${retryCount + 1}/${this.maxRetries})`)
+        this.logger.warn(`Received 403 Forbidden (retry ${retryCount + 1}/${this.maxRetries})`, 'LogsStream')
 
         if (retryCount >= this.maxRetries) {
-          console.error('Max retries reached. Connection failed.')
+          this.logger.error('Maximum retry attempts reached, connection failed', null, 'LogsStream')
           options.onError?.(event)
           return
         }
 
+        this.logger.info('Attempting to re-authenticate and retry connection', 'LogsStream')
         await this.authService.retryAuth()
         return this.connect(endpoint, options, retryCount + 1)
       }
@@ -86,10 +103,11 @@ export class LogsStream {
 
     wsClient.on('close', () => {
       this.activeConnections.delete(wsClient)
-      console.log(`Disconnected from ${endpoint}`)
+      this.logger.info(`WebSocket connection closed: ${endpoint}`, 'LogsStream')
     })
 
     return () => {
+      this.logger.debug(`Closing WebSocket connection: ${endpoint}`, 'LogsStream')
       wsClient.close()
       this.activeConnections.delete(wsClient)
     }
@@ -101,6 +119,7 @@ export class LogsStream {
    * @returns A function to close the WebSocket connection.
    */
   async connectByCore(options: LogOptions) {
+    this.logger.info('Connecting to core logs WebSocket', 'LogsStream')
     return this.connect('/api/core/logs', options)
   }
 
@@ -111,6 +130,7 @@ export class LogsStream {
    * @returns A function to close the WebSocket connection.
    */
   async connectByNode(nodeId: number | string, options: LogOptions) {
+    this.logger.info(`Connecting to node logs WebSocket for node ID: ${nodeId}`, 'LogsStream')
     return this.connect(`/api/node/${nodeId}/logs`, options)
   }
 
@@ -118,8 +138,12 @@ export class LogsStream {
    * Closes all active WebSocket connections.
    */
   closeAllConnections() {
+    const connectionCount = this.activeConnections.size
+    this.logger.info(`Closing ${connectionCount} active WebSocket connections`, 'LogsStream')
+
     this.activeConnections.forEach(wsClient => wsClient.close())
     this.activeConnections.clear()
-    console.log('All WebSocket connections closed.')
+
+    this.logger.info('All WebSocket connections closed successfully', 'LogsStream')
   }
 }

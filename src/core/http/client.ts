@@ -4,7 +4,8 @@ import axiosRetry from 'axios-retry'
 
 import { Config } from '../../config'
 import { AuthManager } from '../auth'
-import { setupAuthInterceptors } from './interceptors'
+import { Logger } from '../logger'
+import { setupAuthInterceptors, setupLoggingInterceptors } from './interceptors'
 
 /**
  * Subset of AxiosRequestConfig
@@ -34,22 +35,44 @@ export type ResponseErrorConfig<TError = unknown> = TError
 let axiosInstance: AxiosInstance | null = null
 let publicInstance: AxiosInstance | null = null
 
-export const configureHttpClient = (baseUrl: string, authService: AuthManager, config: Config): AxiosInstance => {
+export const configureHttpClient = (
+  baseUrl: string,
+  authService: AuthManager,
+  config: Config,
+  logger: Logger
+): AxiosInstance => {
+  logger.info(`Configuring HTTP client with base URL: ${baseUrl}`, 'HttpClient')
+  logger.debug(`HTTP client configuration: timeout=${config.timeout}s, retries=${config.retries}`, 'HttpClient')
+
   axiosInstance = axios.create({ baseURL: baseUrl })
   publicInstance = axios.create({ baseURL: baseUrl })
 
-  setupAuthInterceptors(axiosInstance, authService, config)
+  logger.debug('Setting up authentication interceptors', 'HttpClient')
+  setupAuthInterceptors(axiosInstance, authService, config, logger)
 
+  logger.debug('Setting up logging interceptors', 'HttpClient')
+  setupLoggingInterceptors(axiosInstance, logger)
+
+  logger.debug(`Configuring retry logic: ${config?.retries ?? 3} retries with exponential backoff`, 'HttpClient')
   axiosRetry(axiosInstance, {
     retries: config?.retries ?? 3,
-    retryDelay: retryCount => retryCount * 1000,
+    retryDelay: retryCount => {
+      const delay = retryCount * 1000
+      logger.debug(`Retry attempt ${retryCount}, delay: ${delay}ms`, 'HttpClient')
+      return delay
+    },
   })
 
   axiosRetry(publicInstance, {
     retries: config?.retries ?? 3,
-    retryDelay: retryCount => retryCount * 1000,
+    retryDelay: retryCount => {
+      const delay = retryCount * 1000
+      logger.debug(`Public instance retry attempt ${retryCount}, delay: ${delay}ms`, 'HttpClient')
+      return delay
+    },
   })
 
+  logger.info('HTTP client configuration completed successfully', 'HttpClient')
   return axiosInstance
 }
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { FormatCode } from './codes'
 
-export abstract class SdkError extends Error {
+export class SdkError extends Error {
   public readonly code: string
   public readonly details?: any
 

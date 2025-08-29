@@ -52,6 +52,7 @@ The SDK works seamlessly in **both Node.js and browser environments**.
 - [🔍 How It Works](#-how-it-works)
 - [📚 API Documentation](#-api-documentation)
 - [📡 WebSocket Support](#-websocket-support)
+- [🔌 Plugin System](#-plugin-system)
 - [🤝 Contributing](#-contributing)
 - [📜 License](#-license)
 - [⭐ Support the Project](#-support-the-project)

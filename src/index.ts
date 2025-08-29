@@ -1,6 +1,7 @@
 export { Config } from './config'
 export * from './core/errors'
 export { createMarzbanSDK, type MarzbanSDK } from './core/MarzbanSDK'
+export * from './core/plugin'
 export * from './core/ws'
 export * from './gen/api'
 export * from './gen/models'

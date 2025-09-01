@@ -4,10 +4,7 @@ import type { GetCoreStats401, GetCoreStatsQueryResponse } from '../../models/Co
 import { getCoreStatsQueryResponseSchema } from '../../schemas/CoreSchema/getCoreStatsSchema.ts'
 
 function getGetCoreStatsUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/core` as const,
-  }
+  const res = { method: 'GET', url: `/api/core` as const }
   return res
 }
 

@@ -9,10 +9,7 @@ import type {
 import { getExpiredUsersQueryResponseSchema } from '../../schemas/UserSchema/getExpiredUsersSchema.ts'
 
 function getGetExpiredUsersUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/users/expired` as const,
-  }
+  const res = { method: 'GET', url: `/api/users/expired` as const }
   return res
 }
 
@@ -31,11 +28,6 @@ export async function getExpiredUsers(
     GetExpiredUsersQueryResponse,
     ResponseErrorConfig<GetExpiredUsers401 | GetExpiredUsers422>,
     unknown
-  >({
-    method: 'GET',
-    url: getGetExpiredUsersUrl().url.toString(),
-    params,
-    ...requestConfig,
-  })
+  >({ method: 'GET', url: getGetExpiredUsersUrl().url.toString(), params, ...requestConfig })
   return getExpiredUsersQueryResponseSchema.parse(res.data)
 }

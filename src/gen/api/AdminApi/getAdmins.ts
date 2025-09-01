@@ -10,10 +10,7 @@ import type {
 import { getAdminsQueryResponseSchema } from '../../schemas/AdminSchema/getAdminsSchema.ts'
 
 function getGetAdminsUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/admins` as const,
-  }
+  const res = { method: 'GET', url: `/api/admins` as const }
   return res
 }
 
@@ -32,11 +29,6 @@ export async function getAdmins(
     GetAdminsQueryResponse,
     ResponseErrorConfig<GetAdmins401 | GetAdmins403 | GetAdmins422>,
     unknown
-  >({
-    method: 'GET',
-    url: getGetAdminsUrl().url.toString(),
-    params,
-    ...requestConfig,
-  })
+  >({ method: 'GET', url: getGetAdminsUrl().url.toString(), params, ...requestConfig })
   return getAdminsQueryResponseSchema.parse(res.data)
 }

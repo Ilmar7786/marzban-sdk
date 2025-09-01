@@ -10,10 +10,7 @@ import type {
 import { resetAdminUsageMutationResponseSchema } from '../../schemas/AdminSchema/resetAdminUsageSchema.ts'
 
 function getResetAdminUsageUrl(username: ResetAdminUsagePathParams['username']) {
-  const res = {
-    method: 'POST',
-    url: `/api/admin/usage/reset/${username}` as const,
-  }
+  const res = { method: 'POST', url: `/api/admin/usage/reset/${username}` as const }
   return res
 }
 
@@ -32,10 +29,6 @@ export async function resetAdminUsage(
     ResetAdminUsageMutationResponse,
     ResponseErrorConfig<ResetAdminUsage401 | ResetAdminUsage403 | ResetAdminUsage422>,
     unknown
-  >({
-    method: 'POST',
-    url: getResetAdminUsageUrl(username).url.toString(),
-    ...requestConfig,
-  })
+  >({ method: 'POST', url: getResetAdminUsageUrl(username).url.toString(), ...requestConfig })
   return resetAdminUsageMutationResponseSchema.parse(res.data)
 }

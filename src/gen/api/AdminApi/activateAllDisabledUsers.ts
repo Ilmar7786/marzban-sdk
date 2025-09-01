@@ -11,10 +11,7 @@ import type {
 import { activateAllDisabledUsersMutationResponseSchema } from '../../schemas/AdminSchema/activateAllDisabledUsersSchema.ts'
 
 function getActivateAllDisabledUsersUrl(username: ActivateAllDisabledUsersPathParams['username']) {
-  const res = {
-    method: 'POST',
-    url: `/api/admin/${username}/users/activate` as const,
-  }
+  const res = { method: 'POST', url: `/api/admin/${username}/users/activate` as const }
   return res
 }
 

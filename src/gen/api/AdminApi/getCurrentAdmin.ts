@@ -4,10 +4,7 @@ import type { GetCurrentAdmin401, GetCurrentAdminQueryResponse } from '../../mod
 import { getCurrentAdminQueryResponseSchema } from '../../schemas/AdminSchema/getCurrentAdminSchema.ts'
 
 function getGetCurrentAdminUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/admin` as const,
-  }
+  const res = { method: 'GET', url: `/api/admin` as const }
   return res
 }
 

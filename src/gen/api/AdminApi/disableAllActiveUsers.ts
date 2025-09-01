@@ -11,10 +11,7 @@ import type {
 import { disableAllActiveUsersMutationResponseSchema } from '../../schemas/AdminSchema/disableAllActiveUsersSchema.ts'
 
 function getDisableAllActiveUsersUrl(username: DisableAllActiveUsersPathParams['username']) {
-  const res = {
-    method: 'POST',
-    url: `/api/admin/${username}/users/disable` as const,
-  }
+  const res = { method: 'POST', url: `/api/admin/${username}/users/disable` as const }
   return res
 }
 

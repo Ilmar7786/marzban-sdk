@@ -11,10 +11,7 @@ import type {
 import { getUserQueryResponseSchema } from '../../schemas/UserSchema/getUserSchema.ts'
 
 function getGetUserUrl(username: GetUserPathParams['username']) {
-  const res = {
-    method: 'GET',
-    url: `/api/user/${username}` as const,
-  }
+  const res = { method: 'GET', url: `/api/user/${username}` as const }
   return res
 }
 
@@ -33,10 +30,6 @@ export async function getUser(
     GetUserQueryResponse,
     ResponseErrorConfig<GetUser401 | GetUser403 | GetUser404 | GetUser422>,
     unknown
-  >({
-    method: 'GET',
-    url: getGetUserUrl(username).url.toString(),
-    ...requestConfig,
-  })
+  >({ method: 'GET', url: getGetUserUrl(username).url.toString(), ...requestConfig })
   return getUserQueryResponseSchema.parse(res.data)
 }

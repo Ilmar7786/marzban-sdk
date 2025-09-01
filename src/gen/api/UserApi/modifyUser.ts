@@ -16,10 +16,7 @@ import {
 } from '../../schemas/UserSchema/modifyUserSchema.ts'
 
 function getModifyUserUrl(username: ModifyUserPathParams['username']) {
-  const res = {
-    method: 'PUT',
-    url: `/api/user/${username}` as const,
-  }
+  const res = { method: 'PUT', url: `/api/user/${username}` as const }
   return res
 }
 
@@ -36,6 +33,7 @@ export async function modifyUser(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = modifyUserMutationRequestSchema.parse(data)
+
   const res = await request<
     ModifyUserMutationResponse,
     ResponseErrorConfig<ModifyUser400 | ModifyUser401 | ModifyUser403 | ModifyUser404 | ModifyUser422>,

@@ -22,7 +22,7 @@ export const setupAuthInterceptors = (
   logger.debug('Setting up authentication request interceptor', 'AuthInterceptor')
   client.interceptors.request.use(
     async requestConfig => {
-      await authService.waitForAuth()
+      // await authService.waitForAuth()
       const accessToken = authService.accessToken
       if (accessToken) {
         requestConfig.headers.authorization = `Bearer ${accessToken}`

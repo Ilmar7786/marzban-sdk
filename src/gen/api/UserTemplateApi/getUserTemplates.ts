@@ -8,10 +8,7 @@ import type {
 import { getUserTemplatesQueryResponseSchema } from '../../schemas/UserTemplateSchema/getUserTemplatesSchema.ts'
 
 function getGetUserTemplatesUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/user_template` as const,
-  }
+  const res = { method: 'GET', url: `/api/user_template` as const }
   return res
 }
 

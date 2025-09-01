@@ -11,10 +11,7 @@ import type {
 import { addNodeMutationRequestSchema, addNodeMutationResponseSchema } from '../../schemas/NodeSchema/addNodeSchema.ts'
 
 function getAddNodeUrl() {
-  const res = {
-    method: 'POST',
-    url: `/api/node` as const,
-  }
+  const res = { method: 'POST', url: `/api/node` as const }
   return res
 }
 
@@ -30,15 +27,11 @@ export async function addNode(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = addNodeMutationRequestSchema.parse(data)
+
   const res = await request<
     AddNodeMutationResponse,
     ResponseErrorConfig<AddNode401 | AddNode403 | AddNode409 | AddNode422>,
     AddNodeMutationRequest
-  >({
-    method: 'POST',
-    url: getAddNodeUrl().url.toString(),
-    data: requestData,
-    ...requestConfig,
-  })
+  >({ method: 'POST', url: getAddNodeUrl().url.toString(), data: requestData, ...requestConfig })
   return addNodeMutationResponseSchema.parse(res.data)
 }

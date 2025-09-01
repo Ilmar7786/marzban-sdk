@@ -12,10 +12,7 @@ import {
 } from '../../schemas/UserTemplateSchema/modifyUserTemplateSchema.ts'
 
 function getModifyUserTemplateUrl(templateId: ModifyUserTemplatePathParams['template_id']) {
-  const res = {
-    method: 'PUT',
-    url: `/api/user_template/${templateId}` as const,
-  }
+  const res = { method: 'PUT', url: `/api/user_template/${templateId}` as const }
   return res
 }
 
@@ -32,15 +29,11 @@ export async function modifyUserTemplate(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = modifyUserTemplateMutationRequestSchema.parse(data)
+
   const res = await request<
     ModifyUserTemplateMutationResponse,
     ResponseErrorConfig<ModifyUserTemplate422>,
     ModifyUserTemplateMutationRequest
-  >({
-    method: 'PUT',
-    url: getModifyUserTemplateUrl(templateId).url.toString(),
-    data: requestData,
-    ...requestConfig,
-  })
+  >({ method: 'PUT', url: getModifyUserTemplateUrl(templateId).url.toString(), data: requestData, ...requestConfig })
   return modifyUserTemplateMutationResponseSchema.parse(res.data)
 }

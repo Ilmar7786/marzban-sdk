@@ -10,10 +10,7 @@ import type {
 import { removeNodeMutationResponseSchema } from '../../schemas/NodeSchema/removeNodeSchema.ts'
 
 function getRemoveNodeUrl(nodeId: RemoveNodePathParams['node_id']) {
-  const res = {
-    method: 'DELETE',
-    url: `/api/node/${nodeId}` as const,
-  }
+  const res = { method: 'DELETE', url: `/api/node/${nodeId}` as const }
   return res
 }
 
@@ -32,10 +29,6 @@ export async function removeNode(
     RemoveNodeMutationResponse,
     ResponseErrorConfig<RemoveNode401 | RemoveNode403 | RemoveNode422>,
     unknown
-  >({
-    method: 'DELETE',
-    url: getRemoveNodeUrl(nodeId).url.toString(),
-    ...requestConfig,
-  })
+  >({ method: 'DELETE', url: getRemoveNodeUrl(nodeId).url.toString(), ...requestConfig })
   return removeNodeMutationResponseSchema.parse(res.data)
 }

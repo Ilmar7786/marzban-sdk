@@ -13,10 +13,7 @@ import {
 } from '../../schemas/SystemSchema/modifyHostsSchema.ts'
 
 function getModifyHostsUrl() {
-  const res = {
-    method: 'PUT',
-    url: `/api/hosts` as const,
-  }
+  const res = { method: 'PUT', url: `/api/hosts` as const }
   return res
 }
 
@@ -32,15 +29,11 @@ export async function modifyHosts(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = modifyHostsMutationRequestSchema.parse(data)
+
   const res = await request<
     ModifyHostsMutationResponse,
     ResponseErrorConfig<ModifyHosts401 | ModifyHosts403 | ModifyHosts422>,
     ModifyHostsMutationRequest
-  >({
-    method: 'PUT',
-    url: getModifyHostsUrl().url.toString(),
-    data: requestData,
-    ...requestConfig,
-  })
+  >({ method: 'PUT', url: getModifyHostsUrl().url.toString(), data: requestData, ...requestConfig })
   return modifyHostsMutationResponseSchema.parse(res.data)
 }

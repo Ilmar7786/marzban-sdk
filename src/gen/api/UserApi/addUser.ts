@@ -11,10 +11,7 @@ import type {
 import { addUserMutationRequestSchema, addUserMutationResponseSchema } from '../../schemas/UserSchema/addUserSchema.ts'
 
 function getAddUserUrl() {
-  const res = {
-    method: 'POST',
-    url: `/api/user` as const,
-  }
+  const res = { method: 'POST', url: `/api/user` as const }
   return res
 }
 
@@ -30,15 +27,11 @@ export async function addUser(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = addUserMutationRequestSchema.parse(data)
+
   const res = await request<
     AddUserMutationResponse,
     ResponseErrorConfig<AddUser400 | AddUser401 | AddUser409 | AddUser422>,
     AddUserMutationRequest
-  >({
-    method: 'POST',
-    url: getAddUserUrl().url.toString(),
-    data: requestData,
-    ...requestConfig,
-  })
+  >({ method: 'POST', url: getAddUserUrl().url.toString(), data: requestData, ...requestConfig })
   return addUserMutationResponseSchema.parse(res.data)
 }

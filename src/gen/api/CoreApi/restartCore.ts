@@ -4,10 +4,7 @@ import type { RestartCore401, RestartCore403, RestartCoreMutationResponse } from
 import { restartCoreMutationResponseSchema } from '../../schemas/CoreSchema/restartCoreSchema.ts'
 
 function getRestartCoreUrl() {
-  const res = {
-    method: 'POST',
-    url: `/api/core/restart` as const,
-  }
+  const res = { method: 'POST', url: `/api/core/restart` as const }
   return res
 }
 
@@ -20,11 +17,7 @@ export async function restartCore(config: Partial<RequestConfig> & { client?: ty
   const { client: request = fetch, ...requestConfig } = config
 
   const res = await request<RestartCoreMutationResponse, ResponseErrorConfig<RestartCore401 | RestartCore403>, unknown>(
-    {
-      method: 'POST',
-      url: getRestartCoreUrl().url.toString(),
-      ...requestConfig,
-    }
+    { method: 'POST', url: getRestartCoreUrl().url.toString(), ...requestConfig }
   )
   return restartCoreMutationResponseSchema.parse(res.data)
 }

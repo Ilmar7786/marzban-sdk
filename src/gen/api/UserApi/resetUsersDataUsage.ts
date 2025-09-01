@@ -9,10 +9,7 @@ import type {
 import { resetUsersDataUsageMutationResponseSchema } from '../../schemas/UserSchema/resetUsersDataUsageSchema.ts'
 
 function getResetUsersDataUsageUrl() {
-  const res = {
-    method: 'POST',
-    url: `/api/users/reset` as const,
-  }
+  const res = { method: 'POST', url: `/api/users/reset` as const }
   return res
 }
 

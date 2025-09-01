@@ -14,10 +14,7 @@ import {
 } from '../../schemas/AdminSchema/createAdminSchema.ts'
 
 function getCreateAdminUrl() {
-  const res = {
-    method: 'POST',
-    url: `/api/admin` as const,
-  }
+  const res = { method: 'POST', url: `/api/admin` as const }
   return res
 }
 
@@ -33,6 +30,7 @@ export async function createAdmin(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = createAdminMutationRequestSchema.parse(data)
+
   const res = await request<
     CreateAdminMutationResponse,
     ResponseErrorConfig<CreateAdmin401 | CreateAdmin403 | CreateAdmin409 | CreateAdmin422>,

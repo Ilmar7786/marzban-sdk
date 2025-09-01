@@ -10,10 +10,7 @@ import type {
 import { removeAdminMutationResponseSchema } from '../../schemas/AdminSchema/removeAdminSchema.ts'
 
 function getRemoveAdminUrl(username: RemoveAdminPathParams['username']) {
-  const res = {
-    method: 'DELETE',
-    url: `/api/admin/${username}` as const,
-  }
+  const res = { method: 'DELETE', url: `/api/admin/${username}` as const }
   return res
 }
 
@@ -32,10 +29,6 @@ export async function removeAdmin(
     RemoveAdminMutationResponse,
     ResponseErrorConfig<RemoveAdmin401 | RemoveAdmin403 | RemoveAdmin422>,
     unknown
-  >({
-    method: 'DELETE',
-    url: getRemoveAdminUrl(username).url.toString(),
-    ...requestConfig,
-  })
+  >({ method: 'DELETE', url: getRemoveAdminUrl(username).url.toString(), ...requestConfig })
   return removeAdminMutationResponseSchema.parse(res.data)
 }

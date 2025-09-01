@@ -11,10 +11,7 @@ import type {
 import { resetUserDataUsageMutationResponseSchema } from '../../schemas/UserSchema/resetUserDataUsageSchema.ts'
 
 function getResetUserDataUsageUrl(username: ResetUserDataUsagePathParams['username']) {
-  const res = {
-    method: 'POST',
-    url: `/api/user/${username}/reset` as const,
-  }
+  const res = { method: 'POST', url: `/api/user/${username}/reset` as const }
   return res
 }
 

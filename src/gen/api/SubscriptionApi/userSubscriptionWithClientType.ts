@@ -12,10 +12,7 @@ function getUserSubscriptionWithClientTypeUrl(
   clientType: UserSubscriptionWithClientTypePathParams['client_type'],
   token: UserSubscriptionWithClientTypePathParams['token']
 ) {
-  const res = {
-    method: 'GET',
-    url: `/sub/${token}/${clientType}` as const,
-  }
+  const res = { method: 'GET', url: `/sub/${token}/${clientType}` as const }
   return res
 }
 

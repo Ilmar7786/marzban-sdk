@@ -10,10 +10,7 @@ import type {
 import { setOwnerMutationResponseSchema } from '../../schemas/UserSchema/setOwnerSchema.ts'
 
 function getSetOwnerUrl(username: SetOwnerPathParams['username']) {
-  const res = {
-    method: 'PUT',
-    url: `/api/user/${username}/set-owner` as const,
-  }
+  const res = { method: 'PUT', url: `/api/user/${username}/set-owner` as const }
   return res
 }
 

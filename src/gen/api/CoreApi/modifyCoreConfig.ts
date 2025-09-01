@@ -13,10 +13,7 @@ import {
 } from '../../schemas/CoreSchema/modifyCoreConfigSchema.ts'
 
 function getModifyCoreConfigUrl() {
-  const res = {
-    method: 'PUT',
-    url: `/api/core/config` as const,
-  }
+  const res = { method: 'PUT', url: `/api/core/config` as const }
   return res
 }
 
@@ -32,6 +29,7 @@ export async function modifyCoreConfig(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = modifyCoreConfigMutationRequestSchema.parse(data)
+
   const res = await request<
     ModifyCoreConfigMutationResponse,
     ResponseErrorConfig<ModifyCoreConfig401 | ModifyCoreConfig403 | ModifyCoreConfig422>,

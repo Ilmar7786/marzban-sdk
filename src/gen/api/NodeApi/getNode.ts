@@ -10,10 +10,7 @@ import type {
 import { getNodeQueryResponseSchema } from '../../schemas/NodeSchema/getNodeSchema.ts'
 
 function getGetNodeUrl(nodeId: GetNodePathParams['node_id']) {
-  const res = {
-    method: 'GET',
-    url: `/api/node/${nodeId}` as const,
-  }
+  const res = { method: 'GET', url: `/api/node/${nodeId}` as const }
   return res
 }
 

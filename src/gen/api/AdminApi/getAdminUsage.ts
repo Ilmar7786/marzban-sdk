@@ -10,10 +10,7 @@ import type {
 import { getAdminUsageQueryResponseSchema } from '../../schemas/AdminSchema/getAdminUsageSchema.ts'
 
 function getGetAdminUsageUrl(username: GetAdminUsagePathParams['username']) {
-  const res = {
-    method: 'GET',
-    url: `/api/admin/usage/${username}` as const,
-  }
+  const res = { method: 'GET', url: `/api/admin/usage/${username}` as const }
   return res
 }
 
@@ -32,10 +29,6 @@ export async function getAdminUsage(
     GetAdminUsageQueryResponse,
     ResponseErrorConfig<GetAdminUsage401 | GetAdminUsage403 | GetAdminUsage422>,
     unknown
-  >({
-    method: 'GET',
-    url: getGetAdminUsageUrl(username).url.toString(),
-    ...requestConfig,
-  })
+  >({ method: 'GET', url: getGetAdminUsageUrl(username).url.toString(), ...requestConfig })
   return getAdminUsageQueryResponseSchema.parse(res.data)
 }

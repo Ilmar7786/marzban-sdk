@@ -40,14 +40,12 @@ export default defineConfig(() => {
           dateType: 'string',
         }),
         pluginZod({
-          output: {
-            path: './schemas',
-          },
+          output: { path: './schemas' },
           group: {
             type: 'tag',
             name: ({ group }) => `${group ?? 'Default'}Schema`.replace(/\s+/g, ''),
           },
-          dateType: 'stringOffset',
+          dateType: 'stringLocal',
           typed: true,
           version: '4',
         }),

@@ -14,10 +14,7 @@ import {
 } from '../../schemas/NodeSchema/modifyNodeSchema.ts'
 
 function getModifyNodeUrl(nodeId: ModifyNodePathParams['node_id']) {
-  const res = {
-    method: 'PUT',
-    url: `/api/node/${nodeId}` as const,
-  }
+  const res = { method: 'PUT', url: `/api/node/${nodeId}` as const }
   return res
 }
 
@@ -34,15 +31,11 @@ export async function modifyNode(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = modifyNodeMutationRequestSchema.parse(data)
+
   const res = await request<
     ModifyNodeMutationResponse,
     ResponseErrorConfig<ModifyNode401 | ModifyNode403 | ModifyNode422>,
     ModifyNodeMutationRequest
-  >({
-    method: 'PUT',
-    url: getModifyNodeUrl(nodeId).url.toString(),
-    data: requestData,
-    ...requestConfig,
-  })
+  >({ method: 'PUT', url: getModifyNodeUrl(nodeId).url.toString(), data: requestData, ...requestConfig })
   return modifyNodeMutationResponseSchema.parse(res.data)
 }

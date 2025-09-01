@@ -8,10 +8,7 @@ import type {
 import { removeUserTemplateMutationResponseSchema } from '../../schemas/UserTemplateSchema/removeUserTemplateSchema.ts'
 
 function getRemoveUserTemplateUrl(templateId: RemoveUserTemplatePathParams['template_id']) {
-  const res = {
-    method: 'DELETE',
-    url: `/api/user_template/${templateId}` as const,
-  }
+  const res = { method: 'DELETE', url: `/api/user_template/${templateId}` as const }
   return res
 }
 

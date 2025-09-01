@@ -11,10 +11,7 @@ import type {
 import { activeNextPlanMutationResponseSchema } from '../../schemas/UserSchema/activeNextPlanSchema.ts'
 
 function getActiveNextPlanUrl(username: ActiveNextPlanPathParams['username']) {
-  const res = {
-    method: 'POST',
-    url: `/api/user/${username}/active-next` as const,
-  }
+  const res = { method: 'POST', url: `/api/user/${username}/active-next` as const }
   return res
 }
 

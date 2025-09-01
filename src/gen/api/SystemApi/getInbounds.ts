@@ -4,10 +4,7 @@ import type { GetInbounds401, GetInboundsQueryResponse } from '../../models/Syst
 import { getInboundsQueryResponseSchema } from '../../schemas/SystemSchema/getInboundsSchema.ts'
 
 function getGetInboundsUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/inbounds` as const,
-  }
+  const res = { method: 'GET', url: `/api/inbounds` as const }
   return res
 }
 

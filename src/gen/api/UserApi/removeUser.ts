@@ -11,10 +11,7 @@ import type {
 import { removeUserMutationResponseSchema } from '../../schemas/UserSchema/removeUserSchema.ts'
 
 function getRemoveUserUrl(username: RemoveUserPathParams['username']) {
-  const res = {
-    method: 'DELETE',
-    url: `/api/user/${username}` as const,
-  }
+  const res = { method: 'DELETE', url: `/api/user/${username}` as const }
   return res
 }
 
@@ -33,10 +30,6 @@ export async function removeUser(
     RemoveUserMutationResponse,
     ResponseErrorConfig<RemoveUser401 | RemoveUser403 | RemoveUser404 | RemoveUser422>,
     unknown
-  >({
-    method: 'DELETE',
-    url: getRemoveUserUrl(username).url.toString(),
-    ...requestConfig,
-  })
+  >({ method: 'DELETE', url: getRemoveUserUrl(username).url.toString(), ...requestConfig })
   return removeUserMutationResponseSchema.parse(res.data)
 }

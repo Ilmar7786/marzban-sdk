@@ -8,10 +8,7 @@ import type {
 import { getNodeSettingsQueryResponseSchema } from '../../schemas/NodeSchema/getNodeSettingsSchema.ts'
 
 function getGetNodeSettingsUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/node/settings` as const,
-  }
+  const res = { method: 'GET', url: `/api/node/settings` as const }
   return res
 }
 
@@ -27,10 +24,6 @@ export async function getNodeSettings(config: Partial<RequestConfig> & { client?
     GetNodeSettingsQueryResponse,
     ResponseErrorConfig<GetNodeSettings401 | GetNodeSettings403>,
     unknown
-  >({
-    method: 'GET',
-    url: getGetNodeSettingsUrl().url.toString(),
-    ...requestConfig,
-  })
+  >({ method: 'GET', url: getGetNodeSettingsUrl().url.toString(), ...requestConfig })
   return getNodeSettingsQueryResponseSchema.parse(res.data)
 }

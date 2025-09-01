@@ -14,17 +14,17 @@ export const subscriptionUserResponseSchema = z.object({
     return userDataLimitResetStrategySchema.optional()
   },
   sub_updated_at: z
-    .union([z.iso.datetime({ offset: true }), z.null()])
+    .union([z.iso.datetime({ local: true }), z.null()])
     .nullable()
     .nullish(),
   sub_last_user_agent: z.union([z.string(), z.null()]).nullable().nullish(),
   online_at: z
-    .union([z.iso.datetime({ offset: true }), z.null()])
+    .union([z.iso.datetime({ local: true }), z.null()])
     .nullable()
     .nullish(),
   on_hold_expire_duration: z.union([z.int(), z.null()]).nullable().nullish(),
   on_hold_timeout: z
-    .union([z.iso.datetime({ offset: true }), z.null()])
+    .union([z.iso.datetime({ local: true }), z.null()])
     .nullable()
     .nullish(),
   get next_plan() {
@@ -36,7 +36,7 @@ export const subscriptionUserResponseSchema = z.object({
   },
   used_traffic: z.int(),
   lifetime_used_traffic: z.int().default(0),
-  created_at: z.iso.datetime({ offset: true }),
+  created_at: z.iso.datetime({ local: true }),
   links: z.array(z.string()).optional(),
   subscription_url: z.string().default(''),
 }) as unknown as ToZod<SubscriptionUserResponse>

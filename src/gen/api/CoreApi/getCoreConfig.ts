@@ -8,10 +8,7 @@ import type {
 import { getCoreConfigQueryResponseSchema } from '../../schemas/CoreSchema/getCoreConfigSchema.ts'
 
 function getGetCoreConfigUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/core/config` as const,
-  }
+  const res = { method: 'GET', url: `/api/core/config` as const }
   return res
 }
 
@@ -27,10 +24,6 @@ export async function getCoreConfig(config: Partial<RequestConfig> & { client?: 
     GetCoreConfigQueryResponse,
     ResponseErrorConfig<GetCoreConfig401 | GetCoreConfig403>,
     unknown
-  >({
-    method: 'GET',
-    url: getGetCoreConfigUrl().url.toString(),
-    ...requestConfig,
-  })
+  >({ method: 'GET', url: getGetCoreConfigUrl().url.toString(), ...requestConfig })
   return getCoreConfigQueryResponseSchema.parse(res.data)
 }

@@ -4,10 +4,7 @@ import type { GetNodes401, GetNodes403, GetNodesQueryResponse } from '../../mode
 import { getNodesQueryResponseSchema } from '../../schemas/NodeSchema/getNodesSchema.ts'
 
 function getGetNodesUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/nodes` as const,
-  }
+  const res = { method: 'GET', url: `/api/nodes` as const }
   return res
 }
 

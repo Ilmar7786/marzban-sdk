@@ -8,10 +8,7 @@ import type {
 import { getUserTemplateEndpointQueryResponseSchema } from '../../schemas/UserTemplateSchema/getUserTemplateEndpointSchema.ts'
 
 function getGetUserTemplateEndpointUrl(templateId: GetUserTemplateEndpointPathParams['template_id']) {
-  const res = {
-    method: 'GET',
-    url: `/api/user_template/${templateId}` as const,
-  }
+  const res = { method: 'GET', url: `/api/user_template/${templateId}` as const }
   return res
 }
 
@@ -30,10 +27,6 @@ export async function getUserTemplateEndpoint(
     GetUserTemplateEndpointQueryResponse,
     ResponseErrorConfig<GetUserTemplateEndpoint422>,
     unknown
-  >({
-    method: 'GET',
-    url: getGetUserTemplateEndpointUrl(templateId).url.toString(),
-    ...requestConfig,
-  })
+  >({ method: 'GET', url: getGetUserTemplateEndpointUrl(templateId).url.toString(), ...requestConfig })
   return getUserTemplateEndpointQueryResponseSchema.parse(res.data)
 }

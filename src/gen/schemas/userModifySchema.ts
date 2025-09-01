@@ -17,17 +17,17 @@ export const userModifySchema = z.object({
   inbounds: z.object({}).catchall(z.array(z.string())).default({}),
   note: z.union([z.string(), z.null()]).nullable().nullish(),
   sub_updated_at: z
-    .union([z.iso.datetime({ offset: true }), z.null()])
+    .union([z.iso.datetime({ local: true }), z.null()])
     .nullable()
     .nullish(),
   sub_last_user_agent: z.union([z.string(), z.null()]).nullable().nullish(),
   online_at: z
-    .union([z.iso.datetime({ offset: true }), z.null()])
+    .union([z.iso.datetime({ local: true }), z.null()])
     .nullable()
     .nullish(),
   on_hold_expire_duration: z.union([z.int(), z.null()]).nullable().nullish(),
   on_hold_timeout: z
-    .union([z.iso.datetime({ offset: true }), z.null()])
+    .union([z.iso.datetime({ local: true }), z.null()])
     .nullable()
     .nullish(),
   auto_delete_in_days: z.union([z.int(), z.null()]).nullable().nullish(),

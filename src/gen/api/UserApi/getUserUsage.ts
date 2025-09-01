@@ -12,10 +12,7 @@ import type {
 import { getUserUsageQueryResponseSchema } from '../../schemas/UserSchema/getUserUsageSchema.ts'
 
 function getGetUserUsageUrl(username: GetUserUsagePathParams['username']) {
-  const res = {
-    method: 'GET',
-    url: `/api/user/${username}/usage` as const,
-  }
+  const res = { method: 'GET', url: `/api/user/${username}/usage` as const }
   return res
 }
 
@@ -35,11 +32,6 @@ export async function getUserUsage(
     GetUserUsageQueryResponse,
     ResponseErrorConfig<GetUserUsage401 | GetUserUsage403 | GetUserUsage404 | GetUserUsage422>,
     unknown
-  >({
-    method: 'GET',
-    url: getGetUserUsageUrl(username).url.toString(),
-    params,
-    ...requestConfig,
-  })
+  >({ method: 'GET', url: getGetUserUsageUrl(username).url.toString(), params, ...requestConfig })
   return getUserUsageQueryResponseSchema.parse(res.data)
 }

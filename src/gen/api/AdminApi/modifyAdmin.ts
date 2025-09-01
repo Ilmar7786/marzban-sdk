@@ -14,10 +14,7 @@ import {
 } from '../../schemas/AdminSchema/modifyAdminSchema.ts'
 
 function getModifyAdminUrl(username: ModifyAdminPathParams['username']) {
-  const res = {
-    method: 'PUT',
-    url: `/api/admin/${username}` as const,
-  }
+  const res = { method: 'PUT', url: `/api/admin/${username}` as const }
   return res
 }
 
@@ -34,15 +31,11 @@ export async function modifyAdmin(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = modifyAdminMutationRequestSchema.parse(data)
+
   const res = await request<
     ModifyAdminMutationResponse,
     ResponseErrorConfig<ModifyAdmin401 | ModifyAdmin403 | ModifyAdmin422>,
     ModifyAdminMutationRequest
-  >({
-    method: 'PUT',
-    url: getModifyAdminUrl(username).url.toString(),
-    data: requestData,
-    ...requestConfig,
-  })
+  >({ method: 'PUT', url: getModifyAdminUrl(username).url.toString(), data: requestData, ...requestConfig })
   return modifyAdminMutationResponseSchema.parse(res.data)
 }

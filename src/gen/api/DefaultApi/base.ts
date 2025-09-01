@@ -4,10 +4,7 @@ import type { BaseQueryResponse } from '../../models/DefaultModel/Base.ts'
 import { baseQueryResponseSchema } from '../../schemas/DefaultSchema/baseSchema.ts'
 
 function getBaseUrl() {
-  const res = {
-    method: 'GET',
-    url: `/` as const,
-  }
+  const res = { method: 'GET', url: `/` as const }
   return res
 }
 

@@ -9,10 +9,7 @@ import type {
 import { userSubscriptionQueryResponseSchema } from '../../schemas/SubscriptionSchema/userSubscriptionSchema.ts'
 
 function getUserSubscriptionUrl(token: UserSubscriptionPathParams['token']) {
-  const res = {
-    method: 'GET',
-    url: `/sub/${token}/` as const,
-  }
+  const res = { method: 'GET', url: `/sub/${token}/` as const }
   return res
 }
 

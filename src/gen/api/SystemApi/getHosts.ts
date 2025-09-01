@@ -4,10 +4,7 @@ import type { GetHosts401, GetHosts403, GetHostsQueryResponse } from '../../mode
 import { getHostsQueryResponseSchema } from '../../schemas/SystemSchema/getHostsSchema.ts'
 
 function getGetHostsUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/hosts` as const,
-  }
+  const res = { method: 'GET', url: `/api/hosts` as const }
   return res
 }
 

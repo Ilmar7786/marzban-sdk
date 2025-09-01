@@ -4,10 +4,7 @@ import type { GetSystemStats401, GetSystemStatsQueryResponse } from '../../model
 import { getSystemStatsQueryResponseSchema } from '../../schemas/SystemSchema/getSystemStatsSchema.ts'
 
 function getGetSystemStatsUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/system` as const,
-  }
+  const res = { method: 'GET', url: `/api/system` as const }
   return res
 }
 

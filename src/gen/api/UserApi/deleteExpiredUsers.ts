@@ -9,10 +9,7 @@ import type {
 import { deleteExpiredUsersMutationResponseSchema } from '../../schemas/UserSchema/deleteExpiredUsersSchema.ts'
 
 function getDeleteExpiredUsersUrl() {
-  const res = {
-    method: 'DELETE',
-    url: `/api/users/expired` as const,
-  }
+  const res = { method: 'DELETE', url: `/api/users/expired` as const }
   return res
 }
 
@@ -31,11 +28,6 @@ export async function deleteExpiredUsers(
     DeleteExpiredUsersMutationResponse,
     ResponseErrorConfig<DeleteExpiredUsers401 | DeleteExpiredUsers422>,
     unknown
-  >({
-    method: 'DELETE',
-    url: getDeleteExpiredUsersUrl().url.toString(),
-    params,
-    ...requestConfig,
-  })
+  >({ method: 'DELETE', url: getDeleteExpiredUsersUrl().url.toString(), params, ...requestConfig })
   return deleteExpiredUsersMutationResponseSchema.parse(res.data)
 }

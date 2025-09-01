@@ -11,10 +11,7 @@ import type {
 import { revokeUserSubscriptionMutationResponseSchema } from '../../schemas/UserSchema/revokeUserSubscriptionSchema.ts'
 
 function getRevokeUserSubscriptionUrl(username: RevokeUserSubscriptionPathParams['username']) {
-  const res = {
-    method: 'POST',
-    url: `/api/user/${username}/revoke_sub` as const,
-  }
+  const res = { method: 'POST', url: `/api/user/${username}/revoke_sub` as const }
   return res
 }
 

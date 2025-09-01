@@ -12,10 +12,7 @@ import {
 } from '../../schemas/AdminSchema/adminTokenSchema.ts'
 
 function getAdminTokenUrl() {
-  const res = {
-    method: 'POST',
-    url: `/api/admin/token` as const,
-  }
+  const res = { method: 'POST', url: `/api/admin/token` as const }
   return res
 }
 
@@ -31,6 +28,7 @@ export async function adminToken(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = adminTokenMutationRequestSchema.parse(data)
+
   const res = await request<
     AdminTokenMutationResponse,
     ResponseErrorConfig<AdminToken401 | AdminToken422>,

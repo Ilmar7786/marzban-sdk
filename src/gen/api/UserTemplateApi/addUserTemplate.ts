@@ -11,10 +11,7 @@ import {
 } from '../../schemas/UserTemplateSchema/addUserTemplateSchema.ts'
 
 function getAddUserTemplateUrl() {
-  const res = {
-    method: 'POST',
-    url: `/api/user_template` as const,
-  }
+  const res = { method: 'POST', url: `/api/user_template` as const }
   return res
 }
 
@@ -30,15 +27,11 @@ export async function addUserTemplate(
   const { client: request = fetch, ...requestConfig } = config
 
   const requestData = addUserTemplateMutationRequestSchema.parse(data)
+
   const res = await request<
     AddUserTemplateMutationResponse,
     ResponseErrorConfig<AddUserTemplate422>,
     AddUserTemplateMutationRequest
-  >({
-    method: 'POST',
-    url: getAddUserTemplateUrl().url.toString(),
-    data: requestData,
-    ...requestConfig,
-  })
+  >({ method: 'POST', url: getAddUserTemplateUrl().url.toString(), data: requestData, ...requestConfig })
   return addUserTemplateMutationResponseSchema.parse(res.data)
 }

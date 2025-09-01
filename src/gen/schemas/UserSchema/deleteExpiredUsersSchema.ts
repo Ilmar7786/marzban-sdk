@@ -13,8 +13,8 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 
 export const deleteExpiredUsersQueryParamsSchema = z
   .object({
-    expired_after: z.union([z.iso.datetime({ offset: true }), z.null()]).optional(),
-    expired_before: z.union([z.iso.datetime({ offset: true }), z.null()]).optional(),
+    expired_after: z.union([z.iso.datetime({ local: true }), z.null()]).optional(),
+    expired_before: z.union([z.iso.datetime({ local: true }), z.null()]).optional(),
   })
   .optional() as unknown as ToZod<DeleteExpiredUsersQueryParams>
 

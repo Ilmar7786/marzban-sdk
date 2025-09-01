@@ -9,10 +9,7 @@ import type {
 import { userGetUsageQueryResponseSchema } from '../../schemas/SubscriptionSchema/userGetUsageSchema.ts'
 
 function getUserGetUsageUrl(token: UserGetUsagePathParams['token']) {
-  const res = {
-    method: 'GET',
-    url: `/sub/${token}/usage` as const,
-  }
+  const res = { method: 'GET', url: `/sub/${token}/usage` as const }
   return res
 }
 

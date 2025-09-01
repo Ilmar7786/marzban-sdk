@@ -10,10 +10,7 @@ import type {
 import { getUsageQueryResponseSchema } from '../../schemas/NodeSchema/getUsageSchema.ts'
 
 function getGetUsageUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/nodes/usage` as const,
-  }
+  const res = { method: 'GET', url: `/api/nodes/usage` as const }
   return res
 }
 
@@ -32,11 +29,6 @@ export async function getUsage(
     GetUsageQueryResponse,
     ResponseErrorConfig<GetUsage401 | GetUsage403 | GetUsage422>,
     unknown
-  >({
-    method: 'GET',
-    url: getGetUsageUrl().url.toString(),
-    params,
-    ...requestConfig,
-  })
+  >({ method: 'GET', url: getGetUsageUrl().url.toString(), params, ...requestConfig })
   return getUsageQueryResponseSchema.parse(res.data)
 }

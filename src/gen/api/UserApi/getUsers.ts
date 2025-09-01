@@ -12,10 +12,7 @@ import type {
 import { getUsersQueryResponseSchema } from '../../schemas/UserSchema/getUsersSchema.ts'
 
 function getGetUsersUrl() {
-  const res = {
-    method: 'GET',
-    url: `/api/users` as const,
-  }
+  const res = { method: 'GET', url: `/api/users` as const }
   return res
 }
 
@@ -34,11 +31,6 @@ export async function getUsers(
     GetUsersQueryResponse,
     ResponseErrorConfig<GetUsers400 | GetUsers401 | GetUsers403 | GetUsers404 | GetUsers422>,
     unknown
-  >({
-    method: 'GET',
-    url: getGetUsersUrl().url.toString(),
-    params,
-    ...requestConfig,
-  })
+  >({ method: 'GET', url: getGetUsersUrl().url.toString(), params, ...requestConfig })
   return getUsersQueryResponseSchema.parse(res.data)
 }

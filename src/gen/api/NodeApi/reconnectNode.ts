@@ -10,10 +10,7 @@ import type {
 import { reconnectNodeMutationResponseSchema } from '../../schemas/NodeSchema/reconnectNodeSchema.ts'
 
 function getReconnectNodeUrl(nodeId: ReconnectNodePathParams['node_id']) {
-  const res = {
-    method: 'POST',
-    url: `/api/node/${nodeId}/reconnect` as const,
-  }
+  const res = { method: 'POST', url: `/api/node/${nodeId}/reconnect` as const }
   return res
 }
 
@@ -32,10 +29,6 @@ export async function reconnectNode(
     ReconnectNodeMutationResponse,
     ResponseErrorConfig<ReconnectNode401 | ReconnectNode403 | ReconnectNode422>,
     unknown
-  >({
-    method: 'POST',
-    url: getReconnectNodeUrl(nodeId).url.toString(),
-    ...requestConfig,
-  })
+  >({ method: 'POST', url: getReconnectNodeUrl(nodeId).url.toString(), ...requestConfig })
   return reconnectNodeMutationResponseSchema.parse(res.data)
 }

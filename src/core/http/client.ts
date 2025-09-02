@@ -6,7 +6,7 @@ import { Config } from '../../config'
 import { AuthManager } from '../auth'
 import { Logger } from '../logger'
 import type { PluginRegistry } from '../plugin/plugin.registry'
-import { setupAuthInterceptors, setupLoggingInterceptors, setupPluginInterceptors } from './interceptors'
+import { setupAuthInterceptors, setupPluginInterceptors } from './interceptors'
 
 /**
  * Subset of AxiosRequestConfig
@@ -51,9 +51,6 @@ export const configureHttpClient = (
 
   logger.debug('Setting up authentication interceptors', 'HttpClient')
   setupAuthInterceptors(axiosInstance, authService, config, logger)
-
-  logger.debug('Setting up logging interceptors', 'HttpClient')
-  setupLoggingInterceptors(axiosInstance, logger)
 
   // Plugin-driven request/response hooks
   if (plugins) {

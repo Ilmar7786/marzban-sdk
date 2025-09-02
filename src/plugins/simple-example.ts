@@ -1,23 +1,23 @@
 import type { Plugin } from '../core/plugin/plugin.types'
 
 /**
- * Простой пример плагина для демонстрации новой архитектуры
+ * A simple plug-in example to demonstrate the new architecture
  *
- * Этот плагин показывает:
- * 1. Как регистрировать HTTP обработчики через enable(ctx)
- * 2. Как использовать жизненный цикл через hooks (с ctx!)
- * 3. Простоту и понятность новой системы
- * 4. Полный доступ к API SDK в hooks
+ * This plugin shows:
+ * 1. How to register HTTP handlers via enable(ctx)
+ * 2. How to use lifecycle via hooks (with ctx!)
+ * 3. Simplicity and clarity of the new system
+ * 4. Full access to the SDK API in hooks
  */
 export const simpleExamplePlugin: Plugin = {
   name: 'simple-example',
   priority: 100,
 
-  // enable(ctx) - основной метод для регистрации обработчиков
+  // enable(ctx) - main method for registering handlers
   enable(ctx) {
-    ctx.logger.info('Simple Example Plugin активирован')
+    ctx.logger.info('Simple Example Plugin activated')
 
-    // Регистрируем HTTP обработчики
+    // Register HTTP handlers
     ctx.http.useRequest(req => {
       ctx.logger.debug(`HTTP Request: ${req.method} ${req.url}`)
       return req
@@ -28,75 +28,75 @@ export const simpleExamplePlugin: Plugin = {
       return res
     })
 
-    // Регистрируем WebSocket обработчики
+    // Register WebSocket handlers
     ctx.ws.useConnect(info => {
-      ctx.logger.info(`WebSocket подключен: ${info.url}`)
+      ctx.logger.info(`WebSocket connected: ${info.url}`)
     })
 
-    // Регистрируем Auth обработчики
+    // Register Auth handlers
     ctx.auth.on('start', () => {
-      ctx.logger.info('Начало аутентификации')
+      ctx.logger.info('Authentication started')
     })
 
     ctx.auth.on('success', () => {
-      ctx.logger.info('Аутентификация успешна')
+      ctx.logger.info('Authentication successful')
     })
 
-    // Сохраняем данные в storage плагина
+    // Save data in plugin storage
     ctx.storage.set('activated', true)
     ctx.storage.set('activatedAt', new Date().toISOString())
   },
 
-  // hooks - теперь с ctx для полного доступа к API SDK!
+  // hooks - now with ctx for full access to SDK API!
   hooks: {
     onInit(ctx) {
-      // ✅ Теперь у нас есть доступ к logger, storage, config!
-      ctx.logger.info('Simple Example Plugin инициализирован')
+      // ✅ Now we have access to logger, storage, config!
+      ctx.logger.info('Simple Example Plugin initialized')
 
-      // Сохраняем время инициализации
+      // Save initialization time
       ctx.storage.set('initTime', Date.now())
 
-      // Логируем конфигурацию
+      // Log configuration
       ctx.logger.debug(`Plugin config: baseUrl=${ctx.config.baseUrl}, timeout=${ctx.config.timeout}`)
 
-      // Проверяем настройки
+      // Check settings
       if (ctx.config.timeout && ctx.config.timeout > 30) {
-        ctx.logger.warn('Большой timeout может замедлить работу плагина')
+        ctx.logger.warn('High timeout may slow down the plugin')
       }
     },
 
     onReady(ctx) {
-      // ✅ Полный доступ к API в onReady!
-      ctx.logger.info('Simple Example Plugin готов к работе')
+      // ✅ Full access to API in onReady!
+      ctx.logger.info('Simple Example Plugin is ready')
 
-      // Сохраняем время готовности
+      // Save ready time
       ctx.storage.set('readyTime', Date.now())
 
-      // Можно даже зарегистрировать дополнительные обработчики!
+      // You can even register additional handlers!
       ctx.http.useRequest(req => {
-        ctx.logger.debug('Дополнительный обработчик из onReady')
+        ctx.logger.debug('Additional handler from onReady')
         return req
       })
 
-      // Логируем статистику
+      // Log statistics
       const initTime = ctx.storage.get<number>('initTime')
       const readyTime = ctx.storage.get<number>('readyTime')
       if (initTime && readyTime) {
         const initDuration = readyTime - initTime
-        ctx.logger.info(`Время инициализации: ${initDuration}ms`)
+        ctx.logger.info(`Initialization time: ${initDuration}ms`)
       }
     },
   },
 
-  // disable(ctx) - для очистки при отключении
+  // disable(ctx) - for cleanup on disable
   disable(ctx) {
-    ctx.logger.info('Simple Example Plugin отключен')
+    ctx.logger.info('Simple Example Plugin disabled')
 
-    // Логируем статистику перед очисткой
+    // Log statistics before cleanup
     const activatedAt = ctx.storage.get<string>('activatedAt')
     if (activatedAt) {
       const uptime = Date.now() - new Date(activatedAt).getTime()
-      ctx.logger.info(`Время работы плагина: ${Math.round(uptime / 1000)}s`)
+      ctx.logger.info(`Plugin uptime: ${Math.round(uptime / 1000)}s`)
     }
 
     ctx.storage.clear()

@@ -10,7 +10,7 @@ export class PluginManager {
 
   constructor(private readonly logger: Logger) {}
 
-  // Синхронная инициализация (для обратной совместимости)
+  // Synchronous initialization (for backward compatibility)
   init(plugins: Plugin[] | undefined, config: Config, auth: AuthManager): PluginRegistry | undefined {
     if (!plugins || plugins.length === 0) return undefined
 
@@ -34,13 +34,13 @@ export class PluginManager {
     }
 
     this.registry = new PluginRegistry(baseContext as any)
-    // Запускаем инициализацию в фоне
+    // Starting initialization in the background
     this.registry.register(plugins)
 
     return this.registry
   }
 
-  // Асинхронная инициализация с ожиданием
+  // Asynchronous initialization with waiting
   async initAsync(
     plugins: Plugin[] | undefined,
     config: Config,
@@ -70,7 +70,7 @@ export class PluginManager {
 
     this.registry = new PluginRegistry(baseContext as any)
 
-    // Ждем полной инициализации
+    // Wait for full initialization
     await this.registry.initialize(plugins, options)
 
     return this.registry
@@ -80,35 +80,41 @@ export class PluginManager {
     return this.registry
   }
 
-  // Проверка готовности плагинов
+  // Check if plugins are ready
   isReady(): boolean {
-    return this.registry?.isReady ?? false
+    return (this.registry?.isReady && !this.registry?.hasErrors) ?? false
   }
 
-  // Проверка наличия ошибок
+  // Check if there are any errors
   hasErrors(): boolean {
     return this.registry?.hasErrors ?? false
   }
 
-  // Получение ошибок инициализации
+  // Get initialization errors
   getErrors(): ReadonlyArray<{ plugin: string; error: unknown }> {
     return this.registry?.errors ?? []
   }
 
-  // Ожидание готовности плагинов
+  // Wait for plugins to be ready
   async waitForReady(): Promise<void> {
     await this.registry?.waitForReady()
   }
 
-  // Проверка готовности конкретного плагина
+  // Check readiness of a specific plugin
   isPluginReady(pluginName: string): boolean {
     return this.registry?.isPluginReady(pluginName) ?? false
   }
 
   async notifyReady(): Promise<void> {
-    // Убеждаемся, что плагины инициализированы
+    // Make sure plugins are initialized
     await this.waitForReady()
     await this.registry?.notifyReady()
+  }
+
+  notifyReadyUnsafe(): void {
+    this.registry?.notifyReady().catch(err => {
+      this.logger.warn(`Plugin notifyReady failed: ${err}`)
+    })
   }
 
   async destroy(): Promise<void> {

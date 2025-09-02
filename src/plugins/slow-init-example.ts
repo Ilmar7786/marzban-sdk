@@ -1,85 +1,85 @@
 import type { Plugin } from '../core/plugin/plugin.types'
 
 /**
- * Пример плагина с медленной инициализацией
+ * Example plugin with slow initialization
  *
- * Демонстрирует:
- * 1. Медленную инициализацию (имитация загрузки данных)
- * 2. Как пользователь может управлять процессом
- * 3. Новые возможности асинхронной инициализации
+ * Demonstrates:
+ * 1. Slow initialization (simulation of data loading)
+ * 2. How the user can control the process
+ * 3. New asynchronous initialization capabilities
  */
 export const slowInitPlugin: Plugin = {
   name: 'slow-init-example',
   priority: 50,
 
-  // enable(ctx) - медленная инициализация
+  // enable(ctx) - slow initialization
   async enable(ctx) {
-    ctx.logger.info('Slow Init Plugin: начинаю медленную инициализацию...')
+    ctx.logger.info('Slow Init Plugin: starting slow initialization...')
 
-    // Имитируем медленную операцию (например, загрузка данных из API)
-    await new Promise(resolve => setTimeout(resolve, 5000)) // 5 секунд
+    // Simulate a slow operation (e.g., loading data from API)
+    await new Promise(resolve => setTimeout(resolve, 5000)) // 5 seconds
 
-    // Регистрируем HTTP обработчики
+    // Register HTTP handlers
     ctx.http.useRequest(req => {
-      ctx.logger.debug(`Slow Plugin: обрабатываю запрос ${req.method} ${req.url}`)
-      // Добавляем заголовок от плагина
+      ctx.logger.debug(`Slow Plugin: processing request ${req.method} ${req.url}`)
+      // Add header from plugin
       req.headers = { ...req.headers, 'X-Slow-Plugin': 'initialized' }
       return req
     })
 
     ctx.http.useResponse((res, req) => {
-      ctx.logger.debug(`Slow Plugin: обрабатываю ответ ${res.status} для ${req.method} ${req.url}`)
+      ctx.logger.debug(`Slow Plugin: processing response ${res.status} for ${req.method} ${req.url}`)
       return res
     })
 
-    ctx.logger.info('Slow Init Plugin: инициализация завершена!')
+    ctx.logger.info('Slow Init Plugin: initialization completed!')
   },
 
-  // hooks - жизненный цикл
+  // hooks - lifecycle
   hooks: {
     async onInit(ctx) {
-      ctx.logger.info('Slow Init Plugin: onInit - начинаю настройку...')
+      ctx.logger.info('Slow Init Plugin: onInit - starting setup...')
 
-      // Имитируем еще одну медленную операцию
-      await new Promise(resolve => setTimeout(resolve, 2000)) // 2 секунды
+      // Simulate another slow operation
+      await new Promise(resolve => setTimeout(resolve, 2000)) // 2 seconds
 
-      // Сохраняем время инициализации
+      // Save initialization time
       ctx.storage.set('initTime', Date.now())
       ctx.storage.set('config', ctx.config)
 
-      ctx.logger.info('Slow Init Plugin: onInit завершен')
+      ctx.logger.info('Slow Init Plugin: onInit completed')
     },
 
     async onReady(ctx) {
-      ctx.logger.info('Slow Init Plugin: onReady - финальная подготовка...')
+      ctx.logger.info('Slow Init Plugin: onReady - final preparation...')
 
-      // Имитируем финальную настройку
-      await new Promise(resolve => setTimeout(resolve, 1000)) // 1 секунда
+      // Simulate final setup
+      await new Promise(resolve => setTimeout(resolve, 1000)) // 1 second
 
       ctx.storage.set('readyTime', Date.now())
 
-      // Логируем статистику
+      // Log statistics
       const initTime = ctx.storage.get<number>('initTime')
       const readyTime = ctx.storage.get<number>('readyTime')
       if (initTime && readyTime) {
         const totalTime = readyTime - initTime
-        ctx.logger.info(`Slow Init Plugin: общее время инициализации: ${totalTime}ms`)
+        ctx.logger.info(`Slow Init Plugin: total initialization time: ${totalTime}ms`)
       }
 
-      ctx.logger.info('Slow Init Plugin: готов к работе!')
+      ctx.logger.info('Slow Init Plugin: ready to work!')
     },
   },
 
-  // disable(ctx) - очистка
+  // disable(ctx) - cleanup
   async disable(ctx) {
-    ctx.logger.info('Slow Init Plugin: отключение...')
+    ctx.logger.info('Slow Init Plugin: disabling...')
 
-    // Логируем статистику работы
+    // Log work statistics
     const initTime = ctx.storage.get<number>('initTime')
     const readyTime = ctx.storage.get<number>('readyTime')
     if (initTime && readyTime) {
       const uptime = Date.now() - readyTime
-      ctx.logger.info(`Slow Init Plugin: время работы: ${Math.round(uptime / 1000)}s`)
+      ctx.logger.info(`Slow Init Plugin: uptime: ${Math.round(uptime / 1000)}s`)
     }
 
     ctx.storage.clear()

@@ -38,7 +38,7 @@ export class PluginRegistry {
   private errorSubscribers: Array<(error: unknown, meta: ErrorMeta) => void> = []
   private shutdownController = new AbortController()
 
-  // Новые поля для управления инициализацией
+  // New fields for initialization management
   private initializationPromise: Promise<void> | null = null
   private isInitialized = false
   private initializationErrors: Array<{ plugin: string; error: unknown }> = []
@@ -54,7 +54,7 @@ export class PluginRegistry {
     return this.shutdownController.signal
   }
 
-  // Новые методы для управления инициализацией
+  // New methods for initialization management
   get isReady(): boolean {
     return this.isInitialized
   }
@@ -67,7 +67,7 @@ export class PluginRegistry {
     return this.initializationErrors
   }
 
-  // Основной метод инициализации - теперь асинхронный
+  // Main initialization method - now asynchronous
   async initialize(plugins: Plugin[], options?: { timeoutMs?: number }): Promise<void> {
     if (this.initializationPromise) {
       return this.initializationPromise
@@ -79,67 +79,67 @@ export class PluginRegistry {
 
   private async _initialize(plugins: Plugin[], options?: { timeoutMs?: number }): Promise<void> {
     try {
-      this.baseContext.logger.info(`Начинаю инициализацию ${plugins.length} плагинов...`)
+      this.baseContext.logger.info(`Starting initialization of ${plugins.length} plugins...`)
 
       this.plugins = [...plugins].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
       this.initializationErrors = []
 
-      // Инициализируем плагины с таймаутом
+      // Initialize plugins with timeout
       const initPromises = this.plugins.map(async plugin => {
         try {
           const ctx = this.createContextFor(plugin)
 
-          // Инициализируем enable с таймаутом
+          // Initialize enable with timeout
           if (plugin.enable) {
             await this.safeCallWithTimeout(
               () => plugin.enable!(ctx),
-              options?.timeoutMs ?? 30000, // 30 секунд по умолчанию
-              `enable для плагина ${plugin.name}`
+              options?.timeoutMs ?? 30000, // 30 seconds by default
+              `enable for plugin ${plugin.name}`
             )
           }
 
-          // Инициализируем onInit с таймаутом
+          // Initialize onInit with timeout
           if (plugin.hooks?.onInit) {
             await this.safeCallWithTimeout(
               () => plugin.hooks!.onInit!(ctx),
               options?.timeoutMs ?? 30000,
-              `onInit для плагина ${plugin.name}`
+              `onInit for plugin ${plugin.name}`
             )
           }
 
-          this.baseContext.logger.info(`Плагин ${plugin.name} успешно инициализирован`)
+          this.baseContext.logger.info(`Plugin ${plugin.name} initialized successfully`)
         } catch (error) {
           const errorInfo = { plugin: plugin.name, error }
           this.initializationErrors.push(errorInfo)
           this.emitError(error, { phase: 'init', plugin: plugin.name, hook: 'enable' })
-          this.baseContext.logger.error(`Ошибка инициализации плагина ${plugin.name}:`, error)
+          this.baseContext.logger.error(`Plugin ${plugin.name} initialization failed:`, error)
 
-          // Продолжаем инициализацию других плагинов
+          // Continue initialization of other plugins
         }
       })
 
-      // Ждем инициализации всех плагинов
+      // Wait for all plugins to initialize
       await Promise.allSettled(initPromises)
 
       this.isInitialized = true
       this.baseContext.logger.info(
-        `Инициализация завершена. ${this.plugins.length - this.initializationErrors.length}/${this.plugins.length} плагинов готовы`
+        `Initialization finished. ${this.plugins.length - this.initializationErrors.length}/${this.plugins.length} plugins ready`
       )
     } catch (error) {
-      this.baseContext.logger.error('Критическая ошибка инициализации плагинов:', error)
+      this.baseContext.logger.error('Critical plugin initialization error:', error)
       throw error
     }
   }
 
-  // Упрощенный метод для обратной совместимости
+  // Simplified method for backward compatibility
   register(plugins: Plugin[]): void {
-    // Запускаем инициализацию в фоне
+    // Start initialization in the background
     this.initialize(plugins).catch(error => {
-      this.baseContext.logger.error('Ошибка инициализации плагинов:', error)
+      this.baseContext.logger.error('Plugin initialization error:', error)
     })
   }
 
-  // Новый метод для ожидания готовности
+  // New method to wait for readiness
   async waitForReady(): Promise<void> {
     if (this.isInitialized) {
       return
@@ -148,19 +148,19 @@ export class PluginRegistry {
     if (this.initializationPromise) {
       await this.initializationPromise
     } else {
-      throw new Error('Плагины не были инициализированы. Вызовите initialize() или register() сначала.')
+      throw new Error('Plugins have not been initialized. Call initialize() or register() first.')
     }
   }
 
-  // Метод для проверки готовности конкретного плагина
+  // Method to check readiness of a specific plugin
   isPluginReady(pluginName: string): boolean {
     return this.isInitialized && !this.initializationErrors.some(e => e.plugin === pluginName)
   }
 
-  // Безопасный вызов с таймаутом
+  // Safe call with timeout
   private async safeCallWithTimeout<T>(fn: () => T | Promise<T>, timeoutMs: number, operation: string): Promise<T> {
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(`Таймаут ${operation} (${timeoutMs}ms)`)), timeoutMs)
+      setTimeout(() => reject(new Error(`Timeout ${operation} (${timeoutMs}ms)`)), timeoutMs)
     })
 
     return Promise.race([Promise.resolve(fn()), timeoutPromise])

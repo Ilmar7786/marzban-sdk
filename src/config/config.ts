@@ -23,7 +23,7 @@ const loggerObjectSchema = z.object({
 
 const loggerConfigSchema = z.union([z.literal(false), loggerOptionsSchema, loggerObjectSchema])
 
-// Plugin validation schema - только жизненный цикл, HTTP/WS/Auth регистрируются через enable(ctx)
+// Plugin validation schema - lifecycle only, HTTP/WS/Auth are registered via enable(ctx)
 const pluginHooksSchema = z
   .object({
     onInit: z.custom<(ctx: PluginContext) => void | Promise<void>>().optional(),

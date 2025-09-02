@@ -81,7 +81,7 @@ export class MarzbanSDK {
    * @throws {Error} Throws if required credentials are missing.
    *
    * @example
-   * // Automatic authentication (default)
+   * Automatic authentication (default)
    * const sdk = new MarzbanSDK({
    *   baseUrl: 'https://api.example.com',
    *   username: 'admin',
@@ -92,7 +92,7 @@ export class MarzbanSDK {
    * });
    *
    * @example
-   * // Manual authentication with a custom logger implementation
+   * Manual authentication with a custom logger implementation
    * const customLogger = {
    *   debug: (m) => console.debug(m),
    *   info: (m) => console.info(m),
@@ -137,7 +137,7 @@ export class MarzbanSDK {
    *
    * @example
    * const token = await sdk.getAuthToken();
-   * // Use token for custom requests
+   * Use token for custom requests
    */
   async getAuthToken(): Promise<string> {
     await this._authService.waitForAuth()
@@ -155,7 +155,7 @@ export class MarzbanSDK {
    * @returns {Promise<void>} A promise that resolves on successful authentication or rejects with an {@link AuthenticationError} on failure.
    *
    * @example
-   * // Manual authentication with error handling
+   * Manual authentication with error handling
    * const sdk = new MarzbanSDK({
    *   baseUrl: 'https://api.example.com',
    *   username: 'admin',
@@ -171,7 +171,7 @@ export class MarzbanSDK {
    *   }
    * }
    *
-   * // Force re-authentication (e.g., after token expiration)
+   * Force re-authentication (e.g., after token expiration)
    * await sdk.authorize(true);
    */
   authorize(force = false): Promise<void> {
@@ -182,45 +182,45 @@ export class MarzbanSDK {
   }
 
   /**
-   * Проверяет, готовы ли плагины к работе.
+   * Checks whether the plugins are ready to work.
    *
-   * @returns boolean - true если все плагины инициализированы
+   * @returns boolean - true if all plugins are initialized
    */
   arePluginsReady(): boolean {
     return this._pluginManager?.isReady() ?? false
   }
 
   /**
-   * Проверяет наличие ошибок в плагинах.
+   * Checks for errors in plugins.
    *
-   * @returns boolean - true если есть ошибки инициализации
+   * @returns boolean - true if there are initialization errors
    */
   hasPluginErrors(): boolean {
     return this._pluginManager?.hasErrors() ?? false
   }
 
   /**
-   * Получает список ошибок инициализации плагинов.
+   * Gets a list of plugin initialization errors.
    *
-   * @returns Array<{plugin: string, error: unknown}> - список ошибок
+   * @returns Array<{plugin: string, error: unknown}> - error list
    */
   getPluginErrors(): ReadonlyArray<{ plugin: string; error: unknown }> {
     return this._pluginManager?.getErrors() ?? []
   }
 
   /**
-   * Ожидает готовности всех плагинов.
+   * Waits for all plugins to be ready.
    *
-   * @returns Promise<void> - разрешается когда все плагины готовы
+   * @returns Promise<void> - resolves when all plugins are ready
    */
   async waitForPlugins(): Promise<void> {
     await this._pluginManager?.waitForReady()
   }
 
   /**
-   * Проверяет готовность конкретного плагина.
+   * Checks the availability of a specific plugin.
    *
-   * @returns boolean - true если плагин готов
+   * @returns boolean - true if the plugin is ready
    */
   isPluginReady(pluginName: string): boolean {
     return this._pluginManager?.isPluginReady(pluginName) ?? false
@@ -236,37 +236,33 @@ export class MarzbanSDK {
   }
 }
 
-// todo: рефакторинг
 export const createMarzbanSDK = async (
   config: Config,
   options?: {
-    waitForPlugins?: boolean // Ждать ли инициализации плагинов
+    waitForPlugins?: boolean // Whether to wait for plugin initialization
   }
 ): Promise<MarzbanSDK> => {
   const logger = createLogger(config.logger)
   const sdk = new MarzbanSDK(config)
 
+  // --- Authentication ---
   if (config.authenticateOnInit) {
     logger.info('Performing initial authentication as configured', 'MarzbanSDK')
     await sdk['_authService'].authenticate(config.username, config.password)
     logger.info('Initial authentication completed successfully', 'MarzbanSDK')
-
-    // Если нужно ждать плагины, ждем их инициализации
-    if (options?.waitForPlugins && sdk['_pluginManager']) {
-      logger.info('Waiting for plugins to initialize...', 'MarzbanSDK')
-      await sdk['_pluginManager'].waitForReady()
-      logger.info('All plugins initialized successfully', 'MarzbanSDK')
-    }
-
-    await sdk['_pluginManager'].notifyReady()
   } else {
     logger.debug('Skipping initial authentication as configured', 'MarzbanSDK')
+  }
 
-    // Даже без аутентификации можем ждать плагины
-    if (options?.waitForPlugins && sdk['_pluginManager']) {
+  // --- Plugin initialization ---
+  if (sdk['_pluginManager']) {
+    if (options?.waitForPlugins) {
       logger.info('Waiting for plugins to initialize...', 'MarzbanSDK')
-      await sdk['_pluginManager'].waitForReady()
+      await sdk['_pluginManager'].notifyReady()
       logger.info('All plugins initialized successfully', 'MarzbanSDK')
+    } else {
+      // fire-and-forget, we are not blocking the SDK
+      sdk['_pluginManager'].notifyReadyUnsafe()
     }
   }
 

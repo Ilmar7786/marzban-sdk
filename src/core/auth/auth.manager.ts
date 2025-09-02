@@ -50,9 +50,9 @@ export class AuthManager {
             reject(err)
           }
         } catch (error) {
-          this.logger.error('Authentication request failed', error, 'AuthManager')
           this.storage.accessToken = undefined
           const err = new AuthError(error)
+          this.logger.error('Authentication request failed', err, 'AuthManager')
           this.emit('failure', err)
           reject(err)
         } finally {

@@ -3,7 +3,7 @@ export interface FormatCode {
   message: string
 }
 
-export const ERROR_CODES: Record<string, FormatCode> = {
+export const ERROR_CODES = {
   CONFIG_INVALID: { code: 'CONFIG_INVALID', message: 'Invalid SDK configuration' },
   PLUGIN_EXECUTION: { code: 'PLUGIN_EXECUTION', message: 'Plugin execution failed' },
 
@@ -21,4 +21,7 @@ export const ERROR_CODES: Record<string, FormatCode> = {
     code: 'LOGGER_INVALID',
     message: 'Invalid logger option: must be false, LoggerOptions, or Logger instance',
   },
-} as const
+
+  WEBHOOK_SIGNATURE_ERROR: { code: 'WEBHOOK_SIGNATURE_ERROR', message: 'Invalid webhook signature' },
+  WEBHOOK_VALIDATION_ERROR: { code: 'WEBHOOK_VALIDATION_ERROR', message: 'Invalid webhook payload' },
+} as const satisfies Record<string, FormatCode>

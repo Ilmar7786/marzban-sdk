@@ -11,8 +11,8 @@ export interface Plugin {
   }
 }
 
-// Убрал все HTTP/WS/Auth хуки - они регистрируются через enable(ctx)
-// Оставил только жизненный цикл
+// Removed all HTTP/WS/Auth hooks – they are registered via enable(ctx)
+// Left only the lifecycle
 
 export interface ConfigView {
   baseUrl: string
@@ -26,7 +26,7 @@ export interface AuthPluginApi {
   on(event: 'start' | 'success' | 'failure', cb: () => void): () => void
 }
 
-// Отдельные типы для каждого вида обработчика
+// Separate types for each type of handler
 export type HttpRequestHandler = (req: HttpRequest) => HttpRequest | void | Promise<HttpRequest | void>
 export type HttpResponseHandler = (
   res: HttpResponse,

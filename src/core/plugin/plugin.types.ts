@@ -9,6 +9,8 @@ export interface Plugin {
     onInit?(ctx: PluginContext): void | Promise<void>
     onReady?(ctx: PluginContext): void | Promise<void>
   }
+
+  [key: string]: unknown
 }
 
 // Removed all HTTP/WS/Auth hooks – they are registered via enable(ctx)

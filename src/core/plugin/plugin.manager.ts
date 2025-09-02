@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { AnyType } from '../../common'
 import type { Config } from '../../config'
 import type { AuthManager } from '../auth'
 import type { Logger } from '../logger'
@@ -28,11 +28,11 @@ export class PluginManager {
         refresh: async () => {
           await auth.authenticate(config.username, config.password)
         },
-        on: (event, cb) => auth.on(event as any, cb as any),
+        on: (event, cb) => auth.on(event as AnyType, cb as AnyType),
       },
     }
 
-    this.registry = new PluginRegistry(baseContext as any)
+    this.registry = new PluginRegistry(baseContext as AnyType)
     // Starting initialization in the background
     this.registry.register(plugins)
 
@@ -62,11 +62,11 @@ export class PluginManager {
         refresh: async () => {
           await auth.authenticate(config.username, config.password)
         },
-        on: (event, cb) => auth.on(event as any, cb as any),
+        on: (event, cb) => auth.on(event as AnyType, cb as AnyType),
       },
     }
 
-    this.registry = new PluginRegistry(baseContext as any)
+    this.registry = new PluginRegistry(baseContext as AnyType)
 
     // Wait for full initialization
     await this.registry.initialize(plugins, options)

@@ -1,11 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { AnyType } from '../../common'
 import { FormatCode } from './codes'
 
 export class SdkError extends Error {
   public readonly code: string
-  public readonly details?: any
+  public readonly details?: AnyType
 
-  constructor(options: FormatCode, details?: any) {
+  constructor(options: FormatCode, details?: AnyType) {
     super(options.message)
     this.name = new.target.name
     this.code = options.code

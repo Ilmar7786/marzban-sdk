@@ -1,3 +1,4 @@
+import { AnyType } from '../../common'
 import { AuthManager } from '../auth/auth.manager'
 import { Logger } from '../logger'
 import type { PluginRegistry } from '../plugin/plugin.registry'
@@ -92,8 +93,7 @@ export class LogsStream {
         this.logger.warn('Plugin onWsMessage hook failed', 'LogsStream')
       }
       // Forward possibly transformed payload
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      options.onMessage(nextData as any)
+      options.onMessage(nextData as AnyType)
     })
 
     wsClient.on('error', async event => {

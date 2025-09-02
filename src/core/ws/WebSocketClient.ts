@@ -1,7 +1,6 @@
 import NodeWebSocket, { type WebSocket as NodeWS } from 'ws'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyType = any
+import { AnyType } from '../../common'
 
 export type WebSocketEventMap = {
   open: Event

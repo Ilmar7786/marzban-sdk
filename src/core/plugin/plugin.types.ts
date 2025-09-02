@@ -79,7 +79,6 @@ export interface ErrorMeta {
 }
 
 export interface PluginContext {
-  readonly sdkVersion: string
   readonly config: Readonly<ConfigView>
   readonly logger: Logger
   readonly storage: PluginStorage

@@ -21,7 +21,6 @@ export class PluginManager {
     })
 
     const baseContext: RegistryBaseContext = {
-      sdkVersion: '1.0.0',
       config: cfgView,
       logger: this.logger,
       auth: {
@@ -56,7 +55,6 @@ export class PluginManager {
     })
 
     const baseContext: RegistryBaseContext = {
-      sdkVersion: '1.0.0',
       config: cfgView,
       logger: this.logger,
       auth: {

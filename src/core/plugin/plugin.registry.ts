@@ -221,7 +221,6 @@ export class PluginRegistry {
     const auth = this.baseContext.auth
 
     const ctx: PluginContext = {
-      sdkVersion: this.baseContext.sdkVersion,
       config: this.baseContext.config,
       logger: pluginLogger,
       storage,
@@ -368,7 +367,6 @@ export class PluginRegistry {
 }
 
 export type RegistryBaseContext = {
-  sdkVersion: string
   config: Readonly<ConfigView>
   logger: Logger
   auth: {

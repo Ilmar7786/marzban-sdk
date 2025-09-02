@@ -4,6 +4,7 @@ import { AuthManager } from './auth'
 import { configureHttpClient } from './http'
 import { createLogger, Logger } from './logger'
 import { PluginManager } from './plugin'
+import { WebhookManager } from './webhook'
 import { LogsStream } from './ws'
 
 /**
@@ -62,6 +63,8 @@ export class MarzbanSDK {
    * API module for logs-related operations.
    */
   logs: LogsStream
+
+  webhook: WebhookManager
 
   /**
    * Instantiates the MarzbanSDK client for interacting with the Marzban API.
@@ -128,6 +131,10 @@ export class MarzbanSDK {
     this.subscription = subscriptionApi()
     this.userTemplate = userTemplateApi()
     this.logs = new LogsStream(config.baseUrl, this._authService, this._logger, pluginRegistry)
+    this.webhook = new WebhookManager({
+      logger: this._logger,
+      ...config.webhook,
+    })
   }
 
   /**

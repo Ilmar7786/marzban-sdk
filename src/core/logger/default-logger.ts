@@ -1,3 +1,5 @@
+import chalk, { type ChalkInstance } from 'chalk'
+
 import { Logger, LoggerOptions, LogLevel } from './logger.types'
 
 export class DefaultLogger implements Logger {
@@ -6,6 +8,13 @@ export class DefaultLogger implements Logger {
     info: 1,
     warn: 2,
     error: 3,
+  }
+
+  private readonly levelColors: Record<LogLevel, ChalkInstance> = {
+    debug: chalk.magenta,
+    info: chalk.blue,
+    warn: chalk.yellow,
+    error: chalk.red,
   }
 
   private currentLevel: LogLevel
@@ -20,12 +29,13 @@ export class DefaultLogger implements Logger {
     return this.levelPriority[level] >= this.levelPriority[this.currentLevel]
   }
 
-  private format(level: string, message: string, context?: string) {
+  private format(level: LogLevel, message: string, context?: string) {
     const ts = this.timestamp ? `${new Date().toISOString()}` : ''
-    const ctx = context ? `[${context}]` : ''
-    const paddedLevel = level.toUpperCase().padStart(5, ' ')
+    const ctx = context ? chalk.cyan(`[${context}]`) : ''
+    const paddedLevel = this.levelColors[level](level.toUpperCase().padStart(5, ' '))
+    const sdkPrefix = chalk.green('[MarzbanSDK]')
 
-    return `[MarzbanSDK] ${ts} ${paddedLevel} ${ctx} ${message}`
+    return `${sdkPrefix} ${ts} ${paddedLevel} ${ctx} ${message}`
   }
 
   debug(message: string, context?: string) {

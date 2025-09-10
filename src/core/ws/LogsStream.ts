@@ -5,6 +5,11 @@ import type { PluginRegistry } from '../plugin/plugin.registry'
 import { BaseWebSocketClient, WebSocketClient, WebSocketEventMap } from './WebSocketClient'
 import { configurationUrlWs } from './wsUrlBuilder'
 
+type HandleCloseConnection = () => void
+
+/**
+ * Options for configuring a WebSocket log stream.
+ */
 export interface LogOptions {
   /** Interval for sending messages (in seconds) */
   interval?: number
@@ -14,6 +19,10 @@ export interface LogOptions {
   onError?: (data: WebSocketEventMap['error']) => void
 }
 
+/**
+ * Handles streaming logs from the Marzban API via WebSocket.
+ * Supports both core logs and node-specific logs.
+ */
 export class LogsStream {
   private basePath: string
   private authService: AuthManager
@@ -27,6 +36,7 @@ export class LogsStream {
    * @param basePath The base URL for WebSocket connections.
    * @param authService Authentication service for managing tokens.
    * @param logger Logger instance for logging WebSocket events.
+   * @param plugins Optional plugin registry for extending WebSocket behavior.
    */
   constructor(basePath: string, authService: AuthManager, logger: Logger, plugins?: PluginRegistry) {
     this.basePath = basePath
@@ -60,7 +70,7 @@ export class LogsStream {
    * @param retryCount The number of retry attempts in case of failure (default is 0).
    * @returns A function to close the WebSocket connection.
    */
-  private async connect(endpoint: string, options: LogOptions, retryCount = 0): Promise<() => void> {
+  private async connect(endpoint: string, options: LogOptions, retryCount = 0): Promise<HandleCloseConnection> {
     this.logger.info(`Establishing WebSocket connection to: ${endpoint}`, 'LogsStream')
     await this.ensureAuthenticated()
 
@@ -77,7 +87,8 @@ export class LogsStream {
     } catch {
       this.logger.warn('Plugin onWsConnect hook failed', 'LogsStream')
     }
-    const wsClient = WebSocketClient.create(wsUrl)
+
+    const wsClient: BaseWebSocketClient = await WebSocketClient.create(wsUrl)
     this.activeConnections.add(wsClient)
 
     wsClient.on('open', () => {

@@ -1,6 +1,4 @@
-import NodeWebSocket, { type WebSocket as NodeWS } from 'ws'
-
-import { AnyType } from '../../common'
+import { type AnyType } from '../../common'
 
 export type WebSocketEventMap = {
   open: Event
@@ -10,17 +8,20 @@ export type WebSocketEventMap = {
 }
 
 export abstract class BaseWebSocketClient {
-  protected socket: WebSocket | NodeWS
+  protected socket: WebSocket | AnyType
   protected url: string
   protected protocols?: string | string[]
 
   constructor(url: string, protocols?: string | string[]) {
     this.url = url
     this.protocols = protocols
-    this.socket = this.createWebSocket()
   }
 
-  protected abstract createWebSocket(): WebSocket | NodeWS
+  protected abstract createWebSocket(): Promise<WebSocket | AnyType>
+
+  async init(): Promise<void> {
+    this.socket = await this.createWebSocket()
+  }
 
   on<K extends keyof WebSocketEventMap>(event: K, listener: (event: WebSocketEventMap[K]) => void): void {
     this.socket.addEventListener(event, listener as AnyType)
@@ -40,23 +41,29 @@ export abstract class BaseWebSocketClient {
 }
 
 class BrowserWebSocketClient extends BaseWebSocketClient {
-  protected createWebSocket(): WebSocket {
+  protected async createWebSocket(): Promise<WebSocket> {
     return new WebSocket(this.url, this.protocols)
   }
 }
 
 class NodeWebSocketClient extends BaseWebSocketClient {
-  protected createWebSocket(): NodeWS {
+  protected async createWebSocket(): Promise<AnyType> {
+    const { default: NodeWebSocket } = await import('ws')
     return new NodeWebSocket(this.url, this.protocols)
   }
 }
 
 export class WebSocketClient {
-  static create(url: string, protocols?: string | string[]): BaseWebSocketClient {
+  static async create(url: string, protocols?: string | string[]): Promise<BaseWebSocketClient> {
+    let client: BaseWebSocketClient
+
     if (typeof window !== 'undefined' && typeof window.WebSocket !== 'undefined') {
-      return new BrowserWebSocketClient(url, protocols)
+      client = new BrowserWebSocketClient(url, protocols)
     } else {
-      return new NodeWebSocketClient(url, protocols)
+      client = new NodeWebSocketClient(url, protocols)
     }
+
+    await client.init()
+    return client
   }
 }

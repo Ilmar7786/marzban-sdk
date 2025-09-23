@@ -28,7 +28,9 @@ export class PluginManager {
         refresh: async () => {
           await auth.authenticate(config.username, config.password)
         },
-        on: (event, cb) => auth.on(event as AnyType, cb as AnyType),
+        on: (event, cb) => {
+          auth.on(event as AnyType, cb as AnyType)
+        },
       },
     }
 
@@ -62,7 +64,9 @@ export class PluginManager {
         refresh: async () => {
           await auth.authenticate(config.username, config.password)
         },
-        on: (event, cb) => auth.on(event as AnyType, cb as AnyType),
+        on: (event, cb) => {
+          auth.on(event as AnyType, cb as AnyType)
+        },
       },
     }
 

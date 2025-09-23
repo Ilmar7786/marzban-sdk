@@ -1,3 +1,4 @@
+import { AuthEvents } from '../auth'
 import type { Logger } from '../logger'
 import type {
   AuthFailureHandler,
@@ -372,6 +373,9 @@ export type RegistryBaseContext = {
   auth: {
     getToken: () => Promise<string | null>
     refresh: () => Promise<void>
-    on: (event: 'start' | 'success' | 'failure', cb: () => void) => () => void
+    on: <TEvent extends keyof AuthEvents>(
+      event: TEvent,
+      cb: (payload: AuthEvents[TEvent]) => void | Promise<void>
+    ) => void
   }
 }

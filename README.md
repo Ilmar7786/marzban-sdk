@@ -18,7 +18,7 @@
 
 > 🚧 **We're working on Marzban SDK 2.0.0 — the biggest update yet!**
 >
-> We're working on the biggest update yet — version 2.0.0! This release brings fundamental improvements:
+> This release brings fundamental improvements:
 >
 > - 🛡️ Strict validation with Zod schemas
 > - 🔌 Plugin system for HTTP & WebSocket requests

@@ -48,15 +48,7 @@ export class AuthService {
   }
 
   async waitForAuth(): Promise<void> {
-    let promises = true
-
-    while (promises)
-      if (this.authPromise) {
-        promises = true
-        await this.authPromise
-      } else {
-        promises = false
-      }
+    await this.authPromise
   }
 
   retryAuth() {

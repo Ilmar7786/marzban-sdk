@@ -52,7 +52,7 @@ export class LogsStream {
    */
   private async ensureAuthenticated() {
     this.logger.debug('Ensuring authentication for WebSocket connection', 'LogsStream')
-    await this.authService.waitForAuth()
+    await this.authService.waitForCurrentAuth()
 
     if (!this.authService.accessToken) {
       this.logger.warn('No access token available, attempting to re-authenticate', 'LogsStream')

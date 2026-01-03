@@ -11,5 +11,18 @@ export class SdkError extends Error {
     this.code = options.code
     this.details = details
     Object.setPrototypeOf(this, new.target.prototype)
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, new.target)
+    }
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      code: this.code,
+      message: this.message,
+      details: this.details,
+    }
   }
 }

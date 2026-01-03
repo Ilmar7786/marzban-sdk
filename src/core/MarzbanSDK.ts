@@ -147,7 +147,7 @@ export class MarzbanSDK {
    * Use token for custom requests
    */
   async getAuthToken(): Promise<string> {
-    await this._authService.waitForAuth()
+    await this._authService.waitForCurrentAuth()
     return this._authService.accessToken
   }
 

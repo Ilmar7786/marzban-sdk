@@ -2,8 +2,8 @@ import { AnyType } from '../../common'
 import { AuthManager } from '../auth/auth.manager'
 import { Logger } from '../logger'
 import type { PluginRegistry } from '../plugin/plugin.registry'
-import { BaseWebSocketClient, WebSocketClient, WebSocketEventMap } from './WebSocketClient'
-import { configurationUrlWs } from './wsUrlBuilder'
+import { BaseWebSocketClient, WebSocketClient } from './client'
+import { configurationUrlWs } from './utils'
 
 type HandleCloseConnection = () => void
 

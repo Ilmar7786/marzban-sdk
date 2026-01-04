@@ -1,3 +1,3 @@
-export * from './LogsStream'
-export * from './WebSocketClient'
-export * from './wsUrlBuilder'
+export * from './client'
+export * from './logs-stream'
+export * from './utils'

@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -21,46 +20,48 @@ import { userStatusSchema } from '../userStatusSchema.ts'
 
 export const getUsersQueryParamsSchema = z
   .object({
-    offset: z.coerce.number().int().optional(),
-    limit: z.coerce.number().int().optional(),
-    username: z.array(z.string()).optional(),
-    search: z.union([z.string(), z.null()]).optional(),
-    admin: z.union([z.array(z.string()), z.null()]).optional(),
+    offset: z.optional(z.coerce.number().int()),
+    limit: z.optional(z.coerce.number().int()),
+    username: z.optional(z.array(z.string())),
+    search: z.optional(z.union([z.string(), z.null()])),
+    admin: z.optional(z.union([z.array(z.string()), z.null()])),
     get status() {
       return userStatusSchema.optional()
     },
-    sort: z.string().optional(),
+    sort: z.optional(z.string()),
   })
-  .optional() as unknown as ToZod<GetUsersQueryParams>
+  .optional() as unknown as z.ZodType<GetUsersQueryParams>
 
 /**
  * @description Successful Response
  */
-export const getUsers200Schema = usersResponseSchema as unknown as ToZod<GetUsers200>
+export const getUsers200Schema = z.lazy(() => usersResponseSchema) as unknown as z.ZodType<GetUsers200>
 
 /**
  * @description Bad request
  */
-export const getUsers400Schema = HTTPExceptionSchema as unknown as ToZod<GetUsers400>
+export const getUsers400Schema = z.lazy(() => HTTPExceptionSchema) as unknown as z.ZodType<GetUsers400>
 
 /**
  * @description Unauthorized
  */
-export const getUsers401Schema = unauthorizedSchema as unknown as ToZod<GetUsers401>
+export const getUsers401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<GetUsers401>
 
 /**
  * @description Forbidden
  */
-export const getUsers403Schema = forbiddenSchema as unknown as ToZod<GetUsers403>
+export const getUsers403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<GetUsers403>
 
 /**
  * @description Not found
  */
-export const getUsers404Schema = notFoundSchema as unknown as ToZod<GetUsers404>
+export const getUsers404Schema = z.lazy(() => notFoundSchema) as unknown as z.ZodType<GetUsers404>
 
 /**
  * @description Validation Error
  */
-export const getUsers422Schema = HTTPValidationErrorSchema as unknown as ToZod<GetUsers422>
+export const getUsers422Schema = z.lazy(() => HTTPValidationErrorSchema) as unknown as z.ZodType<GetUsers422>
 
-export const getUsersQueryResponseSchema = getUsers200Schema as unknown as ToZod<GetUsersQueryResponse>
+export const getUsersQueryResponseSchema = z.lazy(
+  () => getUsers200Schema
+) as unknown as z.ZodType<GetUsersQueryResponse>

@@ -5,6 +5,6 @@ export const nodeStatusEnum = {
   disabled: 'disabled',
 } as const
 
-export type NodeStatusEnum = (typeof nodeStatusEnum)[keyof typeof nodeStatusEnum]
+export type NodeStatusEnumKey = (typeof nodeStatusEnum)[keyof typeof nodeStatusEnum]
 
-export type NodeStatus = NodeStatusEnum
+export type NodeStatus = NodeStatusEnumKey

@@ -5,6 +5,6 @@ export const proxyTypesEnum = {
   shadowsocks: 'shadowsocks',
 } as const
 
-export type ProxyTypesEnum = (typeof proxyTypesEnum)[keyof typeof proxyTypesEnum]
+export type ProxyTypesEnumKey = (typeof proxyTypesEnum)[keyof typeof proxyTypesEnum]
 
-export type ProxyTypes = ProxyTypesEnum
+export type ProxyTypes = ProxyTypesEnumKey

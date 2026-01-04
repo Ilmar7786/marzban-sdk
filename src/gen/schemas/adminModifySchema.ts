@@ -1,11 +1,10 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type { AdminModify } from '../models/AdminModify.ts'
 
 export const adminModifySchema = z.object({
-  password: z.union([z.string(), z.null()]).optional(),
+  password: z.optional(z.union([z.string(), z.null()])),
   is_sudo: z.boolean(),
-  telegram_id: z.union([z.int(), z.null()]).optional(),
-  discord_webhook: z.union([z.string(), z.null()]).optional(),
-}) as unknown as ToZod<AdminModify>
+  telegram_id: z.optional(z.union([z.int(), z.null()])),
+  discord_webhook: z.optional(z.union([z.string(), z.null()])),
+}) as unknown as z.ZodType<AdminModify>

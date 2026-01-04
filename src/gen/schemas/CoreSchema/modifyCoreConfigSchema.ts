@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -16,24 +15,29 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 /**
  * @description Successful Response
  */
-export const modifyCoreConfig200Schema = z.object({}) as unknown as ToZod<ModifyCoreConfig200>
+export const modifyCoreConfig200Schema = z.object({}) as unknown as z.ZodType<ModifyCoreConfig200>
 
 /**
  * @description Unauthorized
  */
-export const modifyCoreConfig401Schema = unauthorizedSchema as unknown as ToZod<ModifyCoreConfig401>
+export const modifyCoreConfig401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<ModifyCoreConfig401>
 
 /**
  * @description Forbidden
  */
-export const modifyCoreConfig403Schema = forbiddenSchema as unknown as ToZod<ModifyCoreConfig403>
+export const modifyCoreConfig403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<ModifyCoreConfig403>
 
 /**
  * @description Validation Error
  */
-export const modifyCoreConfig422Schema = HTTPValidationErrorSchema as unknown as ToZod<ModifyCoreConfig422>
+export const modifyCoreConfig422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<ModifyCoreConfig422>
 
-export const modifyCoreConfigMutationRequestSchema = z.object({}) as unknown as ToZod<ModifyCoreConfigMutationRequest>
+export const modifyCoreConfigMutationRequestSchema = z.object(
+  {}
+) as unknown as z.ZodType<ModifyCoreConfigMutationRequest>
 
-export const modifyCoreConfigMutationResponseSchema =
-  modifyCoreConfig200Schema as unknown as ToZod<ModifyCoreConfigMutationResponse>
+export const modifyCoreConfigMutationResponseSchema = z.lazy(
+  () => modifyCoreConfig200Schema
+) as unknown as z.ZodType<ModifyCoreConfigMutationResponse>

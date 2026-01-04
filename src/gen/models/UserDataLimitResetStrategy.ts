@@ -6,7 +6,7 @@ export const userDataLimitResetStrategyEnum = {
   year: 'year',
 } as const
 
-export type UserDataLimitResetStrategyEnum =
+export type UserDataLimitResetStrategyEnumKey =
   (typeof userDataLimitResetStrategyEnum)[keyof typeof userDataLimitResetStrategyEnum]
 
-export type UserDataLimitResetStrategy = UserDataLimitResetStrategyEnum
+export type UserDataLimitResetStrategy = UserDataLimitResetStrategyEnumKey

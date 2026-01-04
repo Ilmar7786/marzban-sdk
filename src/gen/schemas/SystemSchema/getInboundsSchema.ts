@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type { GetInbounds200, GetInbounds401, GetInboundsQueryResponse } from '../../models/SystemModel/GetInbounds.ts'
@@ -10,11 +9,13 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
  */
 export const getInbounds200Schema = z
   .object({})
-  .catchall(z.array(proxyInboundSchema)) as unknown as ToZod<GetInbounds200>
+  .catchall(z.array(z.lazy(() => proxyInboundSchema))) as unknown as z.ZodType<GetInbounds200>
 
 /**
  * @description Unauthorized
  */
-export const getInbounds401Schema = unauthorizedSchema as unknown as ToZod<GetInbounds401>
+export const getInbounds401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<GetInbounds401>
 
-export const getInboundsQueryResponseSchema = getInbounds200Schema as unknown as ToZod<GetInboundsQueryResponse>
+export const getInboundsQueryResponseSchema = z.lazy(
+  () => getInbounds200Schema
+) as unknown as z.ZodType<GetInboundsQueryResponse>

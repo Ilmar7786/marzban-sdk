@@ -1,4 +1,4 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
+import { z } from 'zod/v4'
 
 import type {
   CreateAdmin200,
@@ -19,28 +19,32 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 /**
  * @description Successful Response
  */
-export const createAdmin200Schema = adminSchema as unknown as ToZod<CreateAdmin200>
+export const createAdmin200Schema = z.lazy(() => adminSchema) as unknown as z.ZodType<CreateAdmin200>
 
 /**
  * @description Unauthorized
  */
-export const createAdmin401Schema = unauthorizedSchema as unknown as ToZod<CreateAdmin401>
+export const createAdmin401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<CreateAdmin401>
 
 /**
  * @description Forbidden
  */
-export const createAdmin403Schema = forbiddenSchema as unknown as ToZod<CreateAdmin403>
+export const createAdmin403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<CreateAdmin403>
 
 /**
  * @description Conflict
  */
-export const createAdmin409Schema = conflictSchema as unknown as ToZod<CreateAdmin409>
+export const createAdmin409Schema = z.lazy(() => conflictSchema) as unknown as z.ZodType<CreateAdmin409>
 
 /**
  * @description Validation Error
  */
-export const createAdmin422Schema = HTTPValidationErrorSchema as unknown as ToZod<CreateAdmin422>
+export const createAdmin422Schema = z.lazy(() => HTTPValidationErrorSchema) as unknown as z.ZodType<CreateAdmin422>
 
-export const createAdminMutationRequestSchema = adminCreateSchema as unknown as ToZod<CreateAdminMutationRequest>
+export const createAdminMutationRequestSchema = z.lazy(
+  () => adminCreateSchema
+) as unknown as z.ZodType<CreateAdminMutationRequest>
 
-export const createAdminMutationResponseSchema = createAdmin200Schema as unknown as ToZod<CreateAdminMutationResponse>
+export const createAdminMutationResponseSchema = z.lazy(
+  () => createAdmin200Schema
+) as unknown as z.ZodType<CreateAdminMutationResponse>

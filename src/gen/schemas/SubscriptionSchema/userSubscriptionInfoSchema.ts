@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -12,17 +11,22 @@ import { subscriptionUserResponseSchema } from '../subscriptionUserResponseSchem
 
 export const userSubscriptionInfoPathParamsSchema = z.object({
   token: z.string(),
-}) as unknown as ToZod<UserSubscriptionInfoPathParams>
+}) as unknown as z.ZodType<UserSubscriptionInfoPathParams>
 
 /**
  * @description Successful Response
  */
-export const userSubscriptionInfo200Schema = subscriptionUserResponseSchema as unknown as ToZod<UserSubscriptionInfo200>
+export const userSubscriptionInfo200Schema = z.lazy(
+  () => subscriptionUserResponseSchema
+) as unknown as z.ZodType<UserSubscriptionInfo200>
 
 /**
  * @description Validation Error
  */
-export const userSubscriptionInfo422Schema = HTTPValidationErrorSchema as unknown as ToZod<UserSubscriptionInfo422>
+export const userSubscriptionInfo422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<UserSubscriptionInfo422>
 
-export const userSubscriptionInfoQueryResponseSchema =
-  userSubscriptionInfo200Schema as unknown as ToZod<UserSubscriptionInfoQueryResponse>
+export const userSubscriptionInfoQueryResponseSchema = z.lazy(
+  () => userSubscriptionInfo200Schema
+) as unknown as z.ZodType<UserSubscriptionInfoQueryResponse>

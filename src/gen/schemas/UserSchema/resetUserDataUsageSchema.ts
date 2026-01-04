@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -18,32 +17,39 @@ import { userResponseSchema } from '../userResponseSchema.ts'
 
 export const resetUserDataUsagePathParamsSchema = z.object({
   username: z.string(),
-}) as unknown as ToZod<ResetUserDataUsagePathParams>
+}) as unknown as z.ZodType<ResetUserDataUsagePathParams>
 
 /**
  * @description Successful Response
  */
-export const resetUserDataUsage200Schema = userResponseSchema as unknown as ToZod<ResetUserDataUsage200>
+export const resetUserDataUsage200Schema = z.lazy(
+  () => userResponseSchema
+) as unknown as z.ZodType<ResetUserDataUsage200>
 
 /**
  * @description Unauthorized
  */
-export const resetUserDataUsage401Schema = unauthorizedSchema as unknown as ToZod<ResetUserDataUsage401>
+export const resetUserDataUsage401Schema = z.lazy(
+  () => unauthorizedSchema
+) as unknown as z.ZodType<ResetUserDataUsage401>
 
 /**
  * @description Forbidden
  */
-export const resetUserDataUsage403Schema = forbiddenSchema as unknown as ToZod<ResetUserDataUsage403>
+export const resetUserDataUsage403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<ResetUserDataUsage403>
 
 /**
  * @description Not found
  */
-export const resetUserDataUsage404Schema = notFoundSchema as unknown as ToZod<ResetUserDataUsage404>
+export const resetUserDataUsage404Schema = z.lazy(() => notFoundSchema) as unknown as z.ZodType<ResetUserDataUsage404>
 
 /**
  * @description Validation Error
  */
-export const resetUserDataUsage422Schema = HTTPValidationErrorSchema as unknown as ToZod<ResetUserDataUsage422>
+export const resetUserDataUsage422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<ResetUserDataUsage422>
 
-export const resetUserDataUsageMutationResponseSchema =
-  resetUserDataUsage200Schema as unknown as ToZod<ResetUserDataUsageMutationResponse>
+export const resetUserDataUsageMutationResponseSchema = z.lazy(
+  () => resetUserDataUsage200Schema
+) as unknown as z.ZodType<ResetUserDataUsageMutationResponse>

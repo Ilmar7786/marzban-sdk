@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type { ProxyInbound } from '../models/ProxyInbound.ts'
@@ -12,4 +11,4 @@ export const proxyInboundSchema = z.object({
   network: z.string(),
   tls: z.string(),
   port: z.union([z.int(), z.string()]),
-}) as unknown as ToZod<ProxyInbound>
+}) as unknown as z.ZodType<ProxyInbound>

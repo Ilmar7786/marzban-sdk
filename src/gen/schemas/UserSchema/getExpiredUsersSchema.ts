@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -13,25 +12,28 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 
 export const getExpiredUsersQueryParamsSchema = z
   .object({
-    expired_after: z.union([z.iso.datetime({ local: true }), z.null()]).optional(),
-    expired_before: z.union([z.iso.datetime({ local: true }), z.null()]).optional(),
+    expired_after: z.optional(z.union([z.iso.datetime({ local: true }), z.null()])),
+    expired_before: z.optional(z.union([z.iso.datetime({ local: true }), z.null()])),
   })
-  .optional() as unknown as ToZod<GetExpiredUsersQueryParams>
+  .optional() as unknown as z.ZodType<GetExpiredUsersQueryParams>
 
 /**
  * @description Successful Response
  */
-export const getExpiredUsers200Schema = z.array(z.string()) as unknown as ToZod<GetExpiredUsers200>
+export const getExpiredUsers200Schema = z.array(z.string()) as unknown as z.ZodType<GetExpiredUsers200>
 
 /**
  * @description Unauthorized
  */
-export const getExpiredUsers401Schema = unauthorizedSchema as unknown as ToZod<GetExpiredUsers401>
+export const getExpiredUsers401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<GetExpiredUsers401>
 
 /**
  * @description Validation Error
  */
-export const getExpiredUsers422Schema = HTTPValidationErrorSchema as unknown as ToZod<GetExpiredUsers422>
+export const getExpiredUsers422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<GetExpiredUsers422>
 
-export const getExpiredUsersQueryResponseSchema =
-  getExpiredUsers200Schema as unknown as ToZod<GetExpiredUsersQueryResponse>
+export const getExpiredUsersQueryResponseSchema = z.lazy(
+  () => getExpiredUsers200Schema
+) as unknown as z.ZodType<GetExpiredUsersQueryResponse>

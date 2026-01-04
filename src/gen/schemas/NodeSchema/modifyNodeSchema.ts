@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -18,28 +17,32 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 
 export const modifyNodePathParamsSchema = z.object({
   node_id: z.coerce.number().int(),
-}) as unknown as ToZod<ModifyNodePathParams>
+}) as unknown as z.ZodType<ModifyNodePathParams>
 
 /**
  * @description Successful Response
  */
-export const modifyNode200Schema = nodeResponseSchema as unknown as ToZod<ModifyNode200>
+export const modifyNode200Schema = z.lazy(() => nodeResponseSchema) as unknown as z.ZodType<ModifyNode200>
 
 /**
  * @description Unauthorized
  */
-export const modifyNode401Schema = unauthorizedSchema as unknown as ToZod<ModifyNode401>
+export const modifyNode401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<ModifyNode401>
 
 /**
  * @description Forbidden
  */
-export const modifyNode403Schema = forbiddenSchema as unknown as ToZod<ModifyNode403>
+export const modifyNode403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<ModifyNode403>
 
 /**
  * @description Validation Error
  */
-export const modifyNode422Schema = HTTPValidationErrorSchema as unknown as ToZod<ModifyNode422>
+export const modifyNode422Schema = z.lazy(() => HTTPValidationErrorSchema) as unknown as z.ZodType<ModifyNode422>
 
-export const modifyNodeMutationRequestSchema = nodeModifySchema as unknown as ToZod<ModifyNodeMutationRequest>
+export const modifyNodeMutationRequestSchema = z.lazy(
+  () => nodeModifySchema
+) as unknown as z.ZodType<ModifyNodeMutationRequest>
 
-export const modifyNodeMutationResponseSchema = modifyNode200Schema as unknown as ToZod<ModifyNodeMutationResponse>
+export const modifyNodeMutationResponseSchema = z.lazy(
+  () => modifyNode200Schema
+) as unknown as z.ZodType<ModifyNodeMutationResponse>

@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -15,25 +14,27 @@ import { userResponseSchema } from '../userResponseSchema.ts'
 
 export const setOwnerPathParamsSchema = z.object({
   username: z.string(),
-}) as unknown as ToZod<SetOwnerPathParams>
+}) as unknown as z.ZodType<SetOwnerPathParams>
 
 export const setOwnerQueryParamsSchema = z.object({
   admin_username: z.string(),
-}) as unknown as ToZod<SetOwnerQueryParams>
+}) as unknown as z.ZodType<SetOwnerQueryParams>
 
 /**
  * @description Successful Response
  */
-export const setOwner200Schema = userResponseSchema as unknown as ToZod<SetOwner200>
+export const setOwner200Schema = z.lazy(() => userResponseSchema) as unknown as z.ZodType<SetOwner200>
 
 /**
  * @description Unauthorized
  */
-export const setOwner401Schema = unauthorizedSchema as unknown as ToZod<SetOwner401>
+export const setOwner401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<SetOwner401>
 
 /**
  * @description Validation Error
  */
-export const setOwner422Schema = HTTPValidationErrorSchema as unknown as ToZod<SetOwner422>
+export const setOwner422Schema = z.lazy(() => HTTPValidationErrorSchema) as unknown as z.ZodType<SetOwner422>
 
-export const setOwnerMutationResponseSchema = setOwner200Schema as unknown as ToZod<SetOwnerMutationResponse>
+export const setOwnerMutationResponseSchema = z.lazy(
+  () => setOwner200Schema
+) as unknown as z.ZodType<SetOwnerMutationResponse>

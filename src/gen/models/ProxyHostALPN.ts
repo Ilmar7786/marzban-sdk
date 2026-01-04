@@ -7,6 +7,6 @@ export const proxyHostALPNEnum = {
   'h2,http/1.1': 'h2,http/1.1',
 } as const
 
-export type ProxyHostALPNEnum = (typeof proxyHostALPNEnum)[keyof typeof proxyHostALPNEnum]
+export type ProxyHostALPNEnumKey = (typeof proxyHostALPNEnum)[keyof typeof proxyHostALPNEnum]
 
-export type ProxyHostALPN = ProxyHostALPNEnum
+export type ProxyHostALPN = ProxyHostALPNEnumKey

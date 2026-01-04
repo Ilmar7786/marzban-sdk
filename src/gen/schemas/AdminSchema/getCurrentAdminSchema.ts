@@ -1,4 +1,4 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
+import { z } from 'zod/v4'
 
 import type {
   GetCurrentAdmin200,
@@ -11,12 +11,13 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 /**
  * @description Successful Response
  */
-export const getCurrentAdmin200Schema = adminSchema as unknown as ToZod<GetCurrentAdmin200>
+export const getCurrentAdmin200Schema = z.lazy(() => adminSchema) as unknown as z.ZodType<GetCurrentAdmin200>
 
 /**
  * @description Unauthorized
  */
-export const getCurrentAdmin401Schema = unauthorizedSchema as unknown as ToZod<GetCurrentAdmin401>
+export const getCurrentAdmin401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<GetCurrentAdmin401>
 
-export const getCurrentAdminQueryResponseSchema =
-  getCurrentAdmin200Schema as unknown as ToZod<GetCurrentAdminQueryResponse>
+export const getCurrentAdminQueryResponseSchema = z.lazy(
+  () => getCurrentAdmin200Schema
+) as unknown as z.ZodType<GetCurrentAdminQueryResponse>

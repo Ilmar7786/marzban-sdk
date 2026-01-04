@@ -11,6 +11,6 @@ export const proxyHostFingerprintEnum = {
   randomized: 'randomized',
 } as const
 
-export type ProxyHostFingerprintEnum = (typeof proxyHostFingerprintEnum)[keyof typeof proxyHostFingerprintEnum]
+export type ProxyHostFingerprintEnumKey = (typeof proxyHostFingerprintEnum)[keyof typeof proxyHostFingerprintEnum]
 
-export type ProxyHostFingerprint = ProxyHostFingerprintEnum
+export type ProxyHostFingerprint = ProxyHostFingerprintEnumKey

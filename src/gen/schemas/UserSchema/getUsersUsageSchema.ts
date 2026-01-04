@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -15,22 +14,24 @@ import { usersUsagesResponseSchema } from '../usersUsagesResponseSchema.ts'
 export const getUsersUsageQueryParamsSchema = z.object({
   start: z.string().default(''),
   end: z.string().default(''),
-  admin: z.union([z.array(z.string()), z.null()]).optional(),
-}) as unknown as ToZod<GetUsersUsageQueryParams>
+  admin: z.optional(z.union([z.array(z.string()), z.null()])),
+}) as unknown as z.ZodType<GetUsersUsageQueryParams>
 
 /**
  * @description Successful Response
  */
-export const getUsersUsage200Schema = usersUsagesResponseSchema as unknown as ToZod<GetUsersUsage200>
+export const getUsersUsage200Schema = z.lazy(() => usersUsagesResponseSchema) as unknown as z.ZodType<GetUsersUsage200>
 
 /**
  * @description Unauthorized
  */
-export const getUsersUsage401Schema = unauthorizedSchema as unknown as ToZod<GetUsersUsage401>
+export const getUsersUsage401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<GetUsersUsage401>
 
 /**
  * @description Validation Error
  */
-export const getUsersUsage422Schema = HTTPValidationErrorSchema as unknown as ToZod<GetUsersUsage422>
+export const getUsersUsage422Schema = z.lazy(() => HTTPValidationErrorSchema) as unknown as z.ZodType<GetUsersUsage422>
 
-export const getUsersUsageQueryResponseSchema = getUsersUsage200Schema as unknown as ToZod<GetUsersUsageQueryResponse>
+export const getUsersUsageQueryResponseSchema = z.lazy(
+  () => getUsersUsage200Schema
+) as unknown as z.ZodType<GetUsersUsageQueryResponse>

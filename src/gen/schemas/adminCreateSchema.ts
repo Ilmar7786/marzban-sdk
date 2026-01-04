@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type { AdminCreate } from '../models/AdminCreate.ts'
@@ -6,8 +5,8 @@ import type { AdminCreate } from '../models/AdminCreate.ts'
 export const adminCreateSchema = z.object({
   username: z.string(),
   is_sudo: z.boolean(),
-  telegram_id: z.union([z.int(), z.null()]).optional(),
-  discord_webhook: z.union([z.string(), z.null()]).optional(),
-  users_usage: z.union([z.int(), z.null()]).optional(),
+  telegram_id: z.optional(z.union([z.int(), z.null()])),
+  discord_webhook: z.optional(z.union([z.string(), z.null()])),
+  users_usage: z.optional(z.union([z.int(), z.null()])),
   password: z.string(),
-}) as unknown as ToZod<AdminCreate>
+}) as unknown as z.ZodType<AdminCreate>

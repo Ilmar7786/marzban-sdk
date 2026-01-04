@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -22,38 +21,42 @@ import { userResponseSchema } from '../userResponseSchema.ts'
 
 export const modifyUserPathParamsSchema = z.object({
   username: z.string(),
-}) as unknown as ToZod<ModifyUserPathParams>
+}) as unknown as z.ZodType<ModifyUserPathParams>
 
 /**
  * @description Successful Response
  */
-export const modifyUser200Schema = userResponseSchema as unknown as ToZod<ModifyUser200>
+export const modifyUser200Schema = z.lazy(() => userResponseSchema) as unknown as z.ZodType<ModifyUser200>
 
 /**
  * @description Bad request
  */
-export const modifyUser400Schema = HTTPExceptionSchema as unknown as ToZod<ModifyUser400>
+export const modifyUser400Schema = z.lazy(() => HTTPExceptionSchema) as unknown as z.ZodType<ModifyUser400>
 
 /**
  * @description Unauthorized
  */
-export const modifyUser401Schema = unauthorizedSchema as unknown as ToZod<ModifyUser401>
+export const modifyUser401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<ModifyUser401>
 
 /**
  * @description Forbidden
  */
-export const modifyUser403Schema = forbiddenSchema as unknown as ToZod<ModifyUser403>
+export const modifyUser403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<ModifyUser403>
 
 /**
  * @description Not found
  */
-export const modifyUser404Schema = notFoundSchema as unknown as ToZod<ModifyUser404>
+export const modifyUser404Schema = z.lazy(() => notFoundSchema) as unknown as z.ZodType<ModifyUser404>
 
 /**
  * @description Validation Error
  */
-export const modifyUser422Schema = HTTPValidationErrorSchema as unknown as ToZod<ModifyUser422>
+export const modifyUser422Schema = z.lazy(() => HTTPValidationErrorSchema) as unknown as z.ZodType<ModifyUser422>
 
-export const modifyUserMutationRequestSchema = userModifySchema as unknown as ToZod<ModifyUserMutationRequest>
+export const modifyUserMutationRequestSchema = z.lazy(
+  () => userModifySchema
+) as unknown as z.ZodType<ModifyUserMutationRequest>
 
-export const modifyUserMutationResponseSchema = modifyUser200Schema as unknown as ToZod<ModifyUserMutationResponse>
+export const modifyUserMutationResponseSchema = z.lazy(
+  () => modifyUser200Schema
+) as unknown as z.ZodType<ModifyUserMutationResponse>

@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type { GetNodes200, GetNodes401, GetNodes403, GetNodesQueryResponse } from '../../models/NodeModel/GetNodes.ts'
@@ -9,16 +8,18 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 /**
  * @description Successful Response
  */
-export const getNodes200Schema = z.array(nodeResponseSchema) as unknown as ToZod<GetNodes200>
+export const getNodes200Schema = z.array(z.lazy(() => nodeResponseSchema)) as unknown as z.ZodType<GetNodes200>
 
 /**
  * @description Unauthorized
  */
-export const getNodes401Schema = unauthorizedSchema as unknown as ToZod<GetNodes401>
+export const getNodes401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<GetNodes401>
 
 /**
  * @description Forbidden
  */
-export const getNodes403Schema = forbiddenSchema as unknown as ToZod<GetNodes403>
+export const getNodes403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<GetNodes403>
 
-export const getNodesQueryResponseSchema = getNodes200Schema as unknown as ToZod<GetNodesQueryResponse>
+export const getNodesQueryResponseSchema = z.lazy(
+  () => getNodes200Schema
+) as unknown as z.ZodType<GetNodesQueryResponse>

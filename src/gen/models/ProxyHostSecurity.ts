@@ -4,6 +4,6 @@ export const proxyHostSecurityEnum = {
   tls: 'tls',
 } as const
 
-export type ProxyHostSecurityEnum = (typeof proxyHostSecurityEnum)[keyof typeof proxyHostSecurityEnum]
+export type ProxyHostSecurityEnumKey = (typeof proxyHostSecurityEnum)[keyof typeof proxyHostSecurityEnum]
 
-export type ProxyHostSecurity = ProxyHostSecurityEnum
+export type ProxyHostSecurity = ProxyHostSecurityEnumKey

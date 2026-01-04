@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -16,27 +15,30 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 
 export const resetAdminUsagePathParamsSchema = z.object({
   username: z.string(),
-}) as unknown as ToZod<ResetAdminUsagePathParams>
+}) as unknown as z.ZodType<ResetAdminUsagePathParams>
 
 /**
  * @description Successful Response
  */
-export const resetAdminUsage200Schema = adminSchema as unknown as ToZod<ResetAdminUsage200>
+export const resetAdminUsage200Schema = z.lazy(() => adminSchema) as unknown as z.ZodType<ResetAdminUsage200>
 
 /**
  * @description Unauthorized
  */
-export const resetAdminUsage401Schema = unauthorizedSchema as unknown as ToZod<ResetAdminUsage401>
+export const resetAdminUsage401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<ResetAdminUsage401>
 
 /**
  * @description Forbidden
  */
-export const resetAdminUsage403Schema = forbiddenSchema as unknown as ToZod<ResetAdminUsage403>
+export const resetAdminUsage403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<ResetAdminUsage403>
 
 /**
  * @description Validation Error
  */
-export const resetAdminUsage422Schema = HTTPValidationErrorSchema as unknown as ToZod<ResetAdminUsage422>
+export const resetAdminUsage422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<ResetAdminUsage422>
 
-export const resetAdminUsageMutationResponseSchema =
-  resetAdminUsage200Schema as unknown as ToZod<ResetAdminUsageMutationResponse>
+export const resetAdminUsageMutationResponseSchema = z.lazy(
+  () => resetAdminUsage200Schema
+) as unknown as z.ZodType<ResetAdminUsageMutationResponse>

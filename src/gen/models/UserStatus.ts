@@ -6,6 +6,6 @@ export const userStatusEnum = {
   on_hold: 'on_hold',
 } as const
 
-export type UserStatusEnum = (typeof userStatusEnum)[keyof typeof userStatusEnum]
+export type UserStatusEnumKey = (typeof userStatusEnum)[keyof typeof userStatusEnum]
 
-export type UserStatus = UserStatusEnum
+export type UserStatus = UserStatusEnumKey

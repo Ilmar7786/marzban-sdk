@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -15,27 +14,28 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 
 export const reconnectNodePathParamsSchema = z.object({
   node_id: z.coerce.number().int(),
-}) as unknown as ToZod<ReconnectNodePathParams>
+}) as unknown as z.ZodType<ReconnectNodePathParams>
 
 /**
  * @description Successful Response
  */
-export const reconnectNode200Schema = z.any() as unknown as ToZod<ReconnectNode200>
+export const reconnectNode200Schema = z.any() as unknown as z.ZodType<ReconnectNode200>
 
 /**
  * @description Unauthorized
  */
-export const reconnectNode401Schema = unauthorizedSchema as unknown as ToZod<ReconnectNode401>
+export const reconnectNode401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<ReconnectNode401>
 
 /**
  * @description Forbidden
  */
-export const reconnectNode403Schema = forbiddenSchema as unknown as ToZod<ReconnectNode403>
+export const reconnectNode403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<ReconnectNode403>
 
 /**
  * @description Validation Error
  */
-export const reconnectNode422Schema = HTTPValidationErrorSchema as unknown as ToZod<ReconnectNode422>
+export const reconnectNode422Schema = z.lazy(() => HTTPValidationErrorSchema) as unknown as z.ZodType<ReconnectNode422>
 
-export const reconnectNodeMutationResponseSchema =
-  reconnectNode200Schema as unknown as ToZod<ReconnectNodeMutationResponse>
+export const reconnectNodeMutationResponseSchema = z.lazy(
+  () => reconnectNode200Schema
+) as unknown as z.ZodType<ReconnectNodeMutationResponse>

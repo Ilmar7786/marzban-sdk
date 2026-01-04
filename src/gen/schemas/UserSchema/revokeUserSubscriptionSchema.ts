@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -18,32 +17,43 @@ import { userResponseSchema } from '../userResponseSchema.ts'
 
 export const revokeUserSubscriptionPathParamsSchema = z.object({
   username: z.string(),
-}) as unknown as ToZod<RevokeUserSubscriptionPathParams>
+}) as unknown as z.ZodType<RevokeUserSubscriptionPathParams>
 
 /**
  * @description Successful Response
  */
-export const revokeUserSubscription200Schema = userResponseSchema as unknown as ToZod<RevokeUserSubscription200>
+export const revokeUserSubscription200Schema = z.lazy(
+  () => userResponseSchema
+) as unknown as z.ZodType<RevokeUserSubscription200>
 
 /**
  * @description Unauthorized
  */
-export const revokeUserSubscription401Schema = unauthorizedSchema as unknown as ToZod<RevokeUserSubscription401>
+export const revokeUserSubscription401Schema = z.lazy(
+  () => unauthorizedSchema
+) as unknown as z.ZodType<RevokeUserSubscription401>
 
 /**
  * @description Forbidden
  */
-export const revokeUserSubscription403Schema = forbiddenSchema as unknown as ToZod<RevokeUserSubscription403>
+export const revokeUserSubscription403Schema = z.lazy(
+  () => forbiddenSchema
+) as unknown as z.ZodType<RevokeUserSubscription403>
 
 /**
  * @description Not found
  */
-export const revokeUserSubscription404Schema = notFoundSchema as unknown as ToZod<RevokeUserSubscription404>
+export const revokeUserSubscription404Schema = z.lazy(
+  () => notFoundSchema
+) as unknown as z.ZodType<RevokeUserSubscription404>
 
 /**
  * @description Validation Error
  */
-export const revokeUserSubscription422Schema = HTTPValidationErrorSchema as unknown as ToZod<RevokeUserSubscription422>
+export const revokeUserSubscription422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<RevokeUserSubscription422>
 
-export const revokeUserSubscriptionMutationResponseSchema =
-  revokeUserSubscription200Schema as unknown as ToZod<RevokeUserSubscriptionMutationResponse>
+export const revokeUserSubscriptionMutationResponseSchema = z.lazy(
+  () => revokeUserSubscription200Schema
+) as unknown as z.ZodType<RevokeUserSubscriptionMutationResponse>

@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type { UsersUsagesResponse } from '../models/UsersUsagesResponse.ts'
@@ -8,4 +7,4 @@ export const usersUsagesResponseSchema = z.object({
   get usages() {
     return z.array(userUsageResponseSchema)
   },
-}) as unknown as ToZod<UsersUsagesResponse>
+}) as unknown as z.ZodType<UsersUsagesResponse>

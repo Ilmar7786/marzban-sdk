@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -13,16 +12,18 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 /**
  * @description Successful Response
  */
-export const restartCore200Schema = z.any() as unknown as ToZod<RestartCore200>
+export const restartCore200Schema = z.any() as unknown as z.ZodType<RestartCore200>
 
 /**
  * @description Unauthorized
  */
-export const restartCore401Schema = unauthorizedSchema as unknown as ToZod<RestartCore401>
+export const restartCore401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<RestartCore401>
 
 /**
  * @description Forbidden
  */
-export const restartCore403Schema = forbiddenSchema as unknown as ToZod<RestartCore403>
+export const restartCore403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<RestartCore403>
 
-export const restartCoreMutationResponseSchema = restartCore200Schema as unknown as ToZod<RestartCoreMutationResponse>
+export const restartCoreMutationResponseSchema = z.lazy(
+  () => restartCore200Schema
+) as unknown as z.ZodType<RestartCoreMutationResponse>

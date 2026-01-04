@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -14,20 +13,26 @@ import { userTemplateResponseSchema } from '../userTemplateResponseSchema.ts'
 
 export const modifyUserTemplatePathParamsSchema = z.object({
   template_id: z.coerce.number().int(),
-}) as unknown as ToZod<ModifyUserTemplatePathParams>
+}) as unknown as z.ZodType<ModifyUserTemplatePathParams>
 
 /**
  * @description Successful Response
  */
-export const modifyUserTemplate200Schema = userTemplateResponseSchema as unknown as ToZod<ModifyUserTemplate200>
+export const modifyUserTemplate200Schema = z.lazy(
+  () => userTemplateResponseSchema
+) as unknown as z.ZodType<ModifyUserTemplate200>
 
 /**
  * @description Validation Error
  */
-export const modifyUserTemplate422Schema = HTTPValidationErrorSchema as unknown as ToZod<ModifyUserTemplate422>
+export const modifyUserTemplate422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<ModifyUserTemplate422>
 
-export const modifyUserTemplateMutationRequestSchema =
-  userTemplateModifySchema as unknown as ToZod<ModifyUserTemplateMutationRequest>
+export const modifyUserTemplateMutationRequestSchema = z.lazy(
+  () => userTemplateModifySchema
+) as unknown as z.ZodType<ModifyUserTemplateMutationRequest>
 
-export const modifyUserTemplateMutationResponseSchema =
-  modifyUserTemplate200Schema as unknown as ToZod<ModifyUserTemplateMutationResponse>
+export const modifyUserTemplateMutationResponseSchema = z.lazy(
+  () => modifyUserTemplate200Schema
+) as unknown as z.ZodType<ModifyUserTemplateMutationResponse>

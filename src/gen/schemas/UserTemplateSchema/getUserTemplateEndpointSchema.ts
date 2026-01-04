@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -12,19 +11,22 @@ import { userTemplateResponseSchema } from '../userTemplateResponseSchema.ts'
 
 export const getUserTemplateEndpointPathParamsSchema = z.object({
   template_id: z.coerce.number().int(),
-}) as unknown as ToZod<GetUserTemplateEndpointPathParams>
+}) as unknown as z.ZodType<GetUserTemplateEndpointPathParams>
 
 /**
  * @description Successful Response
  */
-export const getUserTemplateEndpoint200Schema =
-  userTemplateResponseSchema as unknown as ToZod<GetUserTemplateEndpoint200>
+export const getUserTemplateEndpoint200Schema = z.lazy(
+  () => userTemplateResponseSchema
+) as unknown as z.ZodType<GetUserTemplateEndpoint200>
 
 /**
  * @description Validation Error
  */
-export const getUserTemplateEndpoint422Schema =
-  HTTPValidationErrorSchema as unknown as ToZod<GetUserTemplateEndpoint422>
+export const getUserTemplateEndpoint422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<GetUserTemplateEndpoint422>
 
-export const getUserTemplateEndpointQueryResponseSchema =
-  getUserTemplateEndpoint200Schema as unknown as ToZod<GetUserTemplateEndpointQueryResponse>
+export const getUserTemplateEndpointQueryResponseSchema = z.lazy(
+  () => getUserTemplateEndpoint200Schema
+) as unknown as z.ZodType<GetUserTemplateEndpointQueryResponse>

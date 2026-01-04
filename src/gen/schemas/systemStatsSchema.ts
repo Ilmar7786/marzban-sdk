@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type { SystemStats } from '../models/SystemStats.ts'
@@ -20,4 +19,4 @@ export const systemStatsSchema = z.object({
   outgoing_bandwidth: z.int(),
   incoming_bandwidth_speed: z.int(),
   outgoing_bandwidth_speed: z.int(),
-}) as unknown as ToZod<SystemStats>
+}) as unknown as z.ZodType<SystemStats>

@@ -1,4 +1,4 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
+import { z } from 'zod/v4'
 
 import type {
   AdminToken200,
@@ -15,19 +15,22 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 /**
  * @description Successful Response
  */
-export const adminToken200Schema = tokenSchema as unknown as ToZod<AdminToken200>
+export const adminToken200Schema = z.lazy(() => tokenSchema) as unknown as z.ZodType<AdminToken200>
 
 /**
  * @description Unauthorized
  */
-export const adminToken401Schema = unauthorizedSchema as unknown as ToZod<AdminToken401>
+export const adminToken401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<AdminToken401>
 
 /**
  * @description Validation Error
  */
-export const adminToken422Schema = HTTPValidationErrorSchema as unknown as ToZod<AdminToken422>
+export const adminToken422Schema = z.lazy(() => HTTPValidationErrorSchema) as unknown as z.ZodType<AdminToken422>
 
-export const adminTokenMutationRequestSchema =
-  bodyAdminTokenApiAdminTokenPostSchema as unknown as ToZod<AdminTokenMutationRequest>
+export const adminTokenMutationRequestSchema = z.lazy(
+  () => bodyAdminTokenApiAdminTokenPostSchema
+) as unknown as z.ZodType<AdminTokenMutationRequest>
 
-export const adminTokenMutationResponseSchema = adminToken200Schema as unknown as ToZod<AdminTokenMutationResponse>
+export const adminTokenMutationResponseSchema = z.lazy(
+  () => adminToken200Schema
+) as unknown as z.ZodType<AdminTokenMutationResponse>

@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -17,33 +16,41 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 
 export const activateAllDisabledUsersPathParamsSchema = z.object({
   username: z.string(),
-}) as unknown as ToZod<ActivateAllDisabledUsersPathParams>
+}) as unknown as z.ZodType<ActivateAllDisabledUsersPathParams>
 
 /**
  * @description Successful Response
  */
-export const activateAllDisabledUsers200Schema = z.any() as unknown as ToZod<ActivateAllDisabledUsers200>
+export const activateAllDisabledUsers200Schema = z.any() as unknown as z.ZodType<ActivateAllDisabledUsers200>
 
 /**
  * @description Unauthorized
  */
-export const activateAllDisabledUsers401Schema = unauthorizedSchema as unknown as ToZod<ActivateAllDisabledUsers401>
+export const activateAllDisabledUsers401Schema = z.lazy(
+  () => unauthorizedSchema
+) as unknown as z.ZodType<ActivateAllDisabledUsers401>
 
 /**
  * @description Forbidden
  */
-export const activateAllDisabledUsers403Schema = forbiddenSchema as unknown as ToZod<ActivateAllDisabledUsers403>
+export const activateAllDisabledUsers403Schema = z.lazy(
+  () => forbiddenSchema
+) as unknown as z.ZodType<ActivateAllDisabledUsers403>
 
 /**
  * @description Not found
  */
-export const activateAllDisabledUsers404Schema = notFoundSchema as unknown as ToZod<ActivateAllDisabledUsers404>
+export const activateAllDisabledUsers404Schema = z.lazy(
+  () => notFoundSchema
+) as unknown as z.ZodType<ActivateAllDisabledUsers404>
 
 /**
  * @description Validation Error
  */
-export const activateAllDisabledUsers422Schema =
-  HTTPValidationErrorSchema as unknown as ToZod<ActivateAllDisabledUsers422>
+export const activateAllDisabledUsers422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<ActivateAllDisabledUsers422>
 
-export const activateAllDisabledUsersMutationResponseSchema =
-  activateAllDisabledUsers200Schema as unknown as ToZod<ActivateAllDisabledUsersMutationResponse>
+export const activateAllDisabledUsersMutationResponseSchema = z.lazy(
+  () => activateAllDisabledUsers200Schema
+) as unknown as z.ZodType<ActivateAllDisabledUsersMutationResponse>

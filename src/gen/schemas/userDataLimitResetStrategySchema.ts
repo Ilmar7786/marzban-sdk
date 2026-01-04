@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type { UserDataLimitResetStrategy } from '../models/UserDataLimitResetStrategy.ts'
@@ -9,4 +8,4 @@ export const userDataLimitResetStrategySchema = z.enum([
   'week',
   'month',
   'year',
-]) as unknown as ToZod<UserDataLimitResetStrategy>
+]) as unknown as z.ZodType<UserDataLimitResetStrategy>

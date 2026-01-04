@@ -1,4 +1,4 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
+import { z } from 'zod/v4'
 
 import type {
   AddUserTemplate200,
@@ -13,15 +13,21 @@ import { userTemplateResponseSchema } from '../userTemplateResponseSchema.ts'
 /**
  * @description Successful Response
  */
-export const addUserTemplate200Schema = userTemplateResponseSchema as unknown as ToZod<AddUserTemplate200>
+export const addUserTemplate200Schema = z.lazy(
+  () => userTemplateResponseSchema
+) as unknown as z.ZodType<AddUserTemplate200>
 
 /**
  * @description Validation Error
  */
-export const addUserTemplate422Schema = HTTPValidationErrorSchema as unknown as ToZod<AddUserTemplate422>
+export const addUserTemplate422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<AddUserTemplate422>
 
-export const addUserTemplateMutationRequestSchema =
-  userTemplateCreateSchema as unknown as ToZod<AddUserTemplateMutationRequest>
+export const addUserTemplateMutationRequestSchema = z.lazy(
+  () => userTemplateCreateSchema
+) as unknown as z.ZodType<AddUserTemplateMutationRequest>
 
-export const addUserTemplateMutationResponseSchema =
-  addUserTemplate200Schema as unknown as ToZod<AddUserTemplateMutationResponse>
+export const addUserTemplateMutationResponseSchema = z.lazy(
+  () => addUserTemplate200Schema
+) as unknown as z.ZodType<AddUserTemplateMutationResponse>

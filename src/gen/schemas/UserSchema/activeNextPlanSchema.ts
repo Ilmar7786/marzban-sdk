@@ -1,4 +1,3 @@
-import type { ToZod } from '@kubb/plugin-zod/utils/v4'
 import { z } from 'zod/v4'
 
 import type {
@@ -18,32 +17,35 @@ import { userResponseSchema } from '../userResponseSchema.ts'
 
 export const activeNextPlanPathParamsSchema = z.object({
   username: z.string(),
-}) as unknown as ToZod<ActiveNextPlanPathParams>
+}) as unknown as z.ZodType<ActiveNextPlanPathParams>
 
 /**
  * @description Successful Response
  */
-export const activeNextPlan200Schema = userResponseSchema as unknown as ToZod<ActiveNextPlan200>
+export const activeNextPlan200Schema = z.lazy(() => userResponseSchema) as unknown as z.ZodType<ActiveNextPlan200>
 
 /**
  * @description Unauthorized
  */
-export const activeNextPlan401Schema = unauthorizedSchema as unknown as ToZod<ActiveNextPlan401>
+export const activeNextPlan401Schema = z.lazy(() => unauthorizedSchema) as unknown as z.ZodType<ActiveNextPlan401>
 
 /**
  * @description Forbidden
  */
-export const activeNextPlan403Schema = forbiddenSchema as unknown as ToZod<ActiveNextPlan403>
+export const activeNextPlan403Schema = z.lazy(() => forbiddenSchema) as unknown as z.ZodType<ActiveNextPlan403>
 
 /**
  * @description Not found
  */
-export const activeNextPlan404Schema = notFoundSchema as unknown as ToZod<ActiveNextPlan404>
+export const activeNextPlan404Schema = z.lazy(() => notFoundSchema) as unknown as z.ZodType<ActiveNextPlan404>
 
 /**
  * @description Validation Error
  */
-export const activeNextPlan422Schema = HTTPValidationErrorSchema as unknown as ToZod<ActiveNextPlan422>
+export const activeNextPlan422Schema = z.lazy(
+  () => HTTPValidationErrorSchema
+) as unknown as z.ZodType<ActiveNextPlan422>
 
-export const activeNextPlanMutationResponseSchema =
-  activeNextPlan200Schema as unknown as ToZod<ActiveNextPlanMutationResponse>
+export const activeNextPlanMutationResponseSchema = z.lazy(
+  () => activeNextPlan200Schema
+) as unknown as z.ZodType<ActiveNextPlanMutationResponse>

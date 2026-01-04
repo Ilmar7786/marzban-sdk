@@ -1,4 +1,4 @@
-import { type AnyType } from '../../common'
+import { type AnyType } from '../../../common'
 
 export type WebSocketEventMap = {
   open: Event
@@ -37,33 +37,5 @@ export abstract class BaseWebSocketClient {
 
   get readyState(): number {
     return this.socket.readyState
-  }
-}
-
-class BrowserWebSocketClient extends BaseWebSocketClient {
-  protected async createWebSocket(): Promise<WebSocket> {
-    return new WebSocket(this.url, this.protocols)
-  }
-}
-
-class NodeWebSocketClient extends BaseWebSocketClient {
-  protected async createWebSocket(): Promise<AnyType> {
-    const { default: NodeWebSocket } = await import('ws')
-    return new NodeWebSocket(this.url, this.protocols)
-  }
-}
-
-export class WebSocketClient {
-  static async create(url: string, protocols?: string | string[]): Promise<BaseWebSocketClient> {
-    let client: BaseWebSocketClient
-
-    if (typeof window !== 'undefined' && typeof window.WebSocket !== 'undefined') {
-      client = new BrowserWebSocketClient(url, protocols)
-    } else {
-      client = new NodeWebSocketClient(url, protocols)
-    }
-
-    await client.init()
-    return client
   }
 }

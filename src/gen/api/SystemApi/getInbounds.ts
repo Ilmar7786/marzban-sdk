@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '../../../core/http/client.ts'
-import fetch from '../../../core/http/client.ts'
+import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
+import fetch from '@/core/http/client.ts'
+
 import type { GetInbounds401, GetInboundsQueryResponse } from '../../models/SystemModel/GetInbounds.ts'
 import { getInboundsQueryResponseSchema } from '../../schemas/SystemSchema/getInboundsSchema.ts'
 

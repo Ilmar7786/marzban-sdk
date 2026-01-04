@@ -1,4 +1,5 @@
-import { AnyType } from '../../common'
+import { AnyType } from '@/common'
+
 import { FormatCode } from './codes'
 
 export class SdkError extends Error {

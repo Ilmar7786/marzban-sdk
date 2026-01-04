@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '../../../core/http/client.ts'
-import fetch from '../../../core/http/client.ts'
+import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
+import fetch from '@/core/http/client.ts'
+
 import type { BaseQueryResponse } from '../../models/DefaultModel/Base.ts'
 import { baseQueryResponseSchema } from '../../schemas/DefaultSchema/baseSchema.ts'
 

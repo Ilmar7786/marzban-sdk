@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '../../../core/http/client.ts'
-import fetch from '../../../core/http/client.ts'
+import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
+import fetch from '@/core/http/client.ts'
+
 import type { GetNodes401, GetNodes403, GetNodesQueryResponse } from '../../models/NodeModel/GetNodes.ts'
 import { getNodesQueryResponseSchema } from '../../schemas/NodeSchema/getNodesSchema.ts'
 

@@ -1,6 +1,6 @@
 import z from 'zod/v4'
 
-import { PluginContext } from '../core/plugin'
+import { PluginContext } from '@/core/plugin'
 
 const pluginHooksSchema = z
   .object({

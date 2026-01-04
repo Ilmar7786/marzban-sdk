@@ -1,7 +1,7 @@
 import { AxiosInstance } from 'axios'
 
-import { AuthManager } from '../../auth/auth.manager'
-import { Logger } from '../../logger'
+import { AuthManager } from '@/core/auth'
+import { Logger } from '@/core/logger'
 
 /**
  * Sets up interceptors for the Axios client.

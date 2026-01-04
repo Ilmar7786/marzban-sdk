@@ -1,7 +1,8 @@
-import { AnyType } from '../../common'
-import { AuthManager } from '../auth/auth.manager'
-import { Logger } from '../logger'
-import type { PluginRegistry } from '../plugin/plugin.registry'
+import { AnyType } from '@/common'
+import { AuthManager } from '@/core/auth'
+import { Logger } from '@/core/logger'
+import type { PluginRegistry } from '@/core/plugin'
+
 import { BaseWebSocketClient, WebSocketClient } from './client'
 import { configurationUrlWs } from './utils'
 

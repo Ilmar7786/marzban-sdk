@@ -1,6 +1,6 @@
 import { z } from 'zod/v4'
 
-import { adminSchema, userResponseSchema } from '../../gen/schemas'
+import { adminSchema, userResponseSchema } from '@/gen/schemas'
 
 export const ACTIONS = {
   user_created: 'user_created',

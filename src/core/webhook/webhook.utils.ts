@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 
-import { WebhookValidationError } from '../errors'
+import { WebhookValidationError } from '@/core/errors'
+
 import { WebhookArraySchema, WebhookArrayType } from './webhook.schema'
 
 export function validateWebhookPayload(input: unknown): WebhookArrayType {

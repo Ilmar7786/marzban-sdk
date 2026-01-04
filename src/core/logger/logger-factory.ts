@@ -1,5 +1,6 @@
-import { SdkError } from '../errors'
-import { ERROR_CODES } from '../errors/codes'
+import { SdkError } from '@/core/errors'
+import { ERROR_CODES } from '@/core/errors/codes'
+
 import { DefaultLogger } from './default-logger'
 import { Logger, LoggerConfig } from './logger.types'
 import { isLogger, isLoggerOptions } from './logger.utils'

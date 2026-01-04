@@ -1,7 +1,6 @@
 import type { AxiosInstance, AxiosRequestConfig, AxiosRequestHeaders } from 'axios'
 
-import type { PluginRegistry } from '../../plugin/plugin.registry'
-import type { HttpRequest, HttpResponse } from '../../plugin/plugin.types'
+import type { HttpRequest, HttpResponse, PluginRegistry } from '@/core/plugin'
 
 export const setupPluginInterceptors = (client: AxiosInstance, plugins: PluginRegistry): void => {
   client.interceptors.request.use(async requestConfig => {

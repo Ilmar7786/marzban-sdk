@@ -1,4 +1,4 @@
-import { type AnyType } from '../../../common'
+import { type AnyType } from '@/common'
 
 export type WebSocketEventMap = {
   open: Event

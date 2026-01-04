@@ -1,6 +1,7 @@
-import { SafeEventEmitter, toBuffer } from '../../common'
-import { WebhookSignatureError } from '../errors'
-import { Logger } from '../logger'
+import { SafeEventEmitter, toBuffer } from '@/common'
+import { WebhookSignatureError } from '@/core/errors'
+import { Logger } from '@/core/logger'
+
 import { WebhookType } from './webhook.schema'
 import { validateWebhookPayload, verifyWebhookSignature } from './webhook.utils'
 

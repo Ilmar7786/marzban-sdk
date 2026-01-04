@@ -1,8 +1,9 @@
-import { SafeEventEmitter } from '../../common'
-import { adminApi } from '../../gen/api'
-import { AuthError, AuthTokenError } from '../errors'
-import { getPublicInstance } from '../http'
-import { Logger } from '../logger'
+import { SafeEventEmitter } from '@/common'
+import { AuthError, AuthTokenError } from '@/core/errors'
+import { getPublicInstance } from '@/core/http'
+import { Logger } from '@/core/logger'
+import { adminApi } from '@/gen/api'
+
 import { Storage } from './auth.types'
 
 export type AuthEvents = {

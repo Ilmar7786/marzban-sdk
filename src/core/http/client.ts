@@ -2,10 +2,11 @@ import type { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } fro
 import axios from 'axios'
 import axiosRetry from 'axios-retry'
 
-import { Config } from '../../config'
-import { AuthManager } from '../auth'
-import { Logger } from '../logger'
-import type { PluginRegistry } from '../plugin/plugin.registry'
+import { Config } from '@/config'
+import { AuthManager } from '@/core/auth'
+import { Logger } from '@/core/logger'
+import type { PluginRegistry } from '@/core/plugin'
+
 import { setupAuthInterceptors, setupPluginInterceptors } from './interceptors'
 
 /**

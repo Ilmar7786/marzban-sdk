@@ -60,7 +60,7 @@ export default defineConfig(() => {
             type: 'tag',
             name: ({ group }) => `${group ?? 'Default'}Api`.replace(/\s+/g, ''),
           },
-          importPath: '../../../core/http/client.ts',
+          importPath: '@/core/http/client.ts',
           dataReturnType: 'data',
           paramsCasing: 'camelcase',
         }),

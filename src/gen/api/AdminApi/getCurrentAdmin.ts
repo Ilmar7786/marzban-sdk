@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '../../../core/http/client.ts'
-import fetch from '../../../core/http/client.ts'
+import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
+import fetch from '@/core/http/client.ts'
+
 import type { GetCurrentAdmin401, GetCurrentAdminQueryResponse } from '../../models/AdminModel/GetCurrentAdmin.ts'
 import { getCurrentAdminQueryResponseSchema } from '../../schemas/AdminSchema/getCurrentAdminSchema.ts'
 

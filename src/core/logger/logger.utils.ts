@@ -1,4 +1,5 @@
-import { AnyType } from '../../common'
+import { AnyType } from '@/common'
+
 import { Logger, LoggerOptions } from './logger.types'
 
 export function isLogger(obj: unknown): obj is Logger {

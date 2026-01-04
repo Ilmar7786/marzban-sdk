@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '../../../core/http/client.ts'
-import fetch from '../../../core/http/client.ts'
+import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
+import fetch from '@/core/http/client.ts'
+
 import type { GetCoreStats401, GetCoreStatsQueryResponse } from '../../models/CoreModel/GetCoreStats.ts'
 import { getCoreStatsQueryResponseSchema } from '../../schemas/CoreSchema/getCoreStatsSchema.ts'
 

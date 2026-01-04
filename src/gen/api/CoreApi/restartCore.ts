@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '../../../core/http/client.ts'
-import fetch from '../../../core/http/client.ts'
+import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
+import fetch from '@/core/http/client.ts'
+
 import type { RestartCore401, RestartCore403, RestartCoreMutationResponse } from '../../models/CoreModel/RestartCore.ts'
 import { restartCoreMutationResponseSchema } from '../../schemas/CoreSchema/restartCoreSchema.ts'
 

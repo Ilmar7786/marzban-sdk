@@ -1,5 +1,6 @@
-import { Config, validateConfig } from '../config'
-import { adminApi, base, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from '../gen/api'
+import { Config, validateConfig } from '@/config'
+import { adminApi, base, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from '@/gen/api'
+
 import { AuthManager } from './auth'
 import { configureHttpClient } from './http'
 import { createLogger, Logger } from './logger'

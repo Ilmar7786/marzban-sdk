@@ -1,7 +1,6 @@
 import { z } from 'zod/v4'
 
 import { loggerConfigSchema } from './config.logger'
-import { pluginSchema } from './config.plugins'
 import { webhookSchema } from './config.webhook'
 
 export const configSchema = z.object({
@@ -13,7 +12,6 @@ export const configSchema = z.object({
   token: z.string().optional(),
   authenticateOnInit: z.boolean().default(true).optional(),
   logger: loggerConfigSchema.optional(),
-  plugins: z.array(pluginSchema).optional(),
   webhook: webhookSchema.optional(),
 })
 

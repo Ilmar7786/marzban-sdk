@@ -1,6 +1,7 @@
 import { AxiosInstance } from 'axios'
 
 import { AuthManager } from '@/core/auth'
+import { HttpError, SdkError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
 /**
@@ -22,7 +23,7 @@ export const setupAuthInterceptors = (
   logger.debug('Setting up authentication request interceptor', 'AuthInterceptor')
   client.interceptors.request.use(
     async requestConfig => {
-      // await authService.waitForAuth()
+      await authService.waitForCurrentAuth()
       const accessToken = authService.accessToken
       if (accessToken) {
         requestConfig.headers.authorization = `Bearer ${accessToken}`
@@ -34,7 +35,8 @@ export const setupAuthInterceptors = (
     },
     error => {
       logger.error('Request interceptor error', error, 'AuthInterceptor')
-      return Promise.reject(error)
+      if (error instanceof SdkError) return Promise.reject(error)
+      return Promise.reject(new HttpError(error))
     }
   )
 
@@ -61,10 +63,12 @@ export const setupAuthInterceptors = (
           }
         } catch (err) {
           logger.error('Re-authentication failed', err, 'AuthInterceptor')
-          return Promise.reject(err)
+          if (err instanceof SdkError) return Promise.reject(err)
+          return Promise.reject(new HttpError(err))
         }
       }
-      return Promise.reject(error)
+      if (error instanceof SdkError) return Promise.reject(error)
+      return Promise.reject(new HttpError(error))
     }
   )
 }

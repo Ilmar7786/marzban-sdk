@@ -1,3 +1,3 @@
-export * from './error-auth.guard'
-export * from './error-configuration.guard'
-export * from './error-sdk.guard'
+export * from './auth.guard'
+export * from './configuration.guard'
+export * from './sdk.guard'

@@ -2,7 +2,7 @@ import { Config, validateConfig } from '@/config'
 import { adminApi, base, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from '@/gen/api'
 
 import { AuthManager } from './auth'
-import { configureHttpClient } from './http'
+import { bindClientToApi, configureHttpClient } from './http'
 import { createLogger, Logger } from './logger'
 import { WebhookManager } from './webhook'
 import { LogsStream } from './ws'
@@ -115,16 +115,17 @@ export class MarzbanSDK {
     this._logger = createLogger(config.logger)
     this._authService = new AuthManager(this._config, this._logger)
 
-    configureHttpClient(config.baseUrl, this._authService, config, this._logger)
+    const http = configureHttpClient(config.baseUrl, this._authService, config, this._logger)
+    this._authService.setPublicClient(http.publicClient)
 
-    this.admin = adminApi()
-    this.core = coreApi()
-    this.node = nodeApi()
-    this.user = userApi()
-    this.system = systemApi()
-    this.default = { base }
-    this.subscription = subscriptionApi()
-    this.userTemplate = userTemplateApi()
+    this.admin = bindClientToApi(adminApi(), http.client)
+    this.core = bindClientToApi(coreApi(), http.client)
+    this.node = bindClientToApi(nodeApi(), http.client)
+    this.user = bindClientToApi(userApi(), http.client)
+    this.system = bindClientToApi(systemApi(), http.client)
+    this.default = { base: (cfg?: object) => base({ ...cfg, client: http.client }) }
+    this.subscription = bindClientToApi(subscriptionApi(), http.client)
+    this.userTemplate = bindClientToApi(userTemplateApi(), http.client)
     this.logs = new LogsStream(config.baseUrl, this._authService, this._logger)
     this.webhook = new WebhookManager({
       logger: this._logger,

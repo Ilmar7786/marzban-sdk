@@ -1,6 +1,7 @@
 import { SafeEventEmitter } from '@/common'
 import { AuthError, AuthTokenError } from '@/core/errors'
-import { getPublicInstance } from '@/core/http'
+import { getPublicClient } from '@/core/http'
+import type { ClientFn } from '@/core/http/client'
 import { Logger } from '@/core/logger'
 import { adminApi } from '@/gen/api'
 
@@ -16,6 +17,8 @@ export class AuthManager {
   private readonly storage: Storage
   private readonly logger: Logger
   private readonly emitter = new SafeEventEmitter<AuthEvents>()
+  /** When set, used for login (adminToken) instead of global client. */
+  private publicClientFn: ClientFn | null = null
 
   public authPromise: Promise<void> | null = null
 
@@ -23,6 +26,12 @@ export class AuthManager {
     this.storage = storage
     this.logger = logger
     this.logger.debug('AuthManager initialized', 'AuthManager')
+  }
+
+  /** Set instance-bound public HTTP client for authentication (used when multiple SDK instances exist). */
+  setPublicClient(client: ClientFn): this {
+    this.publicClientFn = client
+    return this
   }
 
   async authenticate(username: string, password: string): Promise<void> {
@@ -97,8 +106,9 @@ export class AuthManager {
   private async authenticateInternal(username: string, password: string): Promise<void> {
     try {
       this.logger.debug('Making authentication request to admin API', 'AuthManager')
+      const requestClient = this.publicClientFn ?? getPublicClient()
       const admin = adminApi()
-      const data = await admin.adminToken({ username, password }, { client: getPublicInstance() })
+      const data = await admin.adminToken({ username, password }, { client: requestClient })
 
       if (data?.access_token) {
         this.storage.accessToken = data.access_token

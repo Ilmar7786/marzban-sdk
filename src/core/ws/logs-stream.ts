@@ -99,6 +99,10 @@ export class LogsStream {
       if (errorMessage.includes('403')) {
         this.logger.warn(`Received 403 Forbidden (retry ${retryCount + 1}/${this.maxRetries})`, 'LogsStream')
 
+        // Close and remove the failing connection before attempting a retry
+        wsClient.close()
+        this.activeConnections.delete(wsClient)
+
         if (retryCount >= this.maxRetries) {
           this.logger.error('Maximum retry attempts reached, connection failed', null, 'LogsStream')
           options.onError?.(event)

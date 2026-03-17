@@ -7,10 +7,10 @@
  * This module exports:
  * - Variable: enum of supported variable names (without braces)
  * - varAs: format a Variable as a template token ("{NAME}")
- * - Braced: a frozen map of pre-wrapped tokens for quick use
+ * - VariableBraced: a frozen map of pre-wrapped tokens for quick use
  * - varExtract: extract variable names from a template
  * - varValidate: validate a template against known variables
- * - formatTemplate: substitute values into a template
+ * - interpolateTemplateVariables: substitute values into a template
  *
  * Note: API is intentionally simple and does not preserve legacy/compatibility shims.
  */
@@ -50,7 +50,7 @@ export enum Variable {
   /** Expiration date in Jalali calendar, use as "{JALALI_EXPIRE_DATE}". */
   JALALI_EXPIRE_DATE = 'JALALI_EXPIRE_DATE',
 
-  /** User status as an emoji (e.g. ✅, ⌛️, ❌), use as "{STATUS_EMOJI}". */
+  /** User status as an emoji (✅, ⌛️, 🪫, ❌, 🔌), use as "{STATUS_EMOJI}". */
   STATUS_EMOJI = 'STATUS_EMOJI',
 
   /** Configuration protocol (vless, vmess, trojan, shadowsocks, ...), use as "{PROTOCOL}". */
@@ -59,6 +59,12 @@ export enum Variable {
   /** Transport type (tcp, ws, grpc, ...), use as "{TRANSPORT}". */
   TRANSPORT = 'TRANSPORT',
 }
+
+/**
+ * A variable name wrapped in braces, e.g. "{USERNAME}".
+ * Used as the literal token type for template strings.
+ */
+export type BracedVariable<K extends Variable = Variable> = `{${K}}`
 
 /**
  * Result of validating template variables.
@@ -83,17 +89,22 @@ export interface TemplateVariablesValidationResult {
  * @example
  * varAs(Variable.USERNAME) // "{USERNAME}"
  */
-export function varAs(v: Variable): string {
-  return `{${v}}`
+export function varAs<K extends Variable>(v: K): BracedVariable<K> {
+  return `{${v}}` as BracedVariable<K>
 }
 
 /**
  * Frozen map of pre-braced tokens for quick insertion.
  *
- * Usage: VariableBraced.USERNAME === "{USERNAME}"
+ * Each value has a precise literal type — e.g. VariableBraced.USERNAME has
+ * type "{USERNAME}" rather than plain string, which enables exhaustive checks
+ * and accurate autocomplete when building template strings.
+ *
+ * @example
+ * VariableBraced.USERNAME // "{USERNAME}" (type: "{USERNAME}")
  */
 export const VariableBraced = Object.freeze(
-  Object.fromEntries(Object.values(Variable).map(v => [v, `{${v}}`])) as { [K in Variable]: string }
+  Object.fromEntries(Object.values(Variable).map(v => [v, `{${v}}`])) as { [K in Variable]: BracedVariable<K> }
 )
 
 /**
@@ -101,6 +112,7 @@ export const VariableBraced = Object.freeze(
  *
  * Matches tokens in the form "{NAME}" where NAME matches \w+ (letters, digits, underscore).
  * Returned names do not include braces and preserve the order of appearance.
+ * Duplicates are preserved — one entry per occurrence, not per unique variable.
  *
  * @param template Template string to scan.
  * @returns Array of variable names (without braces). Empty array when none found or template falsy.
@@ -118,6 +130,7 @@ export function varExtract(template: string): string[] {
  * Validate that a template string contains only known Marzban variables.
  *
  * Unknown variables (not present in {@link Variable}) are returned in unknownVariables.
+ * Duplicates in the template are reflected as duplicates in unknownVariables.
  *
  * @param template Template string to validate.
  * @returns {@link TemplateVariablesValidationResult}

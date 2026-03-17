@@ -35,7 +35,7 @@ export class DefaultLogger implements Logger {
     const paddedLevel = this.levelColors[level](level.toUpperCase().padStart(5, ' '))
     const sdkPrefix = chalk.green('[MarzbanSDK]')
 
-    return `${sdkPrefix} ${ts} ${paddedLevel} ${ctx} ${message}`
+    return `${sdkPrefix} ${ts} ${paddedLevel} ${ctx} ${message}`.trim()
   }
 
   debug(message: string, context?: string) {

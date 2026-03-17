@@ -42,31 +42,33 @@ export const setupAuthInterceptors = (
 
   logger.debug('Setting up authentication response interceptor', 'AuthInterceptor')
   client.interceptors.response.use(
-    response => {
-      return response
-    },
+    response => response,
     async error => {
       const retryConfig = error?.config
 
       if (error?.response?.status === 401 && !retryConfig?.sent) {
         logger.warn('Received 401 Unauthorized, attempting to re-authenticate', 'AuthInterceptor')
         retryConfig.sent = true
+
         try {
           await authService.authenticate(config.username, config.password)
           const accessToken = authService.accessToken
+
           if (accessToken) {
             retryConfig.headers.authorization = `Bearer ${accessToken}`
             logger.info('Re-authentication successful, retrying request', 'AuthInterceptor')
             return client(retryConfig)
-          } else {
-            logger.error('Re-authentication failed: No access token received', null, 'AuthInterceptor')
           }
+
+          logger.error('Re-authentication failed: No access token received', null, 'AuthInterceptor')
+          return Promise.reject(new HttpError('No access token after re-authentication'))
         } catch (err) {
           logger.error('Re-authentication failed', err, 'AuthInterceptor')
           if (err instanceof SdkError) return Promise.reject(err)
           return Promise.reject(new HttpError(err))
         }
       }
+
       if (error instanceof SdkError) return Promise.reject(error)
       return Promise.reject(new HttpError(error))
     }

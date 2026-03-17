@@ -1,4 +1,3 @@
-// helpers: datetime utilities (no filepath)
 export interface Remaining {
   days: number
   hours: number
@@ -36,8 +35,10 @@ export function addHours(date: Date | string | number, hours: number): Date {
 export function remainingTime(to: Date | string | number, from: Date | string | number = Date.now()): Remaining {
   const t = new Date(to).getTime()
   const f = new Date(from).getTime()
-  const delta = Math.max(0, t - f)
-  let ms = delta
+  // totalMs preserves the raw (possibly negative) delta so callers can
+  // distinguish "in the past" from "right now". The breakdown uses the clamped value.
+  const totalMs = t - f
+  let ms = Math.max(0, totalMs)
   const days = Math.floor(ms / (24 * 3600 * 1000))
   ms -= days * 24 * 3600 * 1000
   const hours = Math.floor(ms / (3600 * 1000))
@@ -45,18 +46,23 @@ export function remainingTime(to: Date | string | number, from: Date | string | 
   const minutes = Math.floor(ms / (60 * 1000))
   ms -= minutes * 60 * 1000
   const seconds = Math.floor(ms / 1000)
-  return { days, hours, minutes, seconds, totalMs: delta }
+  return { days, hours, minutes, seconds, totalMs }
 }
 
-/** Human readable remaining: "2d 5h 3m" */
+/** Human readable remaining: "2d 5h 3m 10s" */
 export function humanRemaining(to: Date | string | number, from?: Date | string | number): string {
   const r = remainingTime(to, from)
-  if (r.totalMs <= 0) return 'expired'
-  const parts = []
+
+  if (r.totalMs < 0) return 'expired'
+
+  const parts: string[] = []
   if (r.days) parts.push(`${r.days}d`)
   if (r.hours) parts.push(`${r.hours}h`)
   if (r.minutes) parts.push(`${r.minutes}m`)
-  if (r.seconds && parts.length === 0) parts.push(`${r.seconds}s`) // show seconds only if no other part
+  if (r.seconds) parts.push(`${r.seconds}s`)
+
+  if (parts.length === 0) return '< 1s'
+
   return parts.join(' ')
 }
 

@@ -1,4 +1,3 @@
-import { SafeEventEmitter } from '@/common'
 import { AuthError, AuthTokenError } from '@/core/errors'
 import { getPublicClient } from '@/core/http'
 import type { ClientFn } from '@/core/http/client'
@@ -7,16 +6,9 @@ import { adminApi } from '@/gen/api'
 
 import { Storage } from './auth.types'
 
-export type AuthEvents = {
-  start: void
-  success: string
-  failure: AuthError | AuthTokenError
-}
-
 export class AuthManager {
   private readonly storage: Storage
   private readonly logger: Logger
-  private readonly emitter = new SafeEventEmitter<AuthEvents>()
   /** When set, used for login (adminToken) instead of global client. */
   private publicClientFn: ClientFn | null = null
 
@@ -34,14 +26,13 @@ export class AuthManager {
     return this
   }
 
-  async authenticate(username: string, password: string): Promise<void> {
+  authenticate(username: string, password: string): Promise<void> {
     if (this.authPromise) {
       this.logger.debug('Authentication already in progress, returning existing promise', 'AuthManager')
       return this.authPromise
     }
 
     this.logger.info(`Starting authentication for user: ${username}`, 'AuthManager')
-    this.emitter.emit('start', undefined)
 
     this.authPromise = this.authenticateInternal(username, password)
     return this.authPromise
@@ -79,30 +70,6 @@ export class AuthManager {
     this.logger.debug('Access token updated', 'AuthManager')
   }
 
-  on<TEvent extends keyof AuthEvents>(
-    event: TEvent,
-    listener: (payload: AuthEvents[TEvent]) => void | Promise<void>
-  ): this {
-    this.emitter.on(event, listener)
-    return this
-  }
-
-  once<TEvent extends keyof AuthEvents>(
-    event: TEvent,
-    listener: (payload: AuthEvents[TEvent]) => void | Promise<void>
-  ): this {
-    this.emitter.once(event, listener)
-    return this
-  }
-
-  off<TEvent extends keyof AuthEvents>(
-    event: TEvent,
-    listener: (payload: AuthEvents[TEvent]) => void | Promise<void>
-  ): this {
-    this.emitter.off(event, listener)
-    return this
-  }
-
   private async authenticateInternal(username: string, password: string): Promise<void> {
     try {
       this.logger.debug('Making authentication request to admin API', 'AuthManager')
@@ -113,19 +80,27 @@ export class AuthManager {
       if (data?.access_token) {
         this.storage.accessToken = data.access_token
         this.logger.info('Authentication successful, token stored', 'AuthManager')
-        this.emitter.emit('success', data.access_token)
       } else {
         this.storage.accessToken = undefined
         this.logger.error('Authentication failed: No access token received', null, 'AuthManager')
-        const err = new AuthTokenError()
-        this.emitter.emit('failure', err)
-        throw err
+        throw new AuthTokenError()
       }
     } catch (error) {
       this.storage.accessToken = undefined
-      const err = error instanceof AuthError ? error : new AuthError(error)
+
+      // Re-throw AuthError subclasses (including AuthTokenError) as-is.
+      // Only wrap truly unknown errors in AuthError.
+      // Re-throw known auth errors as-is, only wrap unknown errors.
+      // We check .name instead of instanceof to avoid issues with multiple
+      // module instances in test environments.
+      const isKnownAuthError = error instanceof Error && (error.name === 'AuthError' || error.name === 'AuthTokenError')
+
+      if (isKnownAuthError) {
+        throw error
+      }
+
+      const err = new AuthError(error)
       this.logger.error('Authentication request failed', err, 'AuthManager')
-      this.emitter.emit('failure', err)
       throw err
     } finally {
       this.authPromise = null

@@ -1,5 +1,5 @@
 // helpers: bytes utilities
-export type SizeUnit = 'B' | 'KB' | 'MB' | 'GB' | 'TB'
+export type SizeUnit = 'B' | 'KB' | 'MB' | 'GB' | 'TB' | 'PB'
 
 /**
  * Parse human size like "1.5GB", "1024", "2 mb" into bytes (number).
@@ -9,12 +9,13 @@ export function parseSize(size: string | number, opts?: { decimal?: boolean }): 
   if (typeof size === 'number' && Number.isFinite(size)) return Math.round(size)
   if (!size || typeof size !== 'string') return 0
   const s = size.trim().toUpperCase()
-  const m = /^([+-]?\d+(?:[.,]\d+)?)\s*(B|KB|KIB|MB|MIB|GB|GIB|TB|TIB)?$/.exec(s)
+  // FIX: added PIB/PB to the regex so petabyte strings are parsed correctly
+  const m = /^([+-]?\d+(?:[.,]\d+)?)\s*(B|KB|KIB|MB|MIB|GB|GIB|TB|TIB|PB|PIB)?$/.exec(s)
   if (!m) return 0
   const raw = parseFloat(m[1].replace(',', '.'))
-  // normalize variants: KIB -> KB, MIB -> MB, etc.
   const rawUnit = (m[2] || 'B').toUpperCase()
-  const unit = rawUnit.replace(/I?B$/, 'B') as SizeUnit
+  // normalize variants: KIB -> KB, MIB -> MB, GIB -> GB, TIB -> TB, PIB -> PB
+  const unit = rawUnit.replace(/IB$/, 'B') as SizeUnit
   const base = opts?.decimal ? 1000 : 1024
   switch (unit) {
     case 'B':
@@ -27,8 +28,8 @@ export function parseSize(size: string | number, opts?: { decimal?: boolean }): 
       return Math.round(raw * Math.pow(base, 3))
     case 'TB':
       return Math.round(raw * Math.pow(base, 4))
-    default:
-      return Math.round(raw)
+    case 'PB':
+      return Math.round(raw * Math.pow(base, 5))
   }
 }
 
@@ -43,7 +44,8 @@ export function formatBytes(bytes: number, opts?: { decimals?: number; decimal?:
   const base = decimal ? 1000 : 1024
   const absBytes = Math.abs(bytes)
   if (absBytes < base) return `${Math.round(bytes)} B`
-  const units = ['KB', 'MB', 'GB', 'TB']
+  // overflowing as "1024.00 TB"
+  const units = ['KB', 'MB', 'GB', 'TB', 'PB']
   let i = -1
   let value = absBytes
   while (value >= base && i < units.length - 1) {

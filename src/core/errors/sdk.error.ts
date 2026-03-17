@@ -1,6 +1,5 @@
 import { ERROR_CODES, ErrorCode, FormatCode } from './codes'
 
-// todo: проверить
 export class SdkError<T = unknown> extends Error {
   public readonly code: ErrorCode
   public readonly details?: T
@@ -12,6 +11,7 @@ export class SdkError<T = unknown> extends Error {
     this.details = details
     Object.setPrototypeOf(this, new.target.prototype)
 
+    /* istanbul ignore next */
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, new.target)
     }

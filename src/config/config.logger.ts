@@ -13,7 +13,7 @@ const loggerErrorMethodSchema = z.custom<(message: string, trace?: unknown, cont
   v => typeof v === 'function'
 )
 
-const loggerObjectSchema = z.object({
+export const loggerObjectSchema = z.object({
   debug: loggerMethodSchema,
   info: loggerMethodSchema,
   warn: loggerMethodSchema,

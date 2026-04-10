@@ -3,6 +3,9 @@
   "version": "1.5.4",
   "license": "MIT",
   "description": "Fully typed client SDK for the Marzban API, supporting both browser and Node.js environments.",
+  "publishConfig": {
+    "access": "public"
+  },
   "private": false,
   "author": "ilmar7786",
   "sideEffects": false,

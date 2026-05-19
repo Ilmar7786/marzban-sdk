@@ -59,15 +59,52 @@
     "tuic",
     "rest-api",
     "http",
+    "http-client",
+    "api-client",
     "networking"
   ],
+  "author": "ilmar7786",
+  "license": "MIT",
+  "private": false,
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "codegen": "kubb generate",
+    "generate:docs": "node ./tools/generateDocs.js",
+    "format": "prettier --write .",
+    "lint": "eslint --fix .",
+    "commitlint": "commitlint --edit",
+    "prepare": "husky",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
   "dependencies": {
     "axios": "^1.15.0",
     "axios-retry": "^4.5.0",
     "chalk": "^5.6.2",
-    "uninstall": "^0.0.0",
-    "ws": "^8.18.3",
-    "zod": "^4.3.4"
+    "ws": "^8.20.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
@@ -98,8 +135,5 @@
   "bugs": {
     "url": "https://github.com/Ilmar7786/marzban-sdk/issues"
   },
-  "homepage": "https://github.com/Ilmar7786/marzban-sdk#readme",
-  "files": [
-    "dist"
-  ]
+  "homepage": "https://github.com/Ilmar7786/marzban-sdk#readme"
 }

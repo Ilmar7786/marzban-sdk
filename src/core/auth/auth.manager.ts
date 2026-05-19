@@ -37,7 +37,10 @@ export class AuthManager {
     return this.authPromise
   }
 
-  async waitForAuth(): Promise<void> {
+  async waitForCurrentAuth(): Promise<void> {
+    if (this.authPromise) {
+      this.logger.debug('Waiting for existing authentication to complete', 'AuthManager')
+    }
     await this.authPromise
   }
 

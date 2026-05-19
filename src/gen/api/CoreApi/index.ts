@@ -1,5 +1,1 @@
 export * from './coreApi.ts'
-export * from './getCoreConfig.ts'
-export * from './getCoreStats.ts'
-export * from './modifyCoreConfig.ts'
-export * from './restartCore.ts'

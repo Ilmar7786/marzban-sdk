@@ -39,9 +39,6 @@ export type ClientFn = <TData, _TError = unknown, TVariables = unknown>(
   config: RequestConfig<TVariables>
 ) => Promise<ResponseConfig<TData>>
 
-let axiosInstance: AxiosInstance | null = null
-let publicInstance: AxiosInstance | null = null
-
 function createClientFromAxios(instance: AxiosInstance): ClientFn {
   return async <TData, TError = unknown, TVariables = unknown>(
     requestConfig: RequestConfig<TVariables>
@@ -79,10 +76,6 @@ export const configureHttpClient = (
   const instanceAxios = axios.create({ baseURL: baseUrl })
   const instancePublic = axios.create({ baseURL: baseUrl })
 
-  // Update globals for backward compatibility (single-SDK usage, default export)
-  axiosInstance = instanceAxios
-  publicInstance = instancePublic
-
   logger.debug('Setting up authentication interceptors', 'HttpClient')
   setupAuthInterceptors(instanceAxios, authService, config, logger)
 
@@ -114,29 +107,8 @@ export const configureHttpClient = (
   }
 }
 
-export const client = async <TData, TError = unknown, TVariables = unknown>(
-  config: RequestConfig<TVariables>
-): Promise<ResponseConfig<TData>> => {
-  if (!axiosInstance) {
-    throw new Error('Axios instance is not configured. Please call configureHttpClient first.')
-  }
-
-  const promise = axiosInstance.request<TVariables, ResponseConfig<TData>>(config).catch((e: AxiosError<TError>) => {
-    throw e
-  })
-
-  return promise
+export const client: ClientFn = () => {
+  throw new Error('The http layer instance is not specified. You must use a pre-configured configureHttpClient layer')
 }
-
-export const getPublicInstance = (): AxiosInstance => {
-  if (!publicInstance) {
-    throw new Error('Axios instance is not configured. Please call configureHttpClient first.')
-  }
-
-  return publicInstance
-}
-
-/** ClientFn for unauthenticated requests (uses global public instance). For per-instance use, pass publicClient from configureHttpClient. */
-export const getPublicClient = (): ClientFn => createClientFromAxios(getPublicInstance())
 
 export default client

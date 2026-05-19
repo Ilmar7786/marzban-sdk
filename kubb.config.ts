@@ -63,6 +63,7 @@ export default defineConfig(() => {
           importPath: '@/core/http/client.ts',
           dataReturnType: 'data',
           paramsCasing: 'camelcase',
+          clientType: 'class',
         }),
       ],
     },

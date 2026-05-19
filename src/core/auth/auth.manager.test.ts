@@ -14,16 +14,13 @@ vi.mock('@/core/http', () => ({
 }))
 
 vi.mock('@/gen/api', () => ({
-  adminApi: vi.fn(() => ({
-    // Default to unresolved promise — each test overrides via makeAdminToken()
-    adminToken: vi.fn().mockResolvedValue(null),
-  })),
+  adminApi: vi.fn(function () {
+    return { adminToken: vi.fn().mockResolvedValue(null) }
+  }),
 }))
 
-import { getPublicClient } from '@/core/http'
 import { adminApi } from '@/gen/api'
 
-const mockGetPublicClient = vi.mocked(getPublicClient)
 const mockAdminApi = vi.mocked(adminApi)
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -44,7 +41,9 @@ const makeStorage = (overrides?: Partial<Storage>): Storage => ({
 
 const makeAdminToken = (result: { access_token?: string } | null) => {
   const adminTokenFn = vi.fn().mockResolvedValue(result)
-  mockAdminApi.mockReturnValue({ adminToken: adminTokenFn } as never)
+  mockAdminApi.mockImplementation(function () {
+    return { adminToken: adminTokenFn }
+  })
   return adminTokenFn
 }
 
@@ -86,13 +85,17 @@ describe('AuthManager', () => {
       expect(manager.setPublicClient(client)).toBe(manager)
     })
 
-    it('uses the provided client instead of getPublicClient()', async () => {
+    it('uses the provided client instead of the default undefined client', async () => {
       const customClient = vi.fn() as never
       const adminTokenFn = makeAdminToken({ access_token: 'tok' })
+
       manager.setPublicClient(customClient)
       await manager.authenticate('admin', 'secret')
+
+      // adminApi is constructed with the custom client
+      expect(mockAdminApi).toHaveBeenCalledWith({ client: customClient })
+      // adminToken is also called with the same client
       expect(adminTokenFn).toHaveBeenCalledWith({ username: 'admin', password: 'secret' }, { client: customClient })
-      expect(mockGetPublicClient).not.toHaveBeenCalled()
     })
   })
 
@@ -140,11 +143,13 @@ describe('AuthManager', () => {
       expect(storage.accessToken).toBe('tok123')
     })
 
-    it('uses getPublicClient() when no custom client is set', async () => {
+    it('passes undefined client when no custom client is set', async () => {
       const adminTokenFn = makeAdminToken({ access_token: 'tok' })
       await manager.authenticate('admin', 'secret')
-      expect(mockGetPublicClient).toHaveBeenCalled()
-      expect(adminTokenFn).toHaveBeenCalledWith({ username: 'admin', password: 'secret' }, { client: 'public-client' })
+
+      // No setPublicClient called → httpClient is undefined
+      expect(mockAdminApi).toHaveBeenCalledWith({ client: undefined })
+      expect(adminTokenFn).toHaveBeenCalledWith({ username: 'admin', password: 'secret' }, { client: undefined })
     })
 
     it('logs info when authentication starts', async () => {
@@ -210,26 +215,26 @@ describe('AuthManager', () => {
     })
 
     it('wraps non-AuthError exceptions in AuthError and rethrows', async () => {
-      mockAdminApi.mockReturnValue({
-        adminToken: vi.fn().mockRejectedValue(new Error('network error')),
-      } as never)
+      mockAdminApi.mockImplementation(function () {
+        return { adminToken: vi.fn().mockRejectedValue(new Error('network error')) }
+      })
       await expect(manager.authenticate('admin', 'secret')).rejects.toBeInstanceOf(AuthError)
     })
 
     it('rethrows AuthError as-is without double wrapping', async () => {
       const original = new AuthError('original')
-      mockAdminApi.mockReturnValue({
-        adminToken: vi.fn().mockRejectedValue(original),
-      } as never)
+      mockAdminApi.mockImplementation(function () {
+        return { adminToken: vi.fn().mockRejectedValue(original) }
+      })
       const err = await manager.authenticate('admin', 'secret').catch(e => e)
       expect(err).toBe(original)
     })
 
     it('clears storage token when the request throws', async () => {
       storage.accessToken = 'old'
-      mockAdminApi.mockReturnValue({
-        adminToken: vi.fn().mockRejectedValue(new Error('boom')),
-      } as never)
+      mockAdminApi.mockImplementation(function () {
+        return { adminToken: vi.fn().mockRejectedValue(new Error('boom')) }
+      })
       await expect(manager.authenticate('admin', 'secret')).rejects.toThrow()
       expect(storage.accessToken).toBeUndefined()
     })

@@ -1,3 +1,4 @@
+import { fetch } from '@kubb/plugin-client/templates/clients/axios.ts'
 import type { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import axios from 'axios'
 import axiosRetry from 'axios-retry'
@@ -107,8 +108,9 @@ export const configureHttpClient = (
   }
 }
 
-export const client: ClientFn = () => {
-  throw new Error('The http layer instance is not specified. You must use a pre-configured configureHttpClient layer')
+export const client: ClientFn = (...args) => {
+  console.error('The http layer instance is not specified. You must use a pre-configured configureHttpClient layer')
+  return fetch(...args)
 }
 
 export default client

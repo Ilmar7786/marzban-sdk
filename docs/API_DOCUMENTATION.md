@@ -2,6 +2,8 @@
 
 Welcome to the API documentation. This document describes the available API endpoints, their parameters, and how to use them effectively.
 
+All API parameters are validated using **Zod schemas** at runtime. For more information about validation, see the [Validation Guide](./VALIDATION.md).
+
 ## Table of Contents
 
 - [AdminApi](#adminapi)

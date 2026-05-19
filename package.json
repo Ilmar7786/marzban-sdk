@@ -90,7 +90,6 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "codegen": "kubb generate",
-    "generate:docs": "node ./tools/generateDocs.js",
     "format": "prettier --write .",
     "lint": "eslint --fix .",
     "commitlint": "commitlint --edit",

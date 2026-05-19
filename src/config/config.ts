@@ -15,4 +15,14 @@ export const configSchema = z.object({
   webhook: webhookSchema.optional(),
 })
 
+/**
+ * Configuration options for initializing the MarzbanSDK client.
+ *
+ * @property {string} baseUrl - Base URL of the Marzban API instance. Example: 'https://api.example.com'.
+ * @property {string} username - Username for authentication.
+ * @property {string} password - Password for authentication.
+ * @property {string} [token] - Optional JWT token for authorization. If provided, SDK will use it instead of logging in.
+ * @property {number} [retries=3] - Number of automatic retries for failed HTTP requests.
+ * @property {boolean} [authenticateOnInit=true] - If false, SDK will not authenticate on instantiation (call `authorize()` manually).
+ */
 export type Config = z.infer<typeof configSchema>

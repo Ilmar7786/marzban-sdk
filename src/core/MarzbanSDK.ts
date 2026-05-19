@@ -2,26 +2,120 @@ import { Config, validateConfig } from '@/config'
 import { adminApi, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from '@/gen/api'
 
 import { AuthManager } from './auth'
+import { SdkError } from './errors'
 import { configureHttpClient } from './http'
 import { createLogger, Logger } from './logger'
 import { WebhookManager } from './webhook'
 import { LogsStream } from './ws'
 
+/**
+ * Main SDK class for interacting with the Marzban API.
+ *
+ * Provides access to API modules (AdminApi, CoreApi, etc.) and handles authentication, retries, and interceptors.
+ */
 export class MarzbanSDK {
   private readonly _config: Config
   private readonly _authService: AuthManager
   private readonly _logger: Logger
 
+  /**
+   * Administrative API endpoints.
+   */
   readonly admin: adminApi
+
+  /**
+   * Core API endpoints.
+   */
   readonly core: coreApi
+
+  /**
+   * Node management API endpoints.
+   */
   readonly node: nodeApi
+
+  /**
+   * User management API endpoints.
+   */
   readonly user: userApi
+
+  /**
+   * System API endpoints.
+   */
   readonly system: systemApi
+
+  /**
+   * Subscription management API endpoints.
+   */
   readonly subscription: subscriptionApi
+
+  /**
+   * User template API endpoints.
+   */
   readonly userTemplate: userTemplateApi
+
+  /**
+   * Real-time logs streaming.
+   */
   readonly logs: LogsStream
+
+  /**
+   * Webhook manager for validating, parsing, and handling incoming webhooks.
+   *
+   * Provides:
+   * - Webhook signature verification
+   * - Payload validation
+   * - Typed event subscriptions
+   * - Wildcard and batch event handling
+   * - Manual event dispatching
+   *
+   * The webhook manager can be used to:
+   * - Handle incoming HTTP webhook requests
+   * - Subscribe to specific webhook events
+   * - Verify webhook authenticity using a secret
+   * - Process webhook batches
+   *
+   * @example
+   * sdk.webhook.on('user.created', payload => {
+   *   console.log(payload.username)
+   * })
+   *
+   * @example
+   * // Express.js integration
+   * app.post('/webhook', async (req, res) => {
+   *   await sdk.webhook.handleWebhook(
+   *     req.body,
+   *     req.headers['x-signature']
+   *   )
+   *
+   *   res.sendStatus(200)
+   * })
+   */
   readonly webhook: WebhookManager
 
+  /**
+   * Creates an instance of MarzbanSDK.
+   *
+   * @param {Config} config - Configuration object for the SDK.
+   * @throws {Error} If required credentials (`username` or `password`) are missing.
+   *
+   * @example
+   * // Automatic authentication (default)
+   * const sdk = await createMarzbanSDK({
+   *   baseUrl: 'https://api.example.com',
+   *   username: 'admin',
+   *   password: 'secret',
+   * });
+   *
+   * @example
+   * // Manual authentication mode
+   * const sdk = await createMarzbanSDK({
+   *   baseUrl: 'https://api.example.com',
+   *   username: 'admin',
+   *   password: 'secret',
+   *   authenticateOnInit: false,
+   * });
+   * await sdk.authorize();
+   */
   constructor(config: Config) {
     this._config = validateConfig(config)
     this._logger = createLogger(this._config.logger)
@@ -47,11 +141,45 @@ export class MarzbanSDK {
     this.webhook = new WebhookManager({ ...this._config.webhook, logger: this._logger })
   }
 
+  /**
+   * Returns the current authentication token.
+   *
+   * Waits for any in-progress authentication, then returns the JWT token in use (or empty string if none).
+   *
+   * @returns {Promise<string>} The current JWT token.
+   *
+   * @example
+   * const token = await sdk.getAuthToken();
+   * console.log(`Token: ${token}`);
+   */
   async getAuthToken(): Promise<string> {
     await this._authService.waitForCurrentAuth()
     return this._authService.accessToken
   }
 
+  /**
+   * Performs user authentication with stored credentials.
+   *
+   * If a login is already in progress and `force` is false, returns the existing promise.
+   * If `force` is true or no login is in progress, starts a new authentication request.
+   *
+   * @param {boolean} [force=false] - If true, forces a new authentication request even if one is in progress.
+   * @returns {Promise<void>} Resolves on successful authentication; rejects with {@link AuthenticationError} on failure.
+   *
+   * @example
+   * try {
+   *   await sdk.authorize();
+   *   // Auth successful
+   * } catch (e) {
+   *   if (e instanceof AuthenticationError) {
+   *     // Handle auth error
+   *   }
+   * }
+   *
+   * @example
+   * // Force re-authentication (e.g., token refresh)
+   * await sdk.authorize(true);
+   */
   authorize(force = false): Promise<void> {
     if (this._authService.isAuthenticating && !force) {
       return this._authService.authPromise!
@@ -62,8 +190,13 @@ export class MarzbanSDK {
   async destroy(): Promise<void> {
     try {
       this.logs.closeAllConnections()
-    } catch {
-      // noop
+    } catch (err) {
+      if (err instanceof SdkError) {
+        this._logger.error(err.details, err.stack, err.code)
+      }
+      if (err instanceof Error) {
+        this._logger.error(err.message, err.stack, 'MarzbanSDK')
+      }
     }
   }
 }

@@ -24,19 +24,45 @@ export type WebhookEventMap = WebhookActionMap & {
 }
 
 export interface WebhookManagerOptions {
-  secret?: string // Optional secret for signature verification
-  logger: Logger // Logger instance for debug/info/error messages
+  /**
+   * Secret used for webhook signature verification.
+   *
+   * If provided, all incoming webhooks must include
+   * a valid signature.
+   */
+  secret?: string
+
+  /**
+   * Logger instance used for internal webhook logging.
+   */
+  logger: Logger
 }
 
 /**
- * WebhookManager
+ * Handles incoming webhook events from Marzban.
  *
- * Responsibilities:
- * - Subscribe to specific actions or wildcard/batch events
- * - Validate incoming webhook payloads
- * - Verify signatures if secret is provided
- * - Emit events to subscribers
- * - Provides logging at debug, info, warn, error levels
+ * Features:
+ * - Signature verification
+ * - Payload validation
+ * - Typed event subscriptions
+ * - Wildcard event listeners
+ * - Batch webhook processing
+ * - Manual event dispatching
+ *
+ * Supports subscribing to:
+ * - Specific webhook actions
+ * - All events via '*'
+ * - Batch events via 'batch'
+ *
+ * @example
+ * webhook.on('user.created', payload => {
+ *   console.log(payload.username)
+ * })
+ *
+ * @example
+ * webhook.on('*', payload => {
+ *   console.log(payload.action)
+ * })
  */
 export class WebhookManager {
   private readonly _secret?: string

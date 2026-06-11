@@ -73,8 +73,8 @@ export const configureHttpClient = (
   logger.info(`Configuring HTTP client with base URL: ${baseUrl}`, 'HttpClient')
   logger.debug(`HTTP client configuration: timeout=${config.timeout}s, retries=${config.retries}`, 'HttpClient')
 
-  const instanceAxios = axios.create({ baseURL: baseUrl })
-  const instancePublic = axios.create({ baseURL: baseUrl })
+  const instanceAxios = axios.create({ baseURL: baseUrl, timeout: config.timeout })
+  const instancePublic = axios.create({ baseURL: baseUrl, timeout: config.timeout })
 
   logger.debug('Setting up authentication interceptors', 'HttpClient')
   setupAuthInterceptors(instanceAxios, authService, config, logger)

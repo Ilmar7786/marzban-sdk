@@ -32,7 +32,8 @@ Webhooks enable your application to respond to events in Marzban:
 - **Subscription** – Subscription revocation
 
 Each webhook includes:
-- `action` – Event type (e.g., `user.created`, `user.limited`)
+
+- `action` – Event type (e.g., `user_created`, `user_limited`)
 - `username` – Affected user
 - `user` – Full user object (when available)
 - `by` – Admin who triggered the action (when applicable)
@@ -54,7 +55,7 @@ const sdk = await createMarzbanSDK({
 })
 
 // Access webhook manager through sdk.webhook
-sdk.webhook.on('user.created', (payload) => {
+sdk.webhook.on('user_created', payload => {
   console.log(payload.username)
 })
 ```
@@ -63,30 +64,30 @@ sdk.webhook.on('user.created', (payload) => {
 
 ### User Events
 
-| Event | Trigger | Payload |
-|-------|---------|---------|
-| `user.created` | User is created | `{ username, user, by }` |
-| `user.updated` | User is modified | `{ username, user, by }` |
-| `user.deleted` | User is deleted | `{ username, by }` |
-| `user.enabled` | User is enabled | `{ username, user, by }` |
-| `user.disabled` | User is disabled | `{ username, user, by, reason }` |
-| `user.limited` | User reaches data limit | `{ username, user }` |
-| `user.expired` | User reaches expiration | `{ username, user }` |
+| Event           | Trigger                 | Payload                           |
+| --------------- | ----------------------- | --------------------------------- |
+| `user_created`  | User is created         | `{ username, user, by }`          |
+| `user_updated`  | User is modified        | `{ username, user, by }`          |
+| `user_deleted`  | User is deleted         | `{ username, by }`                |
+| `user_enabled`  | User is enabled         | `{ username, user, by? }`         |
+| `user_disabled` | User is disabled        | `{ username, user, by, reason? }` |
+| `user_limited`  | User reaches data limit | `{ username, user }`              |
+| `user_expired`  | User reaches expiration | `{ username, user }`              |
 
 ### Data Usage Events
 
-| Event | Trigger | Payload |
-|-------|---------|---------|
-| `data.usage_reset` | Admin resets user data | `{ username, user, by }` |
-| `data.reset_by_next` | User auto-resets via next_plan | `{ username, user }` |
-| `data.usage_percent` | User reaches usage threshold | `{ username, user, used_percent }` |
-| `data.days_left` | User reaches expiration threshold | `{ username, user, days_left }` |
+| Event                   | Trigger                           | Payload                            |
+| ----------------------- | --------------------------------- | ---------------------------------- |
+| `data_usage_reset`      | Admin resets user data            | `{ username, user, by }`           |
+| `data_reset_by_next`    | User auto-resets via next_plan    | `{ username, user }`               |
+| `reached_usage_percent` | User reaches usage threshold      | `{ username, user, used_percent }` |
+| `reached_days_left`     | User reaches expiration threshold | `{ username, user, days_left }`    |
 
 ### Subscription Events
 
-| Event | Trigger | Payload |
-|-------|---------|---------|
-| `subscription.revoked` | Subscription is revoked | `{ username, user, by }` |
+| Event                  | Trigger                 | Payload                  |
+| ---------------------- | ----------------------- | ------------------------ |
+| `subscription_revoked` | Subscription is revoked | `{ username, user, by }` |
 
 ## Quick Start
 
@@ -103,7 +104,7 @@ const sdk = await createMarzbanSDK({
 })
 
 // Subscribe to specific event
-sdk.webhook.on('user.created', (webhook) => {
+sk.webhook.on('user_created', webhook => {
   console.log(`User created: ${webhook.username}`)
 })
 ```
@@ -119,10 +120,7 @@ app.use(express.raw({ type: 'application/json' })) // Keep raw body for signatur
 app.post('/webhook', async (req, res) => {
   try {
     // Parse and validate webhook
-    await sdk.webhook.handleWebhook(
-      req.body,
-      req.headers['x-webhook-secret'] as string
-    )
+    await sdk.webhook.handleWebhook(req.body, req.headers['x-webhook-secret'] as string)
     res.status(200).json({ status: 'received' })
   } catch (e) {
     if (e instanceof WebhookSignatureError) {
@@ -154,6 +152,7 @@ const sdk = await createMarzbanSDK({
 ```
 
 **Signature Details:**
+
 - Header: `x-webhook-secret`
 - Algorithm: HMAC-SHA256
 - Format: Hex-encoded digest
@@ -167,28 +166,28 @@ Subscribe to a specific webhook action:
 
 ```typescript
 // User created event
-sdk.webhook.on('user.created', (webhook) => {
+sdk.webhook.on('user_created', webhook => {
   console.log(`User ${webhook.username} created by ${webhook.by.username}`)
   console.log(`Email: ${webhook.user.email}`)
 })
 
 // User limited (data limit reached)
-sdk.webhook.on('user.limited', (webhook) => {
+sdk.webhook.on('user_limited', webhook => {
   console.log(`User ${webhook.username} reached data limit`)
 })
 
 // User expired
-sdk.webhook.on('user.expired', (webhook) => {
+sdk.webhook.on('user_expired', webhook => {
   console.log(`User ${webhook.username} expired`)
 })
 
 // Data usage percentage
-sdk.webhook.on('data.usage_percent', (webhook) => {
+sdk.webhook.on('reached_usage_percent', webhook => {
   console.log(`User ${webhook.username} at ${webhook.used_percent}%`)
 })
 
 // Days left
-sdk.webhook.on('data.days_left', (webhook) => {
+sdk.webhook.on('reached_days_left', webhook => {
   console.log(`User ${webhook.username} has ${webhook.days_left} days left`)
 })
 ```
@@ -198,10 +197,10 @@ sdk.webhook.on('data.days_left', (webhook) => {
 Listen to any webhook with the `*` wildcard:
 
 ```typescript
-sdk.webhook.on('*', (webhook) => {
+sdk.webhook.on('*', webhook => {
   console.log(`Event: ${webhook.action}`)
   console.log(`User: ${webhook.username}`)
-  
+
   // Handle all events uniformly
 })
 ```
@@ -212,9 +211,9 @@ Process multiple webhooks in one request:
 
 ```typescript
 // Listen to batch events
-sdk.webhook.on('batch', (webhooks) => {
+sdk.webhook.on('batch', webhooks => {
   console.log(`Processing ${webhooks.length} webhooks`)
-  
+
   for (const webhook of webhooks) {
     console.log(`- ${webhook.action}: ${webhook.username}`)
   }
@@ -227,17 +226,17 @@ Attach multiple listeners to the same event:
 
 ```typescript
 // Logger
-sdk.webhook.on('user.created', (webhook) => {
+sdk.webhook.on('user_created', webhook => {
   logger.info(`User created: ${webhook.username}`)
 })
 
 // Analytics
-sdk.webhook.on('user.created', (webhook) => {
+sdk.webhook.on('user_created', webhook => {
   analytics.track('user_created', { username: webhook.username })
 })
 
 // Database
-sdk.webhook.on('user.created', (webhook) => {
+sdk.webhook.on('user_created', webhook => {
   db.users.create({ username: webhook.username })
 })
 
@@ -254,10 +253,7 @@ Parse and validate a webhook payload without emitting events:
 
 ```typescript
 // Parse webhook
-const payloads = sdk.webhook.parseWebhook(
-  req.body,
-  req.headers['x-webhook-secret'] as string
-)
+const payloads = sdk.webhook.parseWebhook(req.body, req.headers['x-webhook-secret'] as string)
 
 // Process parsed payloads
 for (const payload of payloads) {
@@ -266,6 +262,7 @@ for (const payload of payloads) {
 ```
 
 **Important:**
+
 - If secret is configured, you MUST pass the raw request body (Buffer or string)
 - This is necessary for signature verification
 - Returns array of validated webhooks
@@ -277,10 +274,7 @@ Parse, validate, and emit webhook events:
 
 ```typescript
 // Handle and emit events
-const emitted = await sdk.webhook.handleWebhook(
-  req.body,
-  req.headers['x-webhook-secret'] as string
-)
+const emitted = await sdk.webhook.handleWebhook(req.body, req.headers['x-webhook-secret'] as string)
 
 if (emitted) {
   console.log('Webhook processed and events emitted')
@@ -288,11 +282,12 @@ if (emitted) {
 ```
 
 **What happens:**
+
 1. Signature verification (if secret configured)
 2. Payload validation (Zod schemas)
 3. Batch event emission (if multiple payloads)
 4. Individual action events emission
-5. Wildcard '*' event emission
+5. Wildcard '\*' event emission
 
 ## Advanced Usage
 
@@ -301,17 +296,9 @@ if (emitted) {
 You can build your own webhook handler using the provided utilities:
 
 ```typescript
-import {
-  validateWebhookPayload,
-  verifyWebhookSignature,
-  type WebhookType,
-} from 'marzban-sdk'
+import { validateWebhookPayload, verifyWebhookSignature, type WebhookType } from 'marzban-sdk'
 
-async function customWebhookHandler(
-  rawBody: unknown,
-  signature: string,
-  secret: string
-) {
+async function customWebhookHandler(rawBody: unknown, signature: string, secret: string) {
   // 1. Verify signature
   const isValid = verifyWebhookSignature(signature, secret, rawBody as Buffer)
   if (!isValid) {
@@ -335,11 +322,7 @@ async function customWebhookHandler(
 Access webhook utilities for custom implementations:
 
 ```typescript
-import {
-  validateWebhookPayload,
-  verifyWebhookSignature,
-  toBuffer,
-} from 'marzban-sdk'
+import { validateWebhookPayload, verifyWebhookSignature, toBuffer } from 'marzban-sdk'
 
 // Validate payload
 try {
@@ -351,11 +334,7 @@ try {
 }
 
 // Verify signature
-const isValid = verifyWebhookSignature(
-  signatureHeader,
-  secret,
-  toBuffer(rawBody)
-)
+const isValid = verifyWebhookSignature(signatureHeader, secret, toBuffer(rawBody))
 
 if (!isValid) {
   console.log('Signature invalid')
@@ -367,12 +346,7 @@ if (!isValid) {
 Access Zod schemas for custom implementations:
 
 ```typescript
-import {
-  WebhookSchema,
-  WebhookArraySchema,
-  UserCreatedSchema,
-  ACTIONS,
-} from 'marzban-sdk'
+import { WebhookSchema, WebhookArraySchema, UserCreatedSchema, ACTIONS } from 'marzban-sdk'
 
 // Parse single webhook
 const webhook = WebhookSchema.parse(webhookData)
@@ -383,11 +357,11 @@ const webhooks = WebhookArraySchema.parse(webhooksData)
 // Safe parse (doesn't throw)
 const result = UserCreatedSchema.safeParse(data)
 if (result.success) {
-  console.log('Valid user.created webhook:', result.data)
+  console.log('Valid user_created webhook:', result.data)
 }
 
 // All available actions
-Object.values(ACTIONS).forEach((action) => {
+Object.values(ACTIONS).forEach(action => {
   console.log(`Action: ${action}`)
 })
 ```
@@ -451,21 +425,21 @@ const sdk = await createMarzbanSDK({
 })
 
 // Subscribe to user creation
-sdk.webhook.on('user.created', (webhook) => {
+sk.webhook.on('user_created', webhook => {
   console.log(`✓ New user: ${webhook.username}`)
   console.log(`  Created by: ${webhook.by.username}`)
   console.log(`  Email: ${webhook.user.email}`)
 })
 
 // Subscribe to user deletion
-sdk.webhook.on('user.deleted', (webhook) => {
+sk.webhook.on('user_deleted', webhook => {
   console.log(`✗ User deleted: ${webhook.username}`)
 })
 
 // Subscribe to data usage
-sdk.webhook.on('data.usage_percent', (webhook) => {
+sk.webhook.on('reached_usage_percent', webhook => {
   console.log(`📊 ${webhook.username}: ${webhook.used_percent}% used`)
-  
+
   if (webhook.used_percent >= 80) {
     sendNotification(webhook.username, 'Low data warning')
   }
@@ -474,10 +448,7 @@ sdk.webhook.on('data.usage_percent', (webhook) => {
 // Webhook endpoint
 app.post('/webhook', async (req, res) => {
   try {
-    await sdk.webhook.handleWebhook(
-      req.body,
-      req.headers['x-webhook-secret'] as string
-    )
+    await sdk.webhook.handleWebhook(req.body, req.headers['x-webhook-secret'] as string)
     res.status(200).json({ status: 'ok' })
   } catch (e) {
     if (e instanceof WebhookSignatureError) {
@@ -499,10 +470,12 @@ app.listen(3000, () => console.log('Webhook server ready'))
 import { createMarzbanSDK } from 'marzban-sdk'
 import db from './database'
 
-const sdk = await createMarzbanSDK({ /* config */ })
+const sdk = await createMarzbanSDK({
+  /* config */
+})
 
 // Sync user creation
-sdk.webhook.on('user.created', async (webhook) => {
+sdk.webhook.on('user_created', async webhook => {
   await db.users.create({
     username: webhook.username,
     email: webhook.user.email,
@@ -512,7 +485,7 @@ sdk.webhook.on('user.created', async (webhook) => {
 })
 
 // Sync user updates
-sdk.webhook.on('user.updated', async (webhook) => {
+sdk.webhook.on('user_updated', async webhook => {
   await db.users.update(webhook.username, {
     email: webhook.user.email,
     data_limit: webhook.user.data_limit,
@@ -521,12 +494,12 @@ sdk.webhook.on('user.updated', async (webhook) => {
 })
 
 // Sync user deletion
-sdk.webhook.on('user.deleted', async (webhook) => {
+sdk.webhook.on('user_deleted', async webhook => {
   await db.users.delete(webhook.username)
 })
 
 // Track usage
-sdk.webhook.on('data.usage_percent', async (webhook) => {
+sdk.webhook.on('reached_usage_percent', async webhook => {
   await db.usage_alerts.create({
     username: webhook.username,
     percent: webhook.used_percent,
@@ -541,33 +514,33 @@ sdk.webhook.on('data.usage_percent', async (webhook) => {
 import { createMarzbanSDK } from 'marzban-sdk'
 import { sendEmail, sendTelegram } from './notifications'
 
-const sdk = await createMarzbanSDK({ /* config */ })
+const sdk = await createMarzbanSDK({
+  /* config */
+})
 
 // Notify on user disabled
-sdk.webhook.on('user.disabled', async (webhook) => {
-  const message = `Your account has been disabled${
-    webhook.reason ? ': ' + webhook.reason : '.'
-  }`
-  
+sdk.webhook.on('user_disabled', async webhook => {
+  const message = `Your account has been disabled${webhook.reason ? ': ' + webhook.reason : '.'}`
+
   await sendEmail(webhook.user.email, 'Account Disabled', message)
   await sendTelegram(webhook.username, message)
 })
 
 // Notify on low quota
-sdk.webhook.on('data.usage_percent', async (webhook) => {
+sdk.webhook.on('reached_usage_percent', async webhook => {
   if (webhook.used_percent >= 90) {
     const message = `Your data usage is at ${webhook.used_percent}%. 
       Upgrade or wait for reset.`
-    
+
     await sendEmail(webhook.user.email, '⚠️ Low Data Warning', message)
   }
 })
 
 // Notify on expiration soon
-sdk.webhook.on('data.days_left', async (webhook) => {
+sdk.webhook.on('reached_days_left', async webhook => {
   if (webhook.days_left <= 3) {
     const message = `Your subscription expires in ${webhook.days_left} day(s).`
-    
+
     await sendEmail(webhook.user.email, '🔔 Expiring Soon', message)
     await sendTelegram(webhook.username, message)
   }
@@ -592,6 +565,7 @@ sdk.webhook.on('data.days_left', async (webhook) => {
 The webhook module exports everything needed for custom implementations:
 
 **Types:**
+
 - `WebhookType` – Single webhook payload
 - `WebhookArrayType` – Array of webhooks
 - `WebhookEventMap` – Event listener map
@@ -599,16 +573,19 @@ The webhook module exports everything needed for custom implementations:
 - `WebhookManagerOptions` – Manager configuration
 
 **Schemas (Zod):**
+
 - `WebhookSchema` – Single webhook validator
 - `WebhookArraySchema` – Batch validator
 - `UserCreatedSchema`, `UserUpdatedSchema`, etc. – Specific action validators
 
 **Utilities:**
+
 - `validateWebhookPayload()` – Validate webhook payload
 - `verifyWebhookSignature()` – Verify HMAC-SHA256 signature
 - `ACTIONS` – All available webhook actions
 
 **Errors:**
+
 - `WebhookSignatureError` – Signature verification failed
 - `WebhookValidationError` – Payload validation failed
 

@@ -75,7 +75,7 @@ export class MarzbanSDK {
    * - Process webhook batches
    *
    * @example
-   * sdk.webhook.on('user.created', payload => {
+   * sdk.webhook.on('user_created', payload => {
    *   console.log(payload.username)
    * })
    *

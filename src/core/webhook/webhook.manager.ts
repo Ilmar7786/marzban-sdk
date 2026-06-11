@@ -55,7 +55,7 @@ export interface WebhookManagerOptions {
  * - Batch events via 'batch'
  *
  * @example
- * webhook.on('user.created', payload => {
+ * webhook.on('user_created', payload => {
  *   console.log(payload.username)
  * })
  *

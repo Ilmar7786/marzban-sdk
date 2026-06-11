@@ -164,14 +164,14 @@ export class MarzbanSDK {
    * If `force` is true or no login is in progress, starts a new authentication request.
    *
    * @param {boolean} [force=false] - If true, forces a new authentication request even if one is in progress.
-   * @returns {Promise<void>} Resolves on successful authentication; rejects with {@link AuthenticationError} on failure.
+   * @returns {Promise<void>} Resolves on successful authentication; rejects with {@link AuthError} on failure.
    *
    * @example
    * try {
    *   await sdk.authorize();
    *   // Auth successful
    * } catch (e) {
-   *   if (e instanceof AuthenticationError) {
+   *   if (e instanceof AuthError) {
    *     // Handle auth error
    *   }
    * }
@@ -208,7 +208,7 @@ export const createMarzbanSDK = async (config: Config): Promise<MarzbanSDK> => {
   // --- Authentication ---
   if (config.authenticateOnInit) {
     logger.info('Performing initial authentication as configured', 'MarzbanSDK')
-    await sdk['_authService'].authenticate(config.username, config.password)
+    await sdk.authorize()
     logger.info('Initial authentication completed successfully', 'MarzbanSDK')
   } else {
     logger.debug('Skipping initial authentication as configured', 'MarzbanSDK')

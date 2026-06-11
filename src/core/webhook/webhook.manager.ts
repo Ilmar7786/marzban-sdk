@@ -1,5 +1,5 @@
 import { SafeEventEmitter, toBuffer } from '@/common'
-import { WebhookSignatureError } from '@/core/errors'
+import { WebhookSignatureError, WebhookValidationError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
 import { WebhookType } from './webhook.schema'
@@ -160,7 +160,7 @@ export class WebhookManager {
         this._logger.error('Failed to parse webhook JSON body', err, 'WebhookManager')
         // Let validateWebhookPayload throw a structured error if necessary,
         // but provide a clear message for parse errors.
-        throw err
+        throw new WebhookValidationError(err)
       }
     }
 
@@ -212,7 +212,7 @@ export class WebhookManager {
       this._logger.info(`Webhook processing completed, emitted=${emitted}`, 'WebhookManager')
     } catch (err) {
       this._logger.error('Error handling webhook', err, 'WebhookManager')
-      throw err
+      throw new WebhookValidationError(err)
     }
 
     return emitted

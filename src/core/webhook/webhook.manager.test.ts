@@ -133,7 +133,7 @@ describe('WebhookManager', () => {
       })
 
       it('throws when JSON.parse fails', () => {
-        expect(() => manager.parseWebhook('not json')).toThrow(SyntaxError)
+        expect(() => manager.parseWebhook('not json')).toThrow(WebhookValidationError)
       })
 
       it('logs error when JSON.parse fails', () => {

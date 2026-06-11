@@ -26,6 +26,7 @@ It works seamlessly in both **Node.js** and **browser environments**, giving dev
 - [📦 Installation](#-installation)
 - [🚀 Quick Start](#-quick-start)
 - [📑 Configuration Options](#-configuration-options)
+- [📝 Logging](#-logging)
 - [🔐 Authorization Control](#-authorization-control)
 - [🔍 How It Works](#-how-it-works)
 - [📚 API Documentation](#-api-documentation)
@@ -69,14 +70,25 @@ yarn add marzban-sdk
 
 The `Config` object is used to initialize the MarzbanSDK instance. Below are all available options:
 
-| Name                 | Type    | Required | Default | Description                                                                                        |
-| -------------------- | ------- | -------- | ------- | -------------------------------------------------------------------------------------------------- |
-| `baseUrl`            | string  | Yes      | —       | The base URL of the Marzban API instance. Example: `https://api.example.com`                       |
-| `username`           | string  | Yes      | —       | The username for authentication.                                                                   |
-| `password`           | string  | Yes      | —       | The password for authentication.                                                                   |
-| `token`              | string  | No       | —       | Optional JWT token for direct authorization. If provided, SDK uses this token for requests.        |
-| `retries`            | number  | No       | 3       | Number of automatic retries for failed HTTP requests.                                              |
-| `authenticateOnInit` | boolean | No       | true    | If true (default), SDK authenticates automatically on init. If false, call `authorize()` manually. |
+| Name                 | Type                             | Required | Default | Description                                                                                        |
+| -------------------- | -------------------------------- | -------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `baseUrl`            | string                           | Yes      | —       | The base URL of the Marzban API instance. Example: `https://api.example.com`                       |
+| `username`           | string                           | Yes      | —       | The username for authentication.                                                                   |
+| `password`           | string                           | Yes      | —       | The password for authentication.                                                                   |
+| `token`              | string                           | No       | —       | Optional JWT token for direct authorization. If provided, SDK uses this token for requests.        |
+| `retries`            | number                           | No       | 3       | Number of automatic retries for failed HTTP requests.                                              |
+| `authenticateOnInit` | boolean                          | No       | true    | If true (default), SDK authenticates automatically on init. If false, call `authorize()` manually. |
+| `logger`             | false \| LoggerOptions \| Logger | No       | —       | Configure SDK logging behavior or supply a custom logger implementation.                           |
+
+## 📝 Logging
+
+MarzbanSDK supports flexible logger configuration via the `logger` option.
+
+- Disable SDK logs with `logger: false`
+- Use built-in logger settings with `logger: { level, timestamp }`
+- Provide a custom logger object with `debug`, `info`, `warn`, and `error` methods
+
+→ See [Logging Guide](./docs/LOGGING.md)
 
 ## 🔐 Authorization Control
 

@@ -10,21 +10,25 @@ export type GetAdminUsagePathParams = {
 }
 
 /**
+ * Response Get Admin Usage Api Admin Usage  Username  Get
  * @description Successful Response
  */
 export type GetAdminUsage200 = number
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetAdminUsage401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type GetAdminUsage403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type GetAdminUsage422 = HTTPValidationError

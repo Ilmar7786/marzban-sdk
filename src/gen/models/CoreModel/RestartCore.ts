@@ -7,11 +7,13 @@ import type { Unauthorized } from '../Unauthorized.ts'
 export type RestartCore200 = any
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type RestartCore401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type RestartCore403 = Forbidden

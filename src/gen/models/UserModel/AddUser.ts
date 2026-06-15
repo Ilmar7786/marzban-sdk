@@ -6,31 +6,37 @@ import type { UserCreate } from '../UserCreate.ts'
 import type { UserResponse } from '../UserResponse.ts'
 
 /**
+ * UserResponse
  * @description Successful Response
  */
 export type AddUser200 = UserResponse
 
 /**
+ * HTTPException
  * @description Bad request
  */
 export type AddUser400 = HTTPException
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type AddUser401 = Unauthorized
 
 /**
+ * Conflict
  * @description Conflict
  */
 export type AddUser409 = Conflict
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type AddUser422 = HTTPValidationError
 
 /**
+ * UserCreate
  * @example [object Object]
  */
 export type AddUserMutationRequest = UserCreate

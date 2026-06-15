@@ -9,11 +9,13 @@ export type GetUserTemplateEndpointPathParams = {
 }
 
 /**
+ * UserTemplateResponse
  * @description Successful Response
  */
 export type GetUserTemplateEndpoint200 = UserTemplateResponse
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type GetUserTemplateEndpoint422 = HTTPValidationError

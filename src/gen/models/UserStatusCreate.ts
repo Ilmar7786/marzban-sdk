@@ -5,4 +5,7 @@ export const userStatusCreateEnum = {
 
 export type UserStatusCreateEnumKey = (typeof userStatusCreateEnum)[keyof typeof userStatusCreateEnum]
 
+/**
+ * UserStatusCreate
+ */
 export type UserStatusCreate = UserStatusCreateEnumKey

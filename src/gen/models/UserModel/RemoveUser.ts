@@ -16,21 +16,25 @@ export type RemoveUserPathParams = {
 export type RemoveUser200 = any
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type RemoveUser401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type RemoveUser403 = Forbidden
 
 /**
+ * NotFound
  * @description Not found
  */
 export type RemoveUser404 = NotFound
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type RemoveUser422 = HTTPValidationError

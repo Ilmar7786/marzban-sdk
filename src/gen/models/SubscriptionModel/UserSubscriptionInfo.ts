@@ -9,11 +9,13 @@ export type UserSubscriptionInfoPathParams = {
 }
 
 /**
+ * SubscriptionUserResponse
  * @description Successful Response
  */
 export type UserSubscriptionInfo200 = SubscriptionUserResponse
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type UserSubscriptionInfo422 = HTTPValidationError

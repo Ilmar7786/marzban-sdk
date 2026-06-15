@@ -14,36 +14,43 @@ export type ModifyUserPathParams = {
 }
 
 /**
+ * UserResponse
  * @description Successful Response
  */
 export type ModifyUser200 = UserResponse
 
 /**
+ * HTTPException
  * @description Bad request
  */
 export type ModifyUser400 = HTTPException
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type ModifyUser401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type ModifyUser403 = Forbidden
 
 /**
+ * NotFound
  * @description Not found
  */
 export type ModifyUser404 = NotFound
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type ModifyUser422 = HTTPValidationError
 
 /**
+ * UserModify
  * @example [object Object]
  */
 export type ModifyUserMutationRequest = UserModify

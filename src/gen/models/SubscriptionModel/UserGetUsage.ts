@@ -26,6 +26,7 @@ export type UserGetUsageQueryParams = {
 export type UserGetUsage200 = any
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type UserGetUsage422 = HTTPValidationError

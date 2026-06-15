@@ -4,6 +4,7 @@ import type { ProxyHost } from '../ProxyHost.ts'
 import type { Unauthorized } from '../Unauthorized.ts'
 
 /**
+ * Response Modify Hosts Api Hosts Put
  * @description Successful Response
  */
 export type ModifyHosts200 = {
@@ -11,20 +12,26 @@ export type ModifyHosts200 = {
 }
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type ModifyHosts401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type ModifyHosts403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type ModifyHosts422 = HTTPValidationError
 
+/**
+ * Modified Hosts
+ */
 export type ModifyHostsMutationRequest = {
   [key: string]: ProxyHost[]
 }

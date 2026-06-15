@@ -10,21 +10,25 @@ export type GetAdminsQueryParams = {
 }
 
 /**
+ * Response Get Admins Api Admins Get
  * @description Successful Response
  */
 export type GetAdmins200 = Admin[]
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetAdmins401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type GetAdmins403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type GetAdmins422 = HTTPValidationError

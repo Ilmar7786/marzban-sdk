@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
-import fetch from '@/core/http/client.ts'
+import type { Client, RequestConfig, ResponseErrorConfig } from '@kubb/plugin-client/clients/axios'
+import fetch from '@kubb/plugin-client/clients/axios'
+import { mergeConfig } from '@kubb/plugin-client/clients/axios'
 
 import type {
   AddNode401,
@@ -64,10 +65,10 @@ import { reconnectNodeMutationResponseSchema } from '../../schemas/NodeSchema/re
 import { removeNodeMutationResponseSchema } from '../../schemas/NodeSchema/removeNodeSchema.ts'
 
 export class nodeApi {
-  #client: typeof fetch
+  #config: Partial<RequestConfig> & { client?: Client }
 
-  constructor(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    this.#client = config.client || fetch
+  constructor(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    this.#config = config
   }
 
   /**
@@ -75,13 +76,13 @@ export class nodeApi {
    * @summary Get Node Settings
    * {@link /api/node/settings}
    */
-  async getNodeSettings(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getNodeSettings(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetNodeSettingsQueryResponse,
       ResponseErrorConfig<GetNodeSettings401 | GetNodeSettings403>,
       unknown
-    >({ method: 'GET', url: `/api/node/settings`, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/node/settings` })
     return getNodeSettingsQueryResponseSchema.parse(res.data)
   }
 
@@ -92,15 +93,15 @@ export class nodeApi {
    */
   async addNode(
     data: AddNodeMutationRequest,
-    config: Partial<RequestConfig<AddNodeMutationRequest>> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig<AddNodeMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = addNodeMutationRequestSchema.parse(data)
     const res = await request<
       AddNodeMutationResponse,
       ResponseErrorConfig<AddNode401 | AddNode403 | AddNode409 | AddNode422>,
       AddNodeMutationRequest
-    >({ method: 'POST', url: `/api/node`, data: requestData, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/node`, data: requestData })
     return addNodeMutationResponseSchema.parse(res.data)
   }
 
@@ -109,10 +110,10 @@ export class nodeApi {
    * @summary Get Node
    * {@link /api/node/:node_id}
    */
-  async getNode(nodeId: GetNodePathParams['node_id'], config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getNode(node_id: GetNodePathParams['node_id'], config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<GetNodeQueryResponse, ResponseErrorConfig<GetNode401 | GetNode403 | GetNode422>, unknown>(
-      { method: 'GET', url: `/api/node/${nodeId}`, ...requestConfig }
+      { ...requestConfig, method: 'GET', url: `/api/node/${node_id}` }
     )
     return getNodeQueryResponseSchema.parse(res.data)
   }
@@ -123,17 +124,17 @@ export class nodeApi {
    * {@link /api/node/:node_id}
    */
   async modifyNode(
-    nodeId: ModifyNodePathParams['node_id'],
-    data?: ModifyNodeMutationRequest,
-    config: Partial<RequestConfig<ModifyNodeMutationRequest>> & { client?: typeof fetch } = {}
+    node_id: ModifyNodePathParams['node_id'],
+    data: ModifyNodeMutationRequest,
+    config: Partial<RequestConfig<ModifyNodeMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = modifyNodeMutationRequestSchema.parse(data)
     const res = await request<
       ModifyNodeMutationResponse,
       ResponseErrorConfig<ModifyNode401 | ModifyNode403 | ModifyNode422>,
       ModifyNodeMutationRequest
-    >({ method: 'PUT', url: `/api/node/${nodeId}`, data: requestData, ...requestConfig })
+    >({ ...requestConfig, method: 'PUT', url: `/api/node/${node_id}`, data: requestData })
     return modifyNodeMutationResponseSchema.parse(res.data)
   }
 
@@ -143,15 +144,15 @@ export class nodeApi {
    * {@link /api/node/:node_id}
    */
   async removeNode(
-    nodeId: RemoveNodePathParams['node_id'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    node_id: RemoveNodePathParams['node_id'],
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       RemoveNodeMutationResponse,
       ResponseErrorConfig<RemoveNode401 | RemoveNode403 | RemoveNode422>,
       unknown
-    >({ method: 'DELETE', url: `/api/node/${nodeId}`, ...requestConfig })
+    >({ ...requestConfig, method: 'DELETE', url: `/api/node/${node_id}` })
     return removeNodeMutationResponseSchema.parse(res.data)
   }
 
@@ -160,12 +161,12 @@ export class nodeApi {
    * @summary Get Nodes
    * {@link /api/nodes}
    */
-  async getNodes(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getNodes(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<GetNodesQueryResponse, ResponseErrorConfig<GetNodes401 | GetNodes403>, unknown>({
+      ...requestConfig,
       method: 'GET',
       url: `/api/nodes`,
-      ...requestConfig,
     })
     return getNodesQueryResponseSchema.parse(res.data)
   }
@@ -176,15 +177,15 @@ export class nodeApi {
    * {@link /api/node/:node_id/reconnect}
    */
   async reconnectNode(
-    nodeId: ReconnectNodePathParams['node_id'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    node_id: ReconnectNodePathParams['node_id'],
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       ReconnectNodeMutationResponse,
       ResponseErrorConfig<ReconnectNode401 | ReconnectNode403 | ReconnectNode422>,
       unknown
-    >({ method: 'POST', url: `/api/node/${nodeId}/reconnect`, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/node/${node_id}/reconnect` })
     return reconnectNodeMutationResponseSchema.parse(res.data)
   }
 
@@ -193,13 +194,13 @@ export class nodeApi {
    * @summary Get Usage
    * {@link /api/nodes/usage}
    */
-  async getUsage(params?: GetUsageQueryParams, config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getUsage(params?: GetUsageQueryParams, config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetUsageQueryResponse,
       ResponseErrorConfig<GetUsage401 | GetUsage403 | GetUsage422>,
       unknown
-    >({ method: 'GET', url: `/api/nodes/usage`, params, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/nodes/usage`, params })
     return getUsageQueryResponseSchema.parse(res.data)
   }
 }

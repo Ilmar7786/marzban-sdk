@@ -2,6 +2,9 @@ import type { ProxyHostALPN } from './ProxyHostALPN.ts'
 import type { ProxyHostFingerprint } from './ProxyHostFingerprint.ts'
 import type { ProxyHostSecurity } from './ProxyHostSecurity.ts'
 
+/**
+ * ProxyHost
+ */
 export type ProxyHost = {
   /**
    * @type string
@@ -16,14 +19,17 @@ export type ProxyHost = {
   host?: (string | null) | null
   path?: (string | null) | null
   /**
+   * @default "inbound_default"
    * @type string | undefined
    */
   security?: ProxyHostSecurity
   /**
+   * @default ""
    * @type string | undefined
    */
   alpn?: ProxyHostALPN
   /**
+   * @default ""
    * @type string | undefined
    */
   fingerprint?: ProxyHostFingerprint

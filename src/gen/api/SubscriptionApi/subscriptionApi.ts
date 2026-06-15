@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
-import fetch from '@/core/http/client.ts'
+import type { Client, RequestConfig, ResponseErrorConfig } from '@kubb/plugin-client/clients/axios'
+import fetch from '@kubb/plugin-client/clients/axios'
+import { mergeConfig } from '@kubb/plugin-client/clients/axios'
 
 import type {
   UserGetUsage422,
@@ -30,10 +31,10 @@ import { userSubscriptionQueryResponseSchema } from '../../schemas/SubscriptionS
 import { userSubscriptionWithClientTypeQueryResponseSchema } from '../../schemas/SubscriptionSchema/userSubscriptionWithClientTypeSchema.ts'
 
 export class subscriptionApi {
-  #client: typeof fetch
+  #config: Partial<RequestConfig> & { client?: Client }
 
-  constructor(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    this.#client = config.client || fetch
+  constructor(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    this.#config = config
   }
 
   /**
@@ -44,13 +45,13 @@ export class subscriptionApi {
   async userSubscription(
     token: UserSubscriptionPathParams['token'],
     headers?: UserSubscriptionHeaderParams,
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<UserSubscriptionQueryResponse, ResponseErrorConfig<UserSubscription422>, unknown>({
+      ...requestConfig,
       method: 'GET',
       url: `/sub/${token}/`,
-      ...requestConfig,
       headers: { ...headers, ...requestConfig.headers },
     })
     return userSubscriptionQueryResponseSchema.parse(res.data)
@@ -63,11 +64,11 @@ export class subscriptionApi {
    */
   async userSubscriptionInfo(
     token: UserSubscriptionInfoPathParams['token'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<UserSubscriptionInfoQueryResponse, ResponseErrorConfig<UserSubscriptionInfo422>, unknown>(
-      { method: 'GET', url: `/sub/${token}/info`, ...requestConfig }
+      { ...requestConfig, method: 'GET', url: `/sub/${token}/info` }
     )
     return userSubscriptionInfoQueryResponseSchema.parse(res.data)
   }
@@ -80,14 +81,14 @@ export class subscriptionApi {
   async userGetUsage(
     token: UserGetUsagePathParams['token'],
     params?: UserGetUsageQueryParams,
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<UserGetUsageQueryResponse, ResponseErrorConfig<UserGetUsage422>, unknown>({
+      ...requestConfig,
       method: 'GET',
       url: `/sub/${token}/usage`,
       params,
-      ...requestConfig,
     })
     return userGetUsageQueryResponseSchema.parse(res.data)
   }
@@ -98,20 +99,20 @@ export class subscriptionApi {
    * {@link /sub/:token/:client_type}
    */
   async userSubscriptionWithClientType(
-    clientType: UserSubscriptionWithClientTypePathParams['client_type'],
+    client_type: UserSubscriptionWithClientTypePathParams['client_type'],
     token: UserSubscriptionWithClientTypePathParams['token'],
     headers?: UserSubscriptionWithClientTypeHeaderParams,
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       UserSubscriptionWithClientTypeQueryResponse,
       ResponseErrorConfig<UserSubscriptionWithClientType422>,
       unknown
     >({
-      method: 'GET',
-      url: `/sub/${token}/${clientType}`,
       ...requestConfig,
+      method: 'GET',
+      url: `/sub/${token}/${client_type}`,
       headers: { ...headers, ...requestConfig.headers },
     })
     return userSubscriptionWithClientTypeQueryResponseSchema.parse(res.data)

@@ -8,4 +8,7 @@ export const userStatusEnum = {
 
 export type UserStatusEnumKey = (typeof userStatusEnum)[keyof typeof userStatusEnum]
 
+/**
+ * UserStatus
+ */
 export type UserStatus = UserStatusEnumKey

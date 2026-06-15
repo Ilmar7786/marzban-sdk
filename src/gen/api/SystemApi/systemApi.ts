@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
-import fetch from '@/core/http/client.ts'
+import type { Client, RequestConfig, ResponseErrorConfig } from '@kubb/plugin-client/clients/axios'
+import fetch from '@kubb/plugin-client/clients/axios'
+import { mergeConfig } from '@kubb/plugin-client/clients/axios'
 
 import type { GetHosts401, GetHosts403, GetHostsQueryResponse } from '../../models/SystemModel/GetHosts.ts'
 import type { GetInbounds401, GetInboundsQueryResponse } from '../../models/SystemModel/GetInbounds.ts'
@@ -20,10 +21,10 @@ import {
 } from '../../schemas/SystemSchema/modifyHostsSchema.ts'
 
 export class systemApi {
-  #client: typeof fetch
+  #config: Partial<RequestConfig> & { client?: Client }
 
-  constructor(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    this.#client = config.client || fetch
+  constructor(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    this.#config = config
   }
 
   /**
@@ -31,12 +32,12 @@ export class systemApi {
    * @summary Get System Stats
    * {@link /api/system}
    */
-  async getSystemStats(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getSystemStats(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<GetSystemStatsQueryResponse, ResponseErrorConfig<GetSystemStats401>, unknown>({
+      ...requestConfig,
       method: 'GET',
       url: `/api/system`,
-      ...requestConfig,
     })
     return getSystemStatsQueryResponseSchema.parse(res.data)
   }
@@ -46,12 +47,12 @@ export class systemApi {
    * @summary Get Inbounds
    * {@link /api/inbounds}
    */
-  async getInbounds(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getInbounds(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<GetInboundsQueryResponse, ResponseErrorConfig<GetInbounds401>, unknown>({
+      ...requestConfig,
       method: 'GET',
       url: `/api/inbounds`,
-      ...requestConfig,
     })
     return getInboundsQueryResponseSchema.parse(res.data)
   }
@@ -61,12 +62,12 @@ export class systemApi {
    * @summary Get Hosts
    * {@link /api/hosts}
    */
-  async getHosts(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getHosts(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<GetHostsQueryResponse, ResponseErrorConfig<GetHosts401 | GetHosts403>, unknown>({
+      ...requestConfig,
       method: 'GET',
       url: `/api/hosts`,
-      ...requestConfig,
     })
     return getHostsQueryResponseSchema.parse(res.data)
   }
@@ -77,16 +78,16 @@ export class systemApi {
    * {@link /api/hosts}
    */
   async modifyHosts(
-    data?: ModifyHostsMutationRequest,
-    config: Partial<RequestConfig<ModifyHostsMutationRequest>> & { client?: typeof fetch } = {}
+    data: ModifyHostsMutationRequest,
+    config: Partial<RequestConfig<ModifyHostsMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = modifyHostsMutationRequestSchema.parse(data)
     const res = await request<
       ModifyHostsMutationResponse,
       ResponseErrorConfig<ModifyHosts401 | ModifyHosts403 | ModifyHosts422>,
       ModifyHostsMutationRequest
-    >({ method: 'PUT', url: `/api/hosts`, data: requestData, ...requestConfig })
+    >({ ...requestConfig, method: 'PUT', url: `/api/hosts`, data: requestData })
     return modifyHostsMutationResponseSchema.parse(res.data)
   }
 }

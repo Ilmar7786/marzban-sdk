@@ -3,6 +3,7 @@ import type { ProxyHost } from '../ProxyHost.ts'
 import type { Unauthorized } from '../Unauthorized.ts'
 
 /**
+ * Response Get Hosts Api Hosts Get
  * @description Successful Response
  */
 export type GetHosts200 = {
@@ -10,11 +11,13 @@ export type GetHosts200 = {
 }
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetHosts401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type GetHosts403 = Forbidden

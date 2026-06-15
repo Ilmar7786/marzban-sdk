@@ -1,3 +1,6 @@
+/**
+ * Admin
+ */
 export type Admin = {
   /**
    * @type string

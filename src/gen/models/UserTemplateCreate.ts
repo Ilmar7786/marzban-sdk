@@ -1,4 +1,5 @@
 /**
+ * UserTemplateCreate
  * @example [object Object]
  */
 export type UserTemplateCreate = {

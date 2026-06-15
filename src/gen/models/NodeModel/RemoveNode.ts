@@ -15,16 +15,19 @@ export type RemoveNodePathParams = {
 export type RemoveNode200 = any
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type RemoveNode401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type RemoveNode403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type RemoveNode422 = HTTPValidationError

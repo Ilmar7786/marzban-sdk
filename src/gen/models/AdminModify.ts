@@ -1,3 +1,6 @@
+/**
+ * AdminModify
+ */
 export type AdminModify = {
   password?: string | null
   /**

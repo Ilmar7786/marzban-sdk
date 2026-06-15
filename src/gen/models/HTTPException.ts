@@ -1,3 +1,6 @@
+/**
+ * HTTPException
+ */
 export type HTTPException = {
   /**
    * @type string

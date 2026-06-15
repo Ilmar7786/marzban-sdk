@@ -1,3 +1,6 @@
+/**
+ * UserUsageResponse
+ */
 export type UserUsageResponse = {
   node_id?: number | null
   /**

@@ -1,4 +1,5 @@
 export const proxyHostALPNEnum = {
+  '': '',
   h3: 'h3',
   h2: 'h2',
   'http/1.1': 'http/1.1',
@@ -9,4 +10,7 @@ export const proxyHostALPNEnum = {
 
 export type ProxyHostALPNEnumKey = (typeof proxyHostALPNEnum)[keyof typeof proxyHostALPNEnum]
 
+/**
+ * ProxyHostALPN
+ */
 export type ProxyHostALPN = ProxyHostALPNEnumKey

@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
-import fetch from '@/core/http/client.ts'
+import type { Client, RequestConfig, ResponseErrorConfig } from '@kubb/plugin-client/clients/axios'
+import fetch from '@kubb/plugin-client/clients/axios'
+import { mergeConfig } from '@kubb/plugin-client/clients/axios'
 
 import type {
   ActivateAllDisabledUsers401,
@@ -89,10 +90,10 @@ import { removeAdminMutationResponseSchema } from '../../schemas/AdminSchema/rem
 import { resetAdminUsageMutationResponseSchema } from '../../schemas/AdminSchema/resetAdminUsageSchema.ts'
 
 export class adminApi {
-  #client: typeof fetch
+  #config: Partial<RequestConfig> & { client?: Client }
 
-  constructor(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    this.#client = config.client || fetch
+  constructor(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    this.#config = config
   }
 
   /**
@@ -102,19 +103,19 @@ export class adminApi {
    */
   async adminToken(
     data: AdminTokenMutationRequest,
-    config: Partial<RequestConfig<AdminTokenMutationRequest>> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig<AdminTokenMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = adminTokenMutationRequestSchema.parse(data)
     const res = await request<
       AdminTokenMutationResponse,
       ResponseErrorConfig<AdminToken401 | AdminToken422>,
       AdminTokenMutationRequest
     >({
+      ...requestConfig,
       method: 'POST',
       url: `/api/admin/token`,
       data: requestData,
-      ...requestConfig,
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...requestConfig.headers },
     })
     return adminTokenMutationResponseSchema.parse(res.data)
@@ -125,12 +126,12 @@ export class adminApi {
    * @summary Get Current Admin
    * {@link /api/admin}
    */
-  async getCurrentAdmin(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getCurrentAdmin(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<GetCurrentAdminQueryResponse, ResponseErrorConfig<GetCurrentAdmin401>, unknown>({
+      ...requestConfig,
       method: 'GET',
       url: `/api/admin`,
-      ...requestConfig,
     })
     return getCurrentAdminQueryResponseSchema.parse(res.data)
   }
@@ -142,15 +143,15 @@ export class adminApi {
    */
   async createAdmin(
     data: CreateAdminMutationRequest,
-    config: Partial<RequestConfig<CreateAdminMutationRequest>> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig<CreateAdminMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = createAdminMutationRequestSchema.parse(data)
     const res = await request<
       CreateAdminMutationResponse,
       ResponseErrorConfig<CreateAdmin401 | CreateAdmin403 | CreateAdmin409 | CreateAdmin422>,
       CreateAdminMutationRequest
-    >({ method: 'POST', url: `/api/admin`, data: requestData, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/admin`, data: requestData })
     return createAdminMutationResponseSchema.parse(res.data)
   }
 
@@ -162,15 +163,15 @@ export class adminApi {
   async modifyAdmin(
     username: ModifyAdminPathParams['username'],
     data: ModifyAdminMutationRequest,
-    config: Partial<RequestConfig<ModifyAdminMutationRequest>> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig<ModifyAdminMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = modifyAdminMutationRequestSchema.parse(data)
     const res = await request<
       ModifyAdminMutationResponse,
       ResponseErrorConfig<ModifyAdmin401 | ModifyAdmin403 | ModifyAdmin422>,
       ModifyAdminMutationRequest
-    >({ method: 'PUT', url: `/api/admin/${username}`, data: requestData, ...requestConfig })
+    >({ ...requestConfig, method: 'PUT', url: `/api/admin/${username}`, data: requestData })
     return modifyAdminMutationResponseSchema.parse(res.data)
   }
 
@@ -181,14 +182,14 @@ export class adminApi {
    */
   async removeAdmin(
     username: RemoveAdminPathParams['username'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       RemoveAdminMutationResponse,
       ResponseErrorConfig<RemoveAdmin401 | RemoveAdmin403 | RemoveAdmin422>,
       unknown
-    >({ method: 'DELETE', url: `/api/admin/${username}`, ...requestConfig })
+    >({ ...requestConfig, method: 'DELETE', url: `/api/admin/${username}` })
     return removeAdminMutationResponseSchema.parse(res.data)
   }
 
@@ -197,13 +198,13 @@ export class adminApi {
    * @summary Get Admins
    * {@link /api/admins}
    */
-  async getAdmins(params?: GetAdminsQueryParams, config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getAdmins(params?: GetAdminsQueryParams, config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetAdminsQueryResponse,
       ResponseErrorConfig<GetAdmins401 | GetAdmins403 | GetAdmins422>,
       unknown
-    >({ method: 'GET', url: `/api/admins`, params, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/admins`, params })
     return getAdminsQueryResponseSchema.parse(res.data)
   }
 
@@ -214,16 +215,16 @@ export class adminApi {
    */
   async disableAllActiveUsers(
     username: DisableAllActiveUsersPathParams['username'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       DisableAllActiveUsersMutationResponse,
       ResponseErrorConfig<
         DisableAllActiveUsers401 | DisableAllActiveUsers403 | DisableAllActiveUsers404 | DisableAllActiveUsers422
       >,
       unknown
-    >({ method: 'POST', url: `/api/admin/${username}/users/disable`, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/admin/${username}/users/disable` })
     return disableAllActiveUsersMutationResponseSchema.parse(res.data)
   }
 
@@ -234,9 +235,9 @@ export class adminApi {
    */
   async activateAllDisabledUsers(
     username: ActivateAllDisabledUsersPathParams['username'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       ActivateAllDisabledUsersMutationResponse,
       ResponseErrorConfig<
@@ -246,7 +247,7 @@ export class adminApi {
         | ActivateAllDisabledUsers422
       >,
       unknown
-    >({ method: 'POST', url: `/api/admin/${username}/users/activate`, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/admin/${username}/users/activate` })
     return activateAllDisabledUsersMutationResponseSchema.parse(res.data)
   }
 
@@ -257,14 +258,14 @@ export class adminApi {
    */
   async resetAdminUsage(
     username: ResetAdminUsagePathParams['username'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       ResetAdminUsageMutationResponse,
       ResponseErrorConfig<ResetAdminUsage401 | ResetAdminUsage403 | ResetAdminUsage422>,
       unknown
-    >({ method: 'POST', url: `/api/admin/usage/reset/${username}`, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/admin/usage/reset/${username}` })
     return resetAdminUsageMutationResponseSchema.parse(res.data)
   }
 
@@ -275,14 +276,14 @@ export class adminApi {
    */
   async getAdminUsage(
     username: GetAdminUsagePathParams['username'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetAdminUsageQueryResponse,
       ResponseErrorConfig<GetAdminUsage401 | GetAdminUsage403 | GetAdminUsage422>,
       unknown
-    >({ method: 'GET', url: `/api/admin/usage/${username}`, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/admin/usage/${username}` })
     return getAdminUsageQueryResponseSchema.parse(res.data)
   }
 }

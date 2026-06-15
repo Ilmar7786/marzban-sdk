@@ -1,5 +1,8 @@
 import type { UserUsageResponse } from './UserUsageResponse.ts'
 
+/**
+ * UserUsagesResponse
+ */
 export type UserUsagesResponse = {
   /**
    * @type string

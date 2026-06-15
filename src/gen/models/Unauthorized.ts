@@ -1,3 +1,6 @@
+/**
+ * Unauthorized
+ */
 export type Unauthorized = {
   /**
    * @default "Not authenticated"

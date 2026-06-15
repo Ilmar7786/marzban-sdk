@@ -13,6 +13,7 @@ export type RemoveUserTemplatePathParams = {
 export type RemoveUserTemplate200 = any
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type RemoveUserTemplate422 = HTTPValidationError

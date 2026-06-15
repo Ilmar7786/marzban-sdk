@@ -1,3 +1,6 @@
+/**
+ * Body_admin_token_api_admin_token_post
+ */
 export type BodyAdminTokenApiAdminTokenPost = {
   grant_type?: string | null
   /**

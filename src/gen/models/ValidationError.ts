@@ -1,3 +1,6 @@
+/**
+ * ValidationError
+ */
 export type ValidationError = {
   /**
    * @type array

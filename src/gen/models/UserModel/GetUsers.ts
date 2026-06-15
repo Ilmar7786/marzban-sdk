@@ -32,31 +32,37 @@ export type GetUsersQueryParams = {
 }
 
 /**
+ * UsersResponse
  * @description Successful Response
  */
 export type GetUsers200 = UsersResponse
 
 /**
+ * HTTPException
  * @description Bad request
  */
 export type GetUsers400 = HTTPException
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetUsers401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type GetUsers403 = Forbidden
 
 /**
+ * NotFound
  * @description Not found
  */
 export type GetUsers404 = NotFound
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type GetUsers422 = HTTPValidationError

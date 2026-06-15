@@ -1,3 +1,6 @@
+/**
+ * Token
+ */
 export type Token = {
   /**
    * @type string

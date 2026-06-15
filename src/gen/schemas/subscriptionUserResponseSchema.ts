@@ -10,7 +10,7 @@ export const subscriptionUserResponseSchema = z.object({
   expire: z.union([z.int(), z.null()]).nullish(),
   data_limit: z.optional(z.union([z.int(), z.null()]).describe('data_limit can be 0 or greater')),
   get data_limit_reset_strategy() {
-    return userDataLimitResetStrategySchema.optional()
+    return userDataLimitResetStrategySchema.default('no_reset').optional()
   },
   sub_updated_at: z.union([z.iso.datetime({ local: true }), z.null()]).nullish(),
   sub_last_user_agent: z.union([z.string(), z.null()]).nullish(),

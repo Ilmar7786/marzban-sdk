@@ -8,16 +8,19 @@ import type { Unauthorized } from '../Unauthorized.ts'
 export type ResetUsersDataUsage200 = any
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type ResetUsersDataUsage401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type ResetUsersDataUsage403 = Forbidden
 
 /**
+ * NotFound
  * @description Not found
  */
 export type ResetUsersDataUsage404 = NotFound

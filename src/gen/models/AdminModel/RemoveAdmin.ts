@@ -15,16 +15,19 @@ export type RemoveAdminPathParams = {
 export type RemoveAdmin200 = any
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type RemoveAdmin401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type RemoveAdmin403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type RemoveAdmin422 = HTTPValidationError

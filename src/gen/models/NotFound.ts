@@ -1,3 +1,6 @@
+/**
+ * NotFound
+ */
 export type NotFound = {
   /**
    * @default "Entity {} not found"

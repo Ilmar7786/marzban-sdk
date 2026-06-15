@@ -1,6 +1,7 @@
 import type { NodeStatus } from './NodeStatus.ts'
 
 /**
+ * NodeModify
  * @example [object Object]
  */
 export type NodeModify = {

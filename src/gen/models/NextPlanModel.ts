@@ -1,3 +1,6 @@
+/**
+ * NextPlanModel
+ */
 export type NextPlanModel = {
   data_limit?: number | null
   expire?: number | null

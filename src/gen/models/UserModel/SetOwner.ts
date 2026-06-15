@@ -17,16 +17,19 @@ export type SetOwnerQueryParams = {
 }
 
 /**
+ * UserResponse
  * @description Successful Response
  */
 export type SetOwner200 = UserResponse
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type SetOwner401 = Unauthorized
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type SetOwner422 = HTTPValidationError

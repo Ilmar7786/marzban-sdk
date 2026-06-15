@@ -17,16 +17,19 @@ export type GetUsersUsageQueryParams = {
 }
 
 /**
+ * UsersUsagesResponse
  * @description Successful Response
  */
 export type GetUsersUsage200 = UsersUsagesResponse
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetUsersUsage401 = Unauthorized
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type GetUsersUsage422 = HTTPValidationError

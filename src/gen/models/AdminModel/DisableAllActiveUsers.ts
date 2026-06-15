@@ -16,21 +16,25 @@ export type DisableAllActiveUsersPathParams = {
 export type DisableAllActiveUsers200 = any
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type DisableAllActiveUsers401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type DisableAllActiveUsers403 = Forbidden
 
 /**
+ * NotFound
  * @description Not found
  */
 export type DisableAllActiveUsers404 = NotFound
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type DisableAllActiveUsers422 = HTTPValidationError

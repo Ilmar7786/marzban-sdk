@@ -1,4 +1,5 @@
 export const proxyHostFingerprintEnum = {
+  '': '',
   chrome: 'chrome',
   firefox: 'firefox',
   safari: 'safari',
@@ -13,4 +14,7 @@ export const proxyHostFingerprintEnum = {
 
 export type ProxyHostFingerprintEnumKey = (typeof proxyHostFingerprintEnum)[keyof typeof proxyHostFingerprintEnum]
 
+/**
+ * ProxyHostFingerprint
+ */
 export type ProxyHostFingerprint = ProxyHostFingerprintEnumKey

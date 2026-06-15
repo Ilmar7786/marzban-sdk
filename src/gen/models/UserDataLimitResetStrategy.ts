@@ -9,4 +9,7 @@ export const userDataLimitResetStrategyEnum = {
 export type UserDataLimitResetStrategyEnumKey =
   (typeof userDataLimitResetStrategyEnum)[keyof typeof userDataLimitResetStrategyEnum]
 
+/**
+ * UserDataLimitResetStrategy
+ */
 export type UserDataLimitResetStrategy = UserDataLimitResetStrategyEnumKey

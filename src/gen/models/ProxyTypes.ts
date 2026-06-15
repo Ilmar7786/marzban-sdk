@@ -7,4 +7,7 @@ export const proxyTypesEnum = {
 
 export type ProxyTypesEnumKey = (typeof proxyTypesEnum)[keyof typeof proxyTypesEnum]
 
+/**
+ * ProxyTypes
+ */
 export type ProxyTypes = ProxyTypesEnumKey

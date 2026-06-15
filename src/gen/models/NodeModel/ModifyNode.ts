@@ -12,26 +12,31 @@ export type ModifyNodePathParams = {
 }
 
 /**
+ * NodeResponse
  * @description Successful Response
  */
 export type ModifyNode200 = NodeResponse
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type ModifyNode401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type ModifyNode403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type ModifyNode422 = HTTPValidationError
 
 /**
+ * NodeModify
  * @example [object Object]
  */
 export type ModifyNodeMutationRequest = NodeModify

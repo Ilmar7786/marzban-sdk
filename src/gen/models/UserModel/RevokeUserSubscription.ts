@@ -12,26 +12,31 @@ export type RevokeUserSubscriptionPathParams = {
 }
 
 /**
+ * UserResponse
  * @description Successful Response
  */
 export type RevokeUserSubscription200 = UserResponse
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type RevokeUserSubscription401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type RevokeUserSubscription403 = Forbidden
 
 /**
+ * NotFound
  * @description Not found
  */
 export type RevokeUserSubscription404 = NotFound
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type RevokeUserSubscription422 = HTTPValidationError

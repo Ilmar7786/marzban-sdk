@@ -4,6 +4,7 @@ import type { UserDataLimitResetStrategy } from './UserDataLimitResetStrategy.ts
 import type { UserStatusCreate } from './UserStatusCreate.ts'
 
 /**
+ * UserCreate
  * @example [object Object]
  */
 export type UserCreate = {
@@ -20,6 +21,7 @@ export type UserCreate = {
    */
   data_limit?: number | null
   /**
+   * @default "no_reset"
    * @type string | undefined
    */
   data_limit_reset_strategy?: UserDataLimitResetStrategy

@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
-import fetch from '@/core/http/client.ts'
+import type { Client, RequestConfig, ResponseErrorConfig } from '@kubb/plugin-client/clients/axios'
+import fetch from '@kubb/plugin-client/clients/axios'
+import { mergeConfig } from '@kubb/plugin-client/clients/axios'
 
 import type {
   ActiveNextPlan401,
@@ -127,28 +128,39 @@ import { revokeUserSubscriptionMutationResponseSchema } from '../../schemas/User
 import { setOwnerMutationResponseSchema } from '../../schemas/UserSchema/setOwnerSchema.ts'
 
 export class userApi {
-  #client: typeof fetch
+  #config: Partial<RequestConfig> & { client?: Client }
 
-  constructor(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    this.#client = config.client || fetch
+  constructor(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    this.#config = config
   }
 
   /**
-   * @description Add a new user- **username**: 3 to 32 characters, can include a-z, 0-9, and underscores.- **status**: User's status, defaults to `active`. Special rules if `on_hold`.- **expire**: UTC timestamp for account expiration. Use `0` for unlimited.- **data_limit**: Max data usage in bytes (e.g., `1073741824` for 1GB). `0` means unlimited.- **data_limit_reset_strategy**: Defines how/if data limit resets. `no_reset` means it never resets.- **proxies**: Dictionary of protocol settings (e.g., `vmess`, `vless`).- **inbounds**: Dictionary of protocol tags to specify inbound connections.- **note**: Optional text field for additional user information or notes.- **on_hold_timeout**: UTC timestamp when `on_hold` status should start or end.- **on_hold_expire_duration**: Duration (in seconds) for how long the user should stay in `on_hold` status.- **next_plan**: Next user plan (resets after use).
+   * @description Add a new user
+   * - **username**: 3 to 32 characters, can include a-z, 0-9, and underscores.
+   * - **status**: User's status, defaults to `active`. Special rules if `on_hold`.
+   * - **expire**: UTC timestamp for account expiration. Use `0` for unlimited.
+   * - **data_limit**: Max data usage in bytes (e.g., `1073741824` for 1GB). `0` means unlimited.
+   * - **data_limit_reset_strategy**: Defines how/if data limit resets. `no_reset` means it never resets.
+   * - **proxies**: Dictionary of protocol settings (e.g., `vmess`, `vless`).
+   * - **inbounds**: Dictionary of protocol tags to specify inbound connections.
+   * - **note**: Optional text field for additional user information or notes.
+   * - **on_hold_timeout**: UTC timestamp when `on_hold` status should start or end.
+   * - **on_hold_expire_duration**: Duration (in seconds) for how long the user should stay in `on_hold` status.
+   * - **next_plan**: Next user plan (resets after use).
    * @summary Add User
    * {@link /api/user}
    */
   async addUser(
     data: AddUserMutationRequest,
-    config: Partial<RequestConfig<AddUserMutationRequest>> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig<AddUserMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = addUserMutationRequestSchema.parse(data)
     const res = await request<
       AddUserMutationResponse,
       ResponseErrorConfig<AddUser400 | AddUser401 | AddUser409 | AddUser422>,
       AddUserMutationRequest
-    >({ method: 'POST', url: `/api/user`, data: requestData, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/user`, data: requestData })
     return addUserMutationResponseSchema.parse(res.data)
   }
 
@@ -157,36 +169,45 @@ export class userApi {
    * @summary Get User
    * {@link /api/user/:username}
    */
-  async getUser(
-    username: GetUserPathParams['username'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
-  ) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getUser(username: GetUserPathParams['username'], config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetUserQueryResponse,
       ResponseErrorConfig<GetUser401 | GetUser403 | GetUser404 | GetUser422>,
       unknown
-    >({ method: 'GET', url: `/api/user/${username}`, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/user/${username}` })
     return getUserQueryResponseSchema.parse(res.data)
   }
 
   /**
-   * @description Modify an existing user- **username**: Cannot be changed. Used to identify the user.- **status**: User's new status. Can be 'active', 'disabled', 'on_hold', 'limited', or 'expired'.- **expire**: UTC timestamp for new account expiration. Set to `0` for unlimited, `null` for no change.- **data_limit**: New max data usage in bytes (e.g., `1073741824` for 1GB). Set to `0` for unlimited, `null` for no change.- **data_limit_reset_strategy**: New strategy for data limit reset. Options include 'daily', 'weekly', 'monthly', or 'no_reset'.- **proxies**: Dictionary of new protocol settings (e.g., `vmess`, `vless`). Empty dictionary means no change.- **inbounds**: Dictionary of new protocol tags to specify inbound connections. Empty dictionary means no change.- **note**: New optional text for additional user information or notes. `null` means no change.- **on_hold_timeout**: New UTC timestamp for when `on_hold` status should start or end. Only applicable if status is changed to 'on_hold'.- **on_hold_expire_duration**: New duration (in seconds) for how long the user should stay in `on_hold` status. Only applicable if status is changed to 'on_hold'.- **next_plan**: Next user plan (resets after use).Note: Fields set to `null` or omitted will not be modified.
+   * @description Modify an existing user
+   * - **username**: Cannot be changed. Used to identify the user.
+   * - **status**: User's new status. Can be 'active', 'disabled', 'on_hold', 'limited', or 'expired'.
+   * - **expire**: UTC timestamp for new account expiration. Set to `0` for unlimited, `null` for no change.
+   * - **data_limit**: New max data usage in bytes (e.g., `1073741824` for 1GB). Set to `0` for unlimited, `null` for no change.
+   * - **data_limit_reset_strategy**: New strategy for data limit reset. Options include 'daily', 'weekly', 'monthly', or 'no_reset'.
+   * - **proxies**: Dictionary of new protocol settings (e.g., `vmess`, `vless`). Empty dictionary means no change.
+   * - **inbounds**: Dictionary of new protocol tags to specify inbound connections. Empty dictionary means no change.
+   * - **note**: New optional text for additional user information or notes. `null` means no change.
+   * - **on_hold_timeout**: New UTC timestamp for when `on_hold` status should start or end. Only applicable if status is changed to 'on_hold'.
+   * - **on_hold_expire_duration**: New duration (in seconds) for how long the user should stay in `on_hold` status. Only applicable if status is changed to 'on_hold'.
+   * - **next_plan**: Next user plan (resets after use).
+   * Note: Fields set to `null` or omitted will not be modified.
    * @summary Modify User
    * {@link /api/user/:username}
    */
   async modifyUser(
     username: ModifyUserPathParams['username'],
-    data?: ModifyUserMutationRequest,
-    config: Partial<RequestConfig<ModifyUserMutationRequest>> & { client?: typeof fetch } = {}
+    data: ModifyUserMutationRequest,
+    config: Partial<RequestConfig<ModifyUserMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = modifyUserMutationRequestSchema.parse(data)
     const res = await request<
       ModifyUserMutationResponse,
       ResponseErrorConfig<ModifyUser400 | ModifyUser401 | ModifyUser403 | ModifyUser404 | ModifyUser422>,
       ModifyUserMutationRequest
-    >({ method: 'PUT', url: `/api/user/${username}`, data: requestData, ...requestConfig })
+    >({ ...requestConfig, method: 'PUT', url: `/api/user/${username}`, data: requestData })
     return modifyUserMutationResponseSchema.parse(res.data)
   }
 
@@ -197,14 +218,14 @@ export class userApi {
    */
   async removeUser(
     username: RemoveUserPathParams['username'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       RemoveUserMutationResponse,
       ResponseErrorConfig<RemoveUser401 | RemoveUser403 | RemoveUser404 | RemoveUser422>,
       unknown
-    >({ method: 'DELETE', url: `/api/user/${username}`, ...requestConfig })
+    >({ ...requestConfig, method: 'DELETE', url: `/api/user/${username}` })
     return removeUserMutationResponseSchema.parse(res.data)
   }
 
@@ -215,16 +236,16 @@ export class userApi {
    */
   async resetUserDataUsage(
     username: ResetUserDataUsagePathParams['username'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       ResetUserDataUsageMutationResponse,
       ResponseErrorConfig<
         ResetUserDataUsage401 | ResetUserDataUsage403 | ResetUserDataUsage404 | ResetUserDataUsage422
       >,
       unknown
-    >({ method: 'POST', url: `/api/user/${username}/reset`, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/user/${username}/reset` })
     return resetUserDataUsageMutationResponseSchema.parse(res.data)
   }
 
@@ -235,16 +256,16 @@ export class userApi {
    */
   async revokeUserSubscription(
     username: RevokeUserSubscriptionPathParams['username'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       RevokeUserSubscriptionMutationResponse,
       ResponseErrorConfig<
         RevokeUserSubscription401 | RevokeUserSubscription403 | RevokeUserSubscription404 | RevokeUserSubscription422
       >,
       unknown
-    >({ method: 'POST', url: `/api/user/${username}/revoke_sub`, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/user/${username}/revoke_sub` })
     return revokeUserSubscriptionMutationResponseSchema.parse(res.data)
   }
 
@@ -253,13 +274,13 @@ export class userApi {
    * @summary Get Users
    * {@link /api/users}
    */
-  async getUsers(params?: GetUsersQueryParams, config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getUsers(params?: GetUsersQueryParams, config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetUsersQueryResponse,
       ResponseErrorConfig<GetUsers400 | GetUsers401 | GetUsers403 | GetUsers404 | GetUsers422>,
       unknown
-    >({ method: 'GET', url: `/api/users`, params, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/users`, params })
     return getUsersQueryResponseSchema.parse(res.data)
   }
 
@@ -268,13 +289,13 @@ export class userApi {
    * @summary Reset Users Data Usage
    * {@link /api/users/reset}
    */
-  async resetUsersDataUsage(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async resetUsersDataUsage(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       ResetUsersDataUsageMutationResponse,
       ResponseErrorConfig<ResetUsersDataUsage401 | ResetUsersDataUsage403 | ResetUsersDataUsage404>,
       unknown
-    >({ method: 'POST', url: `/api/users/reset`, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/users/reset` })
     return resetUsersDataUsageMutationResponseSchema.parse(res.data)
   }
 
@@ -286,14 +307,14 @@ export class userApi {
   async getUserUsage(
     username: GetUserUsagePathParams['username'],
     params?: GetUserUsageQueryParams,
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetUserUsageQueryResponse,
       ResponseErrorConfig<GetUserUsage401 | GetUserUsage403 | GetUserUsage404 | GetUserUsage422>,
       unknown
-    >({ method: 'GET', url: `/api/user/${username}/usage`, params, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/user/${username}/usage`, params })
     return getUserUsageQueryResponseSchema.parse(res.data)
   }
 
@@ -304,14 +325,14 @@ export class userApi {
    */
   async activeNextPlan(
     username: ActiveNextPlanPathParams['username'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       ActiveNextPlanMutationResponse,
       ResponseErrorConfig<ActiveNextPlan401 | ActiveNextPlan403 | ActiveNextPlan404 | ActiveNextPlan422>,
       unknown
-    >({ method: 'POST', url: `/api/user/${username}/active-next`, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/user/${username}/active-next` })
     return activeNextPlanMutationResponseSchema.parse(res.data)
   }
 
@@ -320,16 +341,13 @@ export class userApi {
    * @summary Get Users Usage
    * {@link /api/users/usage}
    */
-  async getUsersUsage(
-    params?: GetUsersUsageQueryParams,
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
-  ) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getUsersUsage(params?: GetUsersUsageQueryParams, config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetUsersUsageQueryResponse,
       ResponseErrorConfig<GetUsersUsage401 | GetUsersUsage422>,
       unknown
-    >({ method: 'GET', url: `/api/users/usage`, params, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/users/usage`, params })
     return getUsersUsageQueryResponseSchema.parse(res.data)
   }
 
@@ -341,51 +359,58 @@ export class userApi {
   async setOwner(
     username: SetOwnerPathParams['username'],
     params: SetOwnerQueryParams,
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<SetOwnerMutationResponse, ResponseErrorConfig<SetOwner401 | SetOwner422>, unknown>({
+      ...requestConfig,
       method: 'PUT',
       url: `/api/user/${username}/set-owner`,
       params,
-      ...requestConfig,
     })
     return setOwnerMutationResponseSchema.parse(res.data)
   }
 
   /**
-   * @description Get users who have expired within the specified date range.- **expired_after** UTC datetime (optional)- **expired_before** UTC datetime (optional)- At least one of expired_after or expired_before must be provided for filtering- If both are omitted, returns all expired users
+   * @description Get users who have expired within the specified date range.
+   * - **expired_after** UTC datetime (optional)
+   * - **expired_before** UTC datetime (optional)
+   * - At least one of expired_after or expired_before must be provided for filtering
+   * - If both are omitted, returns all expired users
    * @summary Get Expired Users
    * {@link /api/users/expired}
    */
   async getExpiredUsers(
     params?: GetExpiredUsersQueryParams,
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetExpiredUsersQueryResponse,
       ResponseErrorConfig<GetExpiredUsers401 | GetExpiredUsers422>,
       unknown
-    >({ method: 'GET', url: `/api/users/expired`, params, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/users/expired`, params })
     return getExpiredUsersQueryResponseSchema.parse(res.data)
   }
 
   /**
-   * @description Delete users who have expired within the specified date range.- **expired_after** UTC datetime (optional)- **expired_before** UTC datetime (optional)- At least one of expired_after or expired_before must be provided
+   * @description Delete users who have expired within the specified date range.
+   * - **expired_after** UTC datetime (optional)
+   * - **expired_before** UTC datetime (optional)
+   * - At least one of expired_after or expired_before must be provided
    * @summary Delete Expired Users
    * {@link /api/users/expired}
    */
   async deleteExpiredUsers(
     params?: DeleteExpiredUsersQueryParams,
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       DeleteExpiredUsersMutationResponse,
       ResponseErrorConfig<DeleteExpiredUsers401 | DeleteExpiredUsers422>,
       unknown
-    >({ method: 'DELETE', url: `/api/users/expired`, params, ...requestConfig })
+    >({ ...requestConfig, method: 'DELETE', url: `/api/users/expired`, params })
     return deleteExpiredUsersMutationResponseSchema.parse(res.data)
   }
 }

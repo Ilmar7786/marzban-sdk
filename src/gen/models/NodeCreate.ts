@@ -1,4 +1,5 @@
 /**
+ * NodeCreate
  * @example [object Object]
  */
 export type NodeCreate = {

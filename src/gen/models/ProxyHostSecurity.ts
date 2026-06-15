@@ -6,4 +6,7 @@ export const proxyHostSecurityEnum = {
 
 export type ProxyHostSecurityEnumKey = (typeof proxyHostSecurityEnum)[keyof typeof proxyHostSecurityEnum]
 
+/**
+ * ProxyHostSecurity
+ */
 export type ProxyHostSecurity = ProxyHostSecurityEnumKey

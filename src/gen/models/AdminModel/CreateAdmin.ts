@@ -6,30 +6,38 @@ import type { HTTPValidationError } from '../HTTPValidationError.ts'
 import type { Unauthorized } from '../Unauthorized.ts'
 
 /**
+ * Admin
  * @description Successful Response
  */
 export type CreateAdmin200 = Admin
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type CreateAdmin401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type CreateAdmin403 = Forbidden
 
 /**
+ * Conflict
  * @description Conflict
  */
 export type CreateAdmin409 = Conflict
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type CreateAdmin422 = HTTPValidationError
 
+/**
+ * AdminCreate
+ */
 export type CreateAdminMutationRequest = AdminCreate
 
 export type CreateAdminMutationResponse = CreateAdmin200

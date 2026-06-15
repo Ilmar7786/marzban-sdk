@@ -17,21 +17,25 @@ export type GetUsageQueryParams = {
 }
 
 /**
+ * NodesUsageResponse
  * @description Successful Response
  */
 export type GetUsage200 = NodesUsageResponse
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetUsage401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type GetUsage403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type GetUsage422 = HTTPValidationError

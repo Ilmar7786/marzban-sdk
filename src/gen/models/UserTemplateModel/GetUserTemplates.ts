@@ -13,11 +13,13 @@ export type GetUserTemplatesQueryParams = {
 }
 
 /**
+ * Response Get User Templates Api User Template Get
  * @description Successful Response
  */
 export type GetUserTemplates200 = UserTemplateResponse[]
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type GetUserTemplates422 = HTTPValidationError

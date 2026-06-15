@@ -4,6 +4,7 @@ import type { UserDataLimitResetStrategy } from './UserDataLimitResetStrategy.ts
 import type { UserStatusModify } from './UserStatusModify.ts'
 
 /**
+ * UserModify
  * @example [object Object]
  */
 export type UserModify = {

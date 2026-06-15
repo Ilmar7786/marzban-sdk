@@ -12,26 +12,31 @@ export type ResetUserDataUsagePathParams = {
 }
 
 /**
+ * UserResponse
  * @description Successful Response
  */
 export type ResetUserDataUsage200 = UserResponse
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type ResetUserDataUsage401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type ResetUserDataUsage403 = Forbidden
 
 /**
+ * NotFound
  * @description Not found
  */
 export type ResetUserDataUsage404 = NotFound
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type ResetUserDataUsage422 = HTTPValidationError

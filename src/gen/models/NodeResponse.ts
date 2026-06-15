@@ -1,5 +1,8 @@
 import type { NodeStatus } from './NodeStatus.ts'
 
+/**
+ * NodeResponse
+ */
 export type NodeResponse = {
   /**
    * @type string

@@ -6,4 +6,7 @@ export const userStatusModifyEnum = {
 
 export type UserStatusModifyEnumKey = (typeof userStatusModifyEnum)[keyof typeof userStatusModifyEnum]
 
+/**
+ * UserStatusModify
+ */
 export type UserStatusModify = UserStatusModifyEnumKey

@@ -10,16 +10,19 @@ export type ModifyUserTemplatePathParams = {
 }
 
 /**
+ * UserTemplateResponse
  * @description Successful Response
  */
 export type ModifyUserTemplate200 = UserTemplateResponse
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type ModifyUserTemplate422 = HTTPValidationError
 
 /**
+ * UserTemplateModify
  * @example [object Object]
  */
 export type ModifyUserTemplateMutationRequest = UserTemplateModify

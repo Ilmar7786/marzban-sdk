@@ -2,6 +2,9 @@ import type { NextPlanModel } from './NextPlanModel.ts'
 import type { UserDataLimitResetStrategy } from './UserDataLimitResetStrategy.ts'
 import type { UserStatus } from './UserStatus.ts'
 
+/**
+ * SubscriptionUserResponse
+ */
 export type SubscriptionUserResponse = {
   /**
    * @type object
@@ -13,6 +16,7 @@ export type SubscriptionUserResponse = {
    */
   data_limit?: number | null
   /**
+   * @default "no_reset"
    * @type string | undefined
    */
   data_limit_reset_strategy?: UserDataLimitResetStrategy

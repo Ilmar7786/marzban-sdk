@@ -1,4 +1,5 @@
 /**
+ * UserTemplateModify
  * @example [object Object]
  */
 export type UserTemplateModify = {

@@ -12,25 +12,32 @@ export type ModifyAdminPathParams = {
 }
 
 /**
+ * Admin
  * @description Successful Response
  */
 export type ModifyAdmin200 = Admin
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type ModifyAdmin401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type ModifyAdmin403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type ModifyAdmin422 = HTTPValidationError
 
+/**
+ * AdminModify
+ */
 export type ModifyAdminMutationRequest = AdminModify
 
 export type ModifyAdminMutationResponse = ModifyAdmin200

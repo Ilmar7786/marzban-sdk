@@ -3,16 +3,19 @@ import type { NodeResponse } from '../NodeResponse.ts'
 import type { Unauthorized } from '../Unauthorized.ts'
 
 /**
+ * Response Get Nodes Api Nodes Get
  * @description Successful Response
  */
 export type GetNodes200 = NodeResponse[]
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetNodes401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type GetNodes403 = Forbidden

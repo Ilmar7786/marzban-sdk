@@ -26,6 +26,7 @@ export type UserSubscriptionWithClientTypeHeaderParams = {
 export type UserSubscriptionWithClientType200 = any
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type UserSubscriptionWithClientType422 = HTTPValidationError

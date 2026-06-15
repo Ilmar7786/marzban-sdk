@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
-import fetch from '@/core/http/client.ts'
+import type { Client, RequestConfig, ResponseErrorConfig } from '@kubb/plugin-client/clients/axios'
+import fetch from '@kubb/plugin-client/clients/axios'
+import { mergeConfig } from '@kubb/plugin-client/clients/axios'
 
 import type {
   AddUserTemplate422,
@@ -40,28 +41,32 @@ import {
 import { removeUserTemplateMutationResponseSchema } from '../../schemas/UserTemplateSchema/removeUserTemplateSchema.ts'
 
 export class userTemplateApi {
-  #client: typeof fetch
+  #config: Partial<RequestConfig> & { client?: Client }
 
-  constructor(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    this.#client = config.client || fetch
+  constructor(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    this.#config = config
   }
 
   /**
-   * @description Add a new user template- **name** can be up to 64 characters- **data_limit** must be in bytes and larger or equal to 0- **expire_duration** must be in seconds and larger or equat to 0- **inbounds** dictionary of protocol:inbound_tags, empty means all inbounds
+   * @description Add a new user template
+   * - **name** can be up to 64 characters
+   * - **data_limit** must be in bytes and larger or equal to 0
+   * - **expire_duration** must be in seconds and larger or equat to 0
+   * - **inbounds** dictionary of protocol:inbound_tags, empty means all inbounds
    * @summary Add User Template
    * {@link /api/user_template}
    */
   async addUserTemplate(
-    data?: AddUserTemplateMutationRequest,
-    config: Partial<RequestConfig<AddUserTemplateMutationRequest>> & { client?: typeof fetch } = {}
+    data: AddUserTemplateMutationRequest,
+    config: Partial<RequestConfig<AddUserTemplateMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = addUserTemplateMutationRequestSchema.parse(data)
     const res = await request<
       AddUserTemplateMutationResponse,
       ResponseErrorConfig<AddUserTemplate422>,
       AddUserTemplateMutationRequest
-    >({ method: 'POST', url: `/api/user_template`, data: requestData, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/user_template`, data: requestData })
     return addUserTemplateMutationResponseSchema.parse(res.data)
   }
 
@@ -72,14 +77,14 @@ export class userTemplateApi {
    */
   async getUserTemplates(
     params?: GetUserTemplatesQueryParams,
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<GetUserTemplatesQueryResponse, ResponseErrorConfig<GetUserTemplates422>, unknown>({
+      ...requestConfig,
       method: 'GET',
       url: `/api/user_template`,
       params,
-      ...requestConfig,
     })
     return getUserTemplatesQueryResponseSchema.parse(res.data)
   }
@@ -90,35 +95,39 @@ export class userTemplateApi {
    * {@link /api/user_template/:template_id}
    */
   async getUserTemplateEndpoint(
-    templateId: GetUserTemplateEndpointPathParams['template_id'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    template_id: GetUserTemplateEndpointPathParams['template_id'],
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetUserTemplateEndpointQueryResponse,
       ResponseErrorConfig<GetUserTemplateEndpoint422>,
       unknown
-    >({ method: 'GET', url: `/api/user_template/${templateId}`, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/user_template/${template_id}` })
     return getUserTemplateEndpointQueryResponseSchema.parse(res.data)
   }
 
   /**
-   * @description Modify User Template- **name** can be up to 64 characters- **data_limit** must be in bytes and larger or equal to 0- **expire_duration** must be in seconds and larger or equat to 0- **inbounds** dictionary of protocol:inbound_tags, empty means all inbounds
+   * @description Modify User Template
+   * - **name** can be up to 64 characters
+   * - **data_limit** must be in bytes and larger or equal to 0
+   * - **expire_duration** must be in seconds and larger or equat to 0
+   * - **inbounds** dictionary of protocol:inbound_tags, empty means all inbounds
    * @summary Modify User Template
    * {@link /api/user_template/:template_id}
    */
   async modifyUserTemplate(
-    templateId: ModifyUserTemplatePathParams['template_id'],
-    data?: ModifyUserTemplateMutationRequest,
-    config: Partial<RequestConfig<ModifyUserTemplateMutationRequest>> & { client?: typeof fetch } = {}
+    template_id: ModifyUserTemplatePathParams['template_id'],
+    data: ModifyUserTemplateMutationRequest,
+    config: Partial<RequestConfig<ModifyUserTemplateMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = modifyUserTemplateMutationRequestSchema.parse(data)
     const res = await request<
       ModifyUserTemplateMutationResponse,
       ResponseErrorConfig<ModifyUserTemplate422>,
       ModifyUserTemplateMutationRequest
-    >({ method: 'PUT', url: `/api/user_template/${templateId}`, data: requestData, ...requestConfig })
+    >({ ...requestConfig, method: 'PUT', url: `/api/user_template/${template_id}`, data: requestData })
     return modifyUserTemplateMutationResponseSchema.parse(res.data)
   }
 
@@ -128,14 +137,14 @@ export class userTemplateApi {
    * {@link /api/user_template/:template_id}
    */
   async removeUserTemplate(
-    templateId: RemoveUserTemplatePathParams['template_id'],
-    config: Partial<RequestConfig> & { client?: typeof fetch } = {}
+    template_id: RemoveUserTemplatePathParams['template_id'],
+    config: Partial<RequestConfig> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<RemoveUserTemplateMutationResponse, ResponseErrorConfig<RemoveUserTemplate422>, unknown>({
-      method: 'DELETE',
-      url: `/api/user_template/${templateId}`,
       ...requestConfig,
+      method: 'DELETE',
+      url: `/api/user_template/${template_id}`,
     })
     return removeUserTemplateMutationResponseSchema.parse(res.data)
   }

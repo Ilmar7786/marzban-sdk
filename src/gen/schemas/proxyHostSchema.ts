@@ -13,13 +13,13 @@ export const proxyHostSchema = z.object({
   host: z.union([z.string(), z.null()]).nullish(),
   path: z.union([z.string(), z.null()]).nullish(),
   get security() {
-    return proxyHostSecuritySchema.optional()
+    return proxyHostSecuritySchema.default('inbound_default').optional()
   },
   get alpn() {
-    return proxyHostALPNSchema.optional()
+    return proxyHostALPNSchema.default('').optional()
   },
   get fingerprint() {
-    return proxyHostFingerprintSchema.optional()
+    return proxyHostFingerprintSchema.default('').optional()
   },
   allowinsecure: z.optional(z.union([z.boolean(), z.null()])),
   is_disabled: z.optional(z.union([z.boolean(), z.null()])),

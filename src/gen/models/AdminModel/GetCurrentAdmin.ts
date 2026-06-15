@@ -2,11 +2,13 @@ import type { Admin } from '../Admin.ts'
 import type { Unauthorized } from '../Unauthorized.ts'
 
 /**
+ * Admin
  * @description Successful Response
  */
 export type GetCurrentAdmin200 = Admin
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetCurrentAdmin401 = Unauthorized

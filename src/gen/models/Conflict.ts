@@ -1,3 +1,6 @@
+/**
+ * Conflict
+ */
 export type Conflict = {
   /**
    * @default "Entity already exists"

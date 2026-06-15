@@ -15,16 +15,19 @@ export type ReconnectNodePathParams = {
 export type ReconnectNode200 = any
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type ReconnectNode401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type ReconnectNode403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type ReconnectNode422 = HTTPValidationError

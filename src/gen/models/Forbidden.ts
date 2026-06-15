@@ -1,3 +1,6 @@
+/**
+ * Forbidden
+ */
 export type Forbidden = {
   /**
    * @default "You are not allowed to ..."

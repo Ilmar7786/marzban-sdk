@@ -7,4 +7,7 @@ export const nodeStatusEnum = {
 
 export type NodeStatusEnumKey = (typeof nodeStatusEnum)[keyof typeof nodeStatusEnum]
 
+/**
+ * NodeStatus
+ */
 export type NodeStatus = NodeStatusEnumKey

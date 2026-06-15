@@ -7,16 +7,19 @@ export type GetExpiredUsersQueryParams = {
 }
 
 /**
+ * Response Get Expired Users Api Users Expired Get
  * @description Successful Response
  */
 export type GetExpiredUsers200 = string[]
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetExpiredUsers401 = Unauthorized
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type GetExpiredUsers422 = HTTPValidationError

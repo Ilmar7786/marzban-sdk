@@ -1,62 +1,22 @@
-import type { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import axios from 'axios'
+import { Client } from '@kubb/plugin-client/clients/axios'
+import axios, { AxiosInstance } from 'axios'
 import axiosRetry from 'axios-retry'
 
 import { Config } from '@/config'
-import { AuthManager } from '@/core/auth'
-import { Logger } from '@/core/logger'
 
+import { AuthManager } from '../auth'
+import { Logger } from '../logger'
 import { setupAuthInterceptors } from './interceptors'
 
-/**
- * Subset of AxiosRequestConfig
- */
-export type RequestConfig<TData = unknown> = {
-  baseURL?: string
-  url?: string
-  method: 'GET' | 'PUT' | 'PATCH' | 'POST' | 'DELETE'
-  params?: unknown
-  data?: TData | FormData
-  responseType?: 'arraybuffer' | 'blob' | 'document' | 'json' | 'text' | 'stream'
-  signal?: AbortSignal
-  headers?: AxiosRequestConfig['headers']
-}
-/**
- * Subset of AxiosResponse
- */
-export type ResponseConfig<TData = unknown> = {
-  data: TData
-  status: number
-  statusText: string
-  headers?: AxiosResponse['headers']
-}
-
-export type ResponseErrorConfig<TError = unknown> = TError
-
-/** Client function type used by generated API (kubb) - accepts RequestConfig and returns ResponseConfig */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export type ClientFn = <TData, _TError = unknown, TVariables = unknown>(
-  config: RequestConfig<TVariables>
-) => Promise<ResponseConfig<TData>>
-
-function createClientFromAxios(instance: AxiosInstance): ClientFn {
-  return async <TData, TError = unknown, TVariables = unknown>(
-    requestConfig: RequestConfig<TVariables>
-  ): Promise<ResponseConfig<TData>> => {
-    const promise = instance
-      .request<TVariables, ResponseConfig<TData>>(requestConfig)
-      .catch((e: AxiosError<TError>) => {
-        throw e
-      })
-    return promise
-  }
+function createClientFromAxios(instance: AxiosInstance): Client {
+  return requestConfig => instance.request(requestConfig)
 }
 
 export type HttpClientInstance = {
-  client: ClientFn
+  client: Client
   getPublicInstance: () => AxiosInstance
   /** Client for unauthenticated requests (e.g. login). Use this in AuthManager. */
-  publicClient: ClientFn
+  publicClient: Client
 }
 
 /**
@@ -106,9 +66,3 @@ export const configureHttpClient = (
     publicClient: createClientFromAxios(instancePublic),
   }
 }
-
-export const client: ClientFn = () => {
-  throw new Error('The http layer instance is not specified. You must use a pre-configured configureHttpClient layer')
-}
-
-export default client

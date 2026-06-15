@@ -11,21 +11,25 @@ export type ResetAdminUsagePathParams = {
 }
 
 /**
+ * Admin
  * @description Successful Response
  */
 export type ResetAdminUsage200 = Admin
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type ResetAdminUsage401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type ResetAdminUsage403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type ResetAdminUsage422 = HTTPValidationError

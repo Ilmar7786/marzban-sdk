@@ -11,21 +11,25 @@ export type GetNodePathParams = {
 }
 
 /**
+ * NodeResponse
  * @description Successful Response
  */
 export type GetNode200 = NodeResponse
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetNode401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type GetNode403 = Forbidden
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type GetNode422 = HTTPValidationError

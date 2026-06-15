@@ -1,3 +1,6 @@
+/**
+ * UserTemplateResponse
+ */
 export type UserTemplateResponse = {
   name?: (string | null) | null
   /**

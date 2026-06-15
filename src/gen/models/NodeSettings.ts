@@ -1,3 +1,6 @@
+/**
+ * NodeSettings
+ */
 export type NodeSettings = {
   /**
    * @default "v0.2.0"

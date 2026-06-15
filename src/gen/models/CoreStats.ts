@@ -1,3 +1,6 @@
+/**
+ * CoreStats
+ */
 export type CoreStats = {
   /**
    * @type string

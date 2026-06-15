@@ -1,5 +1,6 @@
-import type { RequestConfig, ResponseErrorConfig } from '@/core/http/client.ts'
-import fetch from '@/core/http/client.ts'
+import type { Client, RequestConfig, ResponseErrorConfig } from '@kubb/plugin-client/clients/axios'
+import fetch from '@kubb/plugin-client/clients/axios'
+import { mergeConfig } from '@kubb/plugin-client/clients/axios'
 
 import type {
   GetCoreConfig401,
@@ -24,10 +25,10 @@ import {
 import { restartCoreMutationResponseSchema } from '../../schemas/CoreSchema/restartCoreSchema.ts'
 
 export class coreApi {
-  #client: typeof fetch
+  #config: Partial<RequestConfig> & { client?: Client }
 
-  constructor(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    this.#client = config.client || fetch
+  constructor(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    this.#config = config
   }
 
   /**
@@ -35,12 +36,12 @@ export class coreApi {
    * @summary Get Core Stats
    * {@link /api/core}
    */
-  async getCoreStats(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getCoreStats(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<GetCoreStatsQueryResponse, ResponseErrorConfig<GetCoreStats401>, unknown>({
+      ...requestConfig,
       method: 'GET',
       url: `/api/core`,
-      ...requestConfig,
     })
     return getCoreStatsQueryResponseSchema.parse(res.data)
   }
@@ -50,13 +51,13 @@ export class coreApi {
    * @summary Restart Core
    * {@link /api/core/restart}
    */
-  async restartCore(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async restartCore(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       RestartCoreMutationResponse,
       ResponseErrorConfig<RestartCore401 | RestartCore403>,
       unknown
-    >({ method: 'POST', url: `/api/core/restart`, ...requestConfig })
+    >({ ...requestConfig, method: 'POST', url: `/api/core/restart` })
     return restartCoreMutationResponseSchema.parse(res.data)
   }
 
@@ -65,13 +66,13 @@ export class coreApi {
    * @summary Get Core Config
    * {@link /api/core/config}
    */
-  async getCoreConfig(config: Partial<RequestConfig> & { client?: typeof fetch } = {}) {
-    const { client: request = this.#client, ...requestConfig } = config
+  async getCoreConfig(config: Partial<RequestConfig> & { client?: Client } = {}) {
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const res = await request<
       GetCoreConfigQueryResponse,
       ResponseErrorConfig<GetCoreConfig401 | GetCoreConfig403>,
       unknown
-    >({ method: 'GET', url: `/api/core/config`, ...requestConfig })
+    >({ ...requestConfig, method: 'GET', url: `/api/core/config` })
     return getCoreConfigQueryResponseSchema.parse(res.data)
   }
 
@@ -81,16 +82,16 @@ export class coreApi {
    * {@link /api/core/config}
    */
   async modifyCoreConfig(
-    data?: ModifyCoreConfigMutationRequest,
-    config: Partial<RequestConfig<ModifyCoreConfigMutationRequest>> & { client?: typeof fetch } = {}
+    data: ModifyCoreConfigMutationRequest,
+    config: Partial<RequestConfig<ModifyCoreConfigMutationRequest>> & { client?: Client } = {}
   ) {
-    const { client: request = this.#client, ...requestConfig } = config
+    const { client: request = fetch, ...requestConfig } = mergeConfig(this.#config, config)
     const requestData = modifyCoreConfigMutationRequestSchema.parse(data)
     const res = await request<
       ModifyCoreConfigMutationResponse,
       ResponseErrorConfig<ModifyCoreConfig401 | ModifyCoreConfig403 | ModifyCoreConfig422>,
       ModifyCoreConfigMutationRequest
-    >({ method: 'PUT', url: `/api/core/config`, data: requestData, ...requestConfig })
+    >({ ...requestConfig, method: 'PUT', url: `/api/core/config`, data: requestData })
     return modifyCoreConfigMutationResponseSchema.parse(res.data)
   }
 }

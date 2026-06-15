@@ -1,3 +1,6 @@
+/**
+ * SystemStats
+ */
 export type SystemStats = {
   /**
    * @type string

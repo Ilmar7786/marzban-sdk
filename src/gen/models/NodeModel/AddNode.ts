@@ -6,31 +6,37 @@ import type { NodeResponse } from '../NodeResponse.ts'
 import type { Unauthorized } from '../Unauthorized.ts'
 
 /**
+ * NodeResponse
  * @description Successful Response
  */
 export type AddNode200 = NodeResponse
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type AddNode401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type AddNode403 = Forbidden
 
 /**
+ * Conflict
  * @description Conflict
  */
 export type AddNode409 = Conflict
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type AddNode422 = HTTPValidationError
 
 /**
+ * NodeCreate
  * @example [object Object]
  */
 export type AddNodeMutationRequest = NodeCreate

@@ -7,16 +7,19 @@ export type DeleteExpiredUsersQueryParams = {
 }
 
 /**
+ * Response Delete Expired Users Api Users Expired Delete
  * @description Successful Response
  */
 export type DeleteExpiredUsers200 = string[]
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type DeleteExpiredUsers401 = Unauthorized
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type DeleteExpiredUsers422 = HTTPValidationError

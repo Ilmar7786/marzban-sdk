@@ -1,5 +1,6 @@
+import { Client } from '@kubb/plugin-client/clients/axios'
+
 import { AuthError, AuthTokenError } from '@/core/errors'
-import type { ClientFn } from '@/core/http/client'
 import { Logger } from '@/core/logger'
 import { adminApi } from '@/gen/api'
 
@@ -9,7 +10,7 @@ export class AuthManager {
   private readonly storage: Storage
   private readonly logger: Logger
   /** When set, used for login (adminToken) instead of global client. */
-  private httpClient!: ClientFn
+  private httpClient!: Client
 
   authPromise: Promise<void> | null = null
 
@@ -20,7 +21,7 @@ export class AuthManager {
   }
 
   /** Set instance-bound public HTTP client for authentication (used when multiple SDK instances exist). */
-  setPublicClient(client: ClientFn): this {
+  setPublicClient(client: Client): this {
     this.httpClient = client
     return this
   }

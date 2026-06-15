@@ -12,26 +12,31 @@ export type GetUserPathParams = {
 }
 
 /**
+ * UserResponse
  * @description Successful Response
  */
 export type GetUser200 = UserResponse
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type GetUser401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type GetUser403 = Forbidden
 
 /**
+ * NotFound
  * @description Not found
  */
 export type GetUser404 = NotFound
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type GetUser422 = HTTPValidationError

@@ -12,26 +12,31 @@ export type ActiveNextPlanPathParams = {
 }
 
 /**
+ * UserResponse
  * @description Successful Response
  */
 export type ActiveNextPlan200 = UserResponse
 
 /**
+ * Unauthorized
  * @description Unauthorized
  */
 export type ActiveNextPlan401 = Unauthorized
 
 /**
+ * Forbidden
  * @description Forbidden
  */
 export type ActiveNextPlan403 = Forbidden
 
 /**
+ * NotFound
  * @description Not found
  */
 export type ActiveNextPlan404 = NotFound
 
 /**
+ * HTTPValidationError
  * @description Validation Error
  */
 export type ActiveNextPlan422 = HTTPValidationError

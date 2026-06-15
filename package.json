@@ -97,6 +97,9 @@
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.8"
   },
+  "overrides": {
+    "esbuild": "0.28.1"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Ilmar7786/marzban-sdk.git"

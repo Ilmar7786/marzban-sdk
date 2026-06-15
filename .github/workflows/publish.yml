@@ -11,19 +11,29 @@ on:
 
 permissions:
   id-token: write # Required for OIDC
-  contents: read
+  contents: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
       - run: npm ci
       - run: npm run build
       - uses: JS-DevTools/npm-publish@v4
+        id: npm-publish
         with:
           provenance: true
+      - name: Create GitHub Release
+        if: steps.npm-publish.outputs.type != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.npm-publish.outputs.version }}
+          name: v${{ steps.npm-publish.outputs.version }}
+          generate_release_notes: true

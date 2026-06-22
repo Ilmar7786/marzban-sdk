@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { AnyType } from '@/common'
 import { WebhookEnvironmentError, WebhookValidationError } from '@/core/errors'
 
+import { BaseWebhookSchema } from './webhook.schema'
 import { validateWebhookPayload, verifyWebhookSignature } from './webhook.utils'
 
 const SECRET = 'topsecret'
@@ -82,5 +83,14 @@ describe('validateWebhookPayload', () => {
 
   it('throws WebhookValidationError for an unknown action', () => {
     expect(() => validateWebhookPayload([{ action: 'nope' }])).toThrow(WebhookValidationError)
+  })
+})
+
+describe('BaseWebhookSchema defaults', () => {
+  it('fills enqueued_at, send_at, and tries when omitted', () => {
+    const parsed = BaseWebhookSchema.parse({})
+    expect(typeof parsed.enqueued_at).toBe('number')
+    expect(typeof parsed.send_at).toBe('number')
+    expect(parsed.tries).toBe(0)
   })
 })

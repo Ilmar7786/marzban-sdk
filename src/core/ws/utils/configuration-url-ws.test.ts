@@ -41,6 +41,12 @@ describe('configurationUrlWs', () => {
       const url = new URL(result)
       expect(url.pathname).toBe('/marzban/subscribe')
     })
+
+    it('prepends a leading slash to an endpoint that lacks one', () => {
+      const result = configurationUrlWs({ ...base, endpoint: 'subscribe' })
+      const url = new URL(result)
+      expect(url.pathname).toBe('/subscribe')
+    })
   })
 
   describe('query params', () => {

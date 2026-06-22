@@ -307,6 +307,14 @@ describe('WebhookManager', () => {
       )
     })
 
+    it('wraps a non-SdkError thrown during processing in WebhookValidationError', async () => {
+      // A plain (non-SdkError) failure must be normalized to WebhookValidationError.
+      mockValidate.mockImplementation(() => {
+        throw new Error('unexpected boom')
+      })
+      await expect(manager.handleWebhook([{}])).rejects.toThrow(WebhookValidationError)
+    })
+
     it('logs completion with emitted status', async () => {
       const payload = makePayload()
       mockValidate.mockReturnValue([payload] as never)

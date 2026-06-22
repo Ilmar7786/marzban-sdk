@@ -1,9 +1,18 @@
-import { SafeEventEmitter, toBuffer } from '@/common'
+import { SafeEventEmitter, toBytes } from '@/common'
 import { SdkError, WebhookSignatureError, WebhookValidationError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
 import { WebhookType } from './webhook.schema'
 import { validateWebhookPayload, verifyWebhookSignature } from './webhook.utils'
+
+const textDecoder = new TextDecoder()
+
+/** Raw request body accepted for signature verification (no Node `Buffer` dependency). */
+type RawBody = string | Uint8Array | ArrayBuffer
+
+function isRawBody(value: unknown): value is RawBody {
+  return typeof value === 'string' || value instanceof Uint8Array || value instanceof ArrayBuffer
+}
 
 /**
  * WebhookActionMap
@@ -118,32 +127,33 @@ export class WebhookManager {
    *
    * Important:
    * - If a secret is configured for the manager, the caller MUST pass the raw request body
-   *   (Buffer or string) so signature verification is performed against the original bytes.
+   *   (string, Uint8Array, or ArrayBuffer) so signature verification is performed against the original bytes.
    *
-   * @param rawBody Incoming webhook raw body (Buffer|string) OR already-parsed object.
+   * @param rawBody Incoming webhook raw body (string|Uint8Array|ArrayBuffer) OR already-parsed object.
    * @param signature Optional webhook signature to verify (hex string)
    * @returns Array of validated webhook payloads
    */
-  parseWebhook(rawBody: unknown, signature?: string): WebhookType[] {
+  async parseWebhook(rawBody: unknown, signature?: string): Promise<WebhookType[]> {
     this._logger.debug('Parsing incoming webhook payload', 'WebhookManager')
 
-    // If secret is configured — require signature and raw body (Buffer|string)
+    // If secret is configured — require signature and raw body bytes.
+    // verifyWebhookSignature itself blocks browser runtimes (server-side only).
     if (this._secret) {
       if (!signature) {
         this._logger.error('Webhook signature is missing but secret is configured', undefined, 'WebhookManager')
         throw new WebhookSignatureError()
       }
 
-      if (!(Buffer.isBuffer(rawBody) || typeof rawBody === 'string')) {
+      if (!isRawBody(rawBody)) {
         this._logger.error(
-          'Webhook secret is configured: parseWebhook requires raw request body (Buffer or string) for signature verification',
+          'Webhook secret is configured: parseWebhook requires the raw request body (string, Uint8Array, or ArrayBuffer) for signature verification',
           undefined,
           'WebhookManager'
         )
         throw new WebhookSignatureError('Raw body required for signature verification')
       }
 
-      const ok = verifyWebhookSignature(signature, this._secret, toBuffer(rawBody))
+      const ok = await verifyWebhookSignature(signature, this._secret, toBytes(rawBody))
       if (!ok) {
         // Do not log rawBody — it may contain user PII. The signature is a hash, not a secret.
         this._logger.error('Webhook signature verification failed', { signature }, 'WebhookManager')
@@ -155,9 +165,9 @@ export class WebhookManager {
 
     // Parse JSON if necessary
     let parsed: unknown = rawBody
-    if (Buffer.isBuffer(rawBody) || typeof rawBody === 'string') {
+    if (isRawBody(rawBody)) {
       try {
-        parsed = JSON.parse(Buffer.isBuffer(rawBody) ? rawBody.toString() : rawBody)
+        parsed = JSON.parse(typeof rawBody === 'string' ? rawBody : textDecoder.decode(rawBody))
       } catch (err) {
         this._logger.error('Failed to parse webhook JSON body', err, 'WebhookManager')
         // Let validateWebhookPayload throw a structured error if necessary,
@@ -187,7 +197,7 @@ export class WebhookManager {
    * ones) have settled, so awaiting it guarantees processing is complete
    * before you respond to the request.
    *
-   * @param rawBody Incoming webhook raw body (Buffer|string) or already-parsed object
+   * @param rawBody Incoming webhook raw body (string|Uint8Array|ArrayBuffer) or already-parsed object
    * @param signature Optional signature for verification
    * @returns true if at least one event had listeners
    */
@@ -196,7 +206,7 @@ export class WebhookManager {
     let emitted = false
 
     try {
-      const payloads = this.parseWebhook(rawBody, signature)
+      const payloads = await this.parseWebhook(rawBody, signature)
 
       // Emit batch event once with all payloads, awaiting listeners.
       if (await this._emitter.emitAsync('batch', payloads)) {

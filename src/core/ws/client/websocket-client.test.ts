@@ -1,17 +1,26 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AnyType } from '@/common'
 
-// We intentionally import within tests to allow mocking `ws` and `window` dynamically.
+// We intentionally import within tests to allow mocking `ws` and the global
+// `WebSocket` dynamically.
 
 describe('WebSocketClient', () => {
-  afterEach(() => {
+  // Node 21+ exposes a native global WebSocket; snapshot it so each test can
+  // control whether a native implementation is "present".
+  const originalWebSocket = (globalThis as AnyType).WebSocket
+
+  beforeEach(() => {
     vi.resetModules()
+  })
+
+  afterEach(() => {
     vi.restoreAllMocks()
+    ;(globalThis as AnyType).WebSocket = originalWebSocket
     delete (globalThis as AnyType).window
   })
 
-  it('uses NodeWebSocketClient when window is undefined', async () => {
+  it('falls back to NodeWebSocketClient (ws package) when no native WebSocket exists', async () => {
     let createdUrl = ''
     let createdProtocols: string | string[] | undefined
 
@@ -26,16 +35,15 @@ describe('WebSocketClient', () => {
       addEventListener = vi.fn()
     }
 
+    // Simulate an older runtime without a native WebSocket.
+    delete (globalThis as AnyType).WebSocket
     vi.doMock('ws', () => ({ default: FakeWs }))
 
     const { WebSocketClient } = await import('./websocket-client')
-
     const client = await WebSocketClient.create('wss://example.com', ['protocol1'])
 
     expect(createdUrl).toBe('wss://example.com')
     expect(createdProtocols).toEqual(['protocol1'])
-
-    // The actual instance should be the NodeWebSocketClient implementation.
     expect(client.constructor.name).toBe('NodeWebSocketClient')
 
     client.send('payload')
@@ -47,7 +55,7 @@ describe('WebSocketClient', () => {
     expect(client.readyState).toBe(1)
   })
 
-  it('uses BrowserWebSocketClient when window.WebSocket is available', async () => {
+  it('uses BrowserWebSocketClient when a native WebSocket is available', async () => {
     class FakeWebSocket {
       public readyState = 2
       public protocol?: string | string[]
@@ -62,12 +70,10 @@ describe('WebSocketClient', () => {
       addEventListener = vi.fn()
     }
 
-    // Create a fake global window + global WebSocket.
-    ;(globalThis as AnyType).window = { WebSocket: FakeWebSocket }
+    // Provide a native global WebSocket (covers browser, Worker, Deno, Bun, Node 21+).
     ;(globalThis as AnyType).WebSocket = FakeWebSocket
 
     const { WebSocketClient } = await import('./websocket-client')
-
     const client = await WebSocketClient.create('wss://example.com/ws', 'proto')
 
     expect(client.constructor.name).toBe('BrowserWebSocketClient')

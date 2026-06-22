@@ -2,7 +2,7 @@ import { Client } from '@kubb/plugin-client/clients/axios'
 import axios, { AxiosInstance } from 'axios'
 import axiosRetry from 'axios-retry'
 
-import { Config } from '@/config'
+import { MAX_RETRY_DELAY_MS, RETRY_BASE_DELAY_MS, ValidatedConfig } from '@/config'
 
 import { AuthManager } from '../auth'
 import { Logger } from '../logger'
@@ -27,11 +27,11 @@ export type HttpClientInstance = {
 export const configureHttpClient = (
   baseUrl: string,
   authService: AuthManager,
-  config: Config,
+  config: ValidatedConfig,
   logger: Logger
 ): HttpClientInstance => {
   logger.info(`Configuring HTTP client with base URL: ${baseUrl}`, 'HttpClient')
-  logger.debug(`HTTP client configuration: timeout=${config.timeout}s, retries=${config.retries}`, 'HttpClient')
+  logger.debug(`HTTP client configuration: timeout=${config.timeout}ms, retries=${config.retries}`, 'HttpClient')
 
   const instanceAxios = axios.create({ baseURL: baseUrl, timeout: config.timeout })
   const instancePublic = axios.create({ baseURL: baseUrl, timeout: config.timeout })
@@ -39,11 +39,10 @@ export const configureHttpClient = (
   logger.debug('Setting up authentication interceptors', 'HttpClient')
   setupAuthInterceptors(instanceAxios, authService, config, logger)
 
-  const retries = config?.retries ?? 3
-  // Exponential backoff with a 30s cap: 1s, 2s, 4s, 8s, ...
-  const MAX_RETRY_DELAY = 30_000
+  const retries = config.retries
+  // Exponential backoff capped at MAX_RETRY_DELAY_MS: 1s, 2s, 4s, 8s, ...
   const retryDelay = (retryCount: number): number => {
-    const delay = Math.min(2 ** (retryCount - 1) * 1000, MAX_RETRY_DELAY)
+    const delay = Math.min(2 ** (retryCount - 1) * RETRY_BASE_DELAY_MS, MAX_RETRY_DELAY_MS)
     logger.debug(`Retry attempt ${retryCount}, delay: ${delay}ms`, 'HttpClient')
     return delay
   }

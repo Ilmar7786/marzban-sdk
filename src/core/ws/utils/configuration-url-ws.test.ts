@@ -29,11 +29,17 @@ describe('configurationUrlWs', () => {
       expect(url.pathname).toBe('/subscribe')
     })
 
-    it('replaces an existing basePath pathname with the endpoint', () => {
-      // basePath has its own path — it gets overwritten
+    it('preserves an existing basePath prefix and appends the endpoint', () => {
+      // basePath has its own path prefix (e.g. reverse proxy) — it is preserved
       const result = configurationUrlWs({ ...base, basePath: 'https://api.example.com/v1' })
       const url = new URL(result)
-      expect(url.pathname).toBe('/subscribe')
+      expect(url.pathname).toBe('/v1/subscribe')
+    })
+
+    it('preserves a deep basePath prefix with a trailing slash', () => {
+      const result = configurationUrlWs({ ...base, basePath: 'https://api.example.com/marzban/' })
+      const url = new URL(result)
+      expect(url.pathname).toBe('/marzban/subscribe')
     })
   })
 

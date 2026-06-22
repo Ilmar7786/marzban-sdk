@@ -46,7 +46,7 @@ export const setupAuthInterceptors = (
     async error => {
       const retryConfig = error?.config
 
-      if (error?.response?.status === 401 && !retryConfig?.sent) {
+      if (error?.response?.status === 401 && retryConfig && !retryConfig.sent) {
         logger.warn('Received 401 Unauthorized, attempting to re-authenticate', 'AuthInterceptor')
         retryConfig.sent = true
 

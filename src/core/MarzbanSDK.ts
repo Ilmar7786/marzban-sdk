@@ -1,4 +1,4 @@
-import { Config, validateConfig } from '@/config'
+import { Config, validateConfig, ValidatedConfig } from '@/config'
 import { adminApi, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from '@/gen/api'
 
 import { AuthManager } from './auth'
@@ -14,7 +14,7 @@ import { LogsStream } from './ws'
  * Provides access to API modules (AdminApi, CoreApi, etc.) and handles authentication, retries, and interceptors.
  */
 export class MarzbanSDK {
-  private readonly _config: Config
+  private readonly _config: ValidatedConfig
   private readonly _authService: AuthManager
   private readonly _logger: Logger
 
@@ -137,7 +137,7 @@ export class MarzbanSDK {
     this.system = new systemApi({ client: http.client })
     this.subscription = new subscriptionApi({ client: http.client })
     this.userTemplate = new userTemplateApi({ client: http.client })
-    this.logs = new LogsStream(this._config.baseUrl, this._authService, this._logger)
+    this.logs = new LogsStream(this._config.baseUrl, this._authService, this._logger, this._config.retries)
     this.webhook = new WebhookManager({ ...this._config.webhook, logger: this._logger })
   }
 
@@ -175,9 +175,8 @@ export class MarzbanSDK {
    * }
    */
   authorize(): Promise<void> {
-    if (this._authService.isAuthenticating) {
-      return this._authService.authPromise!
-    }
+    // Concurrent-call de-duplication is handled inside AuthManager.authenticate,
+    // which returns the in-flight promise when a login is already running.
     return this._authService.authenticate(this._config.username, this._config.password)
   }
 
@@ -197,16 +196,11 @@ export class MarzbanSDK {
 }
 
 export const createMarzbanSDK = async (config: Config): Promise<MarzbanSDK> => {
-  const logger = createLogger(config.logger)
-  const sdk = new MarzbanSDK(config)
+  const validatedConfig = validateConfig(config)
+  const sdk = new MarzbanSDK(validatedConfig)
 
-  // --- Authentication ---
-  if (config.authenticateOnInit) {
-    logger.info('Performing initial authentication as configured', 'MarzbanSDK')
+  if (validatedConfig.authenticateOnInit) {
     await sdk.authorize()
-    logger.info('Initial authentication completed successfully', 'MarzbanSDK')
-  } else {
-    logger.debug('Skipping initial authentication as configured', 'MarzbanSDK')
   }
 
   return sdk

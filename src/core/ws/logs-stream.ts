@@ -1,4 +1,5 @@
 import { AnyType } from '@/common'
+import { DEFAULT_RETRIES, DEFAULT_WS_INTERVAL } from '@/config'
 import { AuthManager } from '@/core/auth'
 import { Logger } from '@/core/logger'
 
@@ -28,18 +29,20 @@ export class LogsStream {
   private authService: AuthManager
   private logger: Logger
   private activeConnections: Set<BaseWebSocketClient> = new Set()
-  private maxRetries = 3
+  private maxRetries: number
 
   /**
    * Creates an API instance for handling logs via WebSocket.
    * @param basePath The base URL for WebSocket connections.
    * @param authService Authentication service for managing tokens.
    * @param logger Logger instance for logging WebSocket events.
+   * @param maxRetries Max reconnection attempts on auth (403) failures. Defaults to {@link DEFAULT_RETRIES}.
    */
-  constructor(basePath: string, authService: AuthManager, logger: Logger) {
+  constructor(basePath: string, authService: AuthManager, logger: Logger, maxRetries: number = DEFAULT_RETRIES) {
     this.basePath = basePath
     this.authService = authService
     this.logger = logger
+    this.maxRetries = maxRetries
     this.logger.debug('LogsStream initialized', 'LogsStream')
   }
 
@@ -75,7 +78,7 @@ export class LogsStream {
       basePath: this.basePath,
       endpoint,
       token: this.authService.accessToken,
-      interval: options?.interval ?? 1,
+      interval: options?.interval ?? DEFAULT_WS_INTERVAL,
     })
 
     // Redact the token query param so JWTs never leak into logs.

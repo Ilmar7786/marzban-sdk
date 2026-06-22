@@ -51,8 +51,8 @@ describe('WebhookManager', () => {
   // ─── constructor ───────────────────────────────────────────────────────────
 
   describe('constructor', () => {
-    it('logs initialization', () => {
-      expect(logger.info).toHaveBeenCalledWith('WebhookManager initialized', 'WebhookManager')
+    it('logs initialization at debug level', () => {
+      expect(logger.debug).toHaveBeenCalledWith('WebhookManager initialized', 'WebhookManager')
     })
 
     it('creates a manager without a secret', () => {
@@ -151,11 +151,11 @@ describe('WebhookManager', () => {
         await expect(manager.parseWebhook([{}])).rejects.toThrow(WebhookValidationError)
       })
 
-      it('logs validation info with payload count', async () => {
+      it('logs the validated payload count at debug level', async () => {
         const payload = makePayload()
         mockValidate.mockReturnValue([payload, payload] as never)
         await manager.parseWebhook([payload, payload])
-        expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('2'), 'WebhookManager')
+        expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('2'), 'WebhookManager')
       })
     })
 
@@ -339,11 +339,11 @@ describe('WebhookManager', () => {
       expect(result).toBe(false)
     })
 
-    it('logs dispatch debug and info', async () => {
+    it('logs dispatch at debug level (start and result)', async () => {
       const payload = makePayload('user_updated')
       await manager.dispatch('user_updated' as never, payload as never)
-      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('user_updated'), 'WebhookManager')
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('user_updated'), 'WebhookManager')
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('Dispatching'), 'WebhookManager')
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('Event dispatched'), 'WebhookManager')
     })
   })
 })

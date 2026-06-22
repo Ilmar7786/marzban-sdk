@@ -32,8 +32,10 @@ export const configureHttpClient = (
   config: ValidatedConfig,
   logger: Logger
 ): HttpClientInstance => {
-  logger.info(`Configuring HTTP client with base URL: ${baseUrl}`, 'HttpClient')
-  logger.debug(`HTTP client configuration: timeout=${config.timeout}ms, retries=${config.retries}`, 'HttpClient')
+  logger.debug(
+    `Configuring HTTP client: baseURL=${baseUrl}, timeout=${config.timeout}ms, retries=${config.retries}`,
+    'HttpClient'
+  )
 
   const instanceAxios = axios.create({ baseURL: baseUrl, timeout: config.timeout })
   const instancePublic = axios.create({ baseURL: baseUrl, timeout: config.timeout })
@@ -52,8 +54,6 @@ export const configureHttpClient = (
   logger.debug(`Configuring retry logic: ${retries} retries with exponential backoff`, 'HttpClient')
   axiosRetry(instanceAxios, { retries, retryDelay })
   axiosRetry(instancePublic, { retries, retryDelay })
-
-  logger.info('HTTP client configuration completed successfully', 'HttpClient')
 
   return {
     client: createClientFromAxios(instanceAxios),

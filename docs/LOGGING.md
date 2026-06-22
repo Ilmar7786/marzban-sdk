@@ -2,6 +2,34 @@
 
 MarzbanSDK supports flexible logger configuration through the `logger` option in the SDK config.
 
+## Default log level (environment-aware)
+
+When you do **not** specify a `level`, the built-in logger picks one based on the
+environment:
+
+| Environment     | Default level | Effect                                     |
+| --------------- | ------------- | ------------------------------------------ |
+| **Development** | `info`        | `info`, `warn`, and `error` are printed    |
+| **Production**  | `error`       | only `error` is printed (quiet by default) |
+
+The environment is detected from `process.env.NODE_ENV`:
+
+- Any value other than `'production'` (including unset) is treated as **development**.
+- If `process` is unavailable (e.g. some browser/Worker runtimes), **production**
+  is assumed — the quieter, safer default.
+
+An explicit `level` always overrides this default:
+
+```ts
+// Forces debug output regardless of NODE_ENV
+logger: {
+  level: 'debug'
+}
+```
+
+`timestamp` defaults to `true`. Set `logger: false` to disable all output, even
+in development.
+
 ## Configuration options
 
 - `logger: false`

@@ -32,6 +32,21 @@ export function hasNativeWebSocket(): boolean {
 }
 
 /**
+ * True when running outside an explicit production environment.
+ *
+ * Reads `process.env.NODE_ENV` when available (Node.js, Bun, and most bundlers,
+ * which inline it for browser builds). Anything other than `'production'` is
+ * treated as development. When `process` is unavailable (some browser/Worker
+ * runtimes) we cannot tell, so we assume production — the quieter, safer default.
+ */
+export function isDevEnvironment(): boolean {
+  if (typeof process === 'undefined' || !process.env) {
+    return false
+  }
+  return process.env.NODE_ENV !== 'production'
+}
+
+/**
  * Returns the global {@link SubtleCrypto} implementation (Web Crypto API).
  *
  * Available in browsers, Web Workers, Node.js 19+, Bun, Deno, and edge

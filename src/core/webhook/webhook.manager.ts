@@ -88,7 +88,7 @@ export class WebhookManager {
     this._logger = logger
     this._emitter = new SafeEventEmitter<WebhookEventMap>()
 
-    this._logger.info('WebhookManager initialized', 'WebhookManager')
+    this._logger.debug('WebhookManager initialized', 'WebhookManager')
   }
 
   // --- Subscription methods ---
@@ -178,7 +178,7 @@ export class WebhookManager {
 
     // Validate payload structure (will throw WebhookValidationError on failure)
     const payloads = validateWebhookPayload(parsed)
-    this._logger.info(`Validated ${payloads.length} webhook payload(s)`, 'WebhookManager')
+    this._logger.debug(`Validated ${payloads.length} webhook payload(s)`, 'WebhookManager')
 
     return payloads
   }
@@ -202,7 +202,7 @@ export class WebhookManager {
    * @returns true if at least one event had listeners
    */
   async handleWebhook(rawBody: unknown, signature?: string): Promise<boolean> {
-    this._logger.info('Handling incoming webhook', 'WebhookManager')
+    this._logger.debug('Handling incoming webhook', 'WebhookManager')
     let emitted = false
 
     try {
@@ -248,7 +248,7 @@ export class WebhookManager {
   ): Promise<boolean> {
     this._logger.debug(`Dispatching event: ${String(event)}`, 'WebhookManager')
     const result = await this._emitter.emitAsync(event, payload)
-    this._logger.info(`Event dispatched: ${String(event)}, result=${result}`, 'WebhookManager')
+    this._logger.debug(`Event dispatched: ${String(event)}, result=${result}`, 'WebhookManager')
     return result
   }
 }

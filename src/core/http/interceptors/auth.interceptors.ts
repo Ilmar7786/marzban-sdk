@@ -27,7 +27,6 @@ export const setupAuthInterceptors = (
       const accessToken = authService.accessToken
       if (accessToken) {
         requestConfig.headers.authorization = `Bearer ${accessToken}`
-        logger.debug('Authorization header added to request', 'AuthInterceptor')
       } else {
         logger.warn('No access token available for request', 'AuthInterceptor')
       }

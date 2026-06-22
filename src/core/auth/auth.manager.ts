@@ -37,7 +37,7 @@ export class AuthManager {
       return this._authPromise
     }
 
-    this.logger.info(`Starting authentication for user: ${username}`, 'AuthManager')
+    this.logger.debug(`Starting authentication for user: ${username}`, 'AuthManager')
 
     this._authPromise = this.authenticateInternal(username, password)
     return this._authPromise

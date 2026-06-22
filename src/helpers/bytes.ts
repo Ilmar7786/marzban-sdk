@@ -44,7 +44,7 @@ export function formatBytes(bytes: number, opts?: { decimals?: number; decimal?:
   const base = decimal ? 1000 : 1024
   const absBytes = Math.abs(bytes)
   if (absBytes < base) return `${Math.round(bytes)} B`
-  // overflowing as "1024.00 TB"
+  // Largest supported unit is PB; values beyond it stay in PB (e.g. "1024.00 PB").
   const units = ['KB', 'MB', 'GB', 'TB', 'PB']
   let i = -1
   let value = absBytes

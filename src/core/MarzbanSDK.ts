@@ -95,8 +95,12 @@ export class MarzbanSDK {
   /**
    * Creates an instance of MarzbanSDK.
    *
+   * Prefer the {@link createMarzbanSDK} factory, which also authenticates on
+   * init when configured. The config is validated here, so constructing
+   * directly is safe too.
+   *
    * @param {Config} config - Configuration object for the SDK.
-   * @throws {Error} If required credentials (`username` or `password`) are missing.
+   * @throws {ConfigurationError} If the configuration fails schema validation.
    *
    * @example
    * // Automatic authentication (default)
@@ -123,7 +127,7 @@ export class MarzbanSDK {
     const storageAuth: AuthManager['storage'] = {
       username: this._config.username,
       password: this._config.password,
-      accessToken: this._config?.token,
+      accessToken: this._config.token,
     }
     this._authService = new AuthManager(storageAuth, this._logger)
 
@@ -180,6 +184,14 @@ export class MarzbanSDK {
     return this._authService.authenticate(this._config.username, this._config.password)
   }
 
+  /**
+   * Releases resources held by the SDK.
+   *
+   * Closes all active WebSocket log streams. Safe to call multiple times;
+   * any error while closing connections is logged and swallowed.
+   *
+   * @returns {Promise<void>} Resolves once cleanup has completed.
+   */
   async destroy(): Promise<void> {
     try {
       this.logs.closeAllConnections()

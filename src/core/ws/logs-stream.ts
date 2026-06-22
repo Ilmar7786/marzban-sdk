@@ -82,7 +82,7 @@ export class LogsStream {
    * @returns A function to close the WebSocket connection.
    */
   private async connect(endpoint: string, options: LogOptions, retryCount = 0): Promise<HandleCloseConnection> {
-    this.logger.info(`Establishing WebSocket connection to: ${endpoint}`, 'LogsStream')
+    this.logger.debug(`Establishing WebSocket connection to: ${endpoint}`, 'LogsStream')
     await this.ensureAuthenticated()
 
     const wsUrl = configurationUrlWs({
@@ -111,7 +111,6 @@ export class LogsStream {
     })
 
     wsClient.on('message', async ({ data }) => {
-      this.logger.debug(`WebSocket message received from ${endpoint}`, 'LogsStream')
       options.onMessage(data as AnyType)
     })
 
@@ -131,7 +130,7 @@ export class LogsStream {
           return
         }
 
-        this.logger.info('Attempting to re-authenticate and retry connection', 'LogsStream')
+        this.logger.debug('Attempting to re-authenticate and retry connection', 'LogsStream')
         try {
           await this.authService.retryAuth()
           const newClose = await this.connect(endpoint, options, retryCount + 1)
@@ -159,7 +158,7 @@ export class LogsStream {
    * @returns A function to close the WebSocket connection.
    */
   async connectByCore(options: LogOptions) {
-    this.logger.info('Connecting to core logs WebSocket', 'LogsStream')
+    this.logger.debug('Connecting to core logs WebSocket', 'LogsStream')
     return this.connect('/api/core/logs', options)
   }
 
@@ -170,7 +169,7 @@ export class LogsStream {
    * @returns A function to close the WebSocket connection.
    */
   async connectByNode(nodeId: number | string, options: LogOptions) {
-    this.logger.info(`Connecting to node logs WebSocket for node ID: ${nodeId}`, 'LogsStream')
+    this.logger.debug(`Connecting to node logs WebSocket for node ID: ${nodeId}`, 'LogsStream')
     return this.connect(`/api/node/${nodeId}/logs`, options)
   }
 
@@ -184,6 +183,6 @@ export class LogsStream {
     this.activeConnections.forEach(wsClient => wsClient.close())
     this.activeConnections.clear()
 
-    this.logger.info('All WebSocket connections closed successfully', 'LogsStream')
+    this.logger.debug('All WebSocket connections closed successfully', 'LogsStream')
   }
 }

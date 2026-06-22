@@ -148,6 +148,8 @@ export class MarzbanSDK {
       maxRetries: this._config.retries,
     })
     this.webhook = new WebhookManager({ ...this._config.webhook, logger: this._logger })
+
+    this._logger.debug('MarzbanSDK instance created', 'MarzbanSDK')
   }
 
   /**
@@ -198,6 +200,7 @@ export class MarzbanSDK {
    * @returns {Promise<void>} Resolves once cleanup has completed.
    */
   async destroy(): Promise<void> {
+    this._logger.info('Destroying SDK and closing active connections', 'MarzbanSDK')
     try {
       this.logs.closeAllConnections()
     } catch (err) {

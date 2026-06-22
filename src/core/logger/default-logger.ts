@@ -1,6 +1,7 @@
 import chalk, { type ChalkInstance } from 'chalk'
 
 import { Logger, LoggerOptions, LogLevel } from './logger.types'
+import { getDefaultLogLevel } from './logger.utils'
 
 export class DefaultLogger implements Logger {
   private readonly levelPriority: Record<LogLevel, number> = {
@@ -21,7 +22,9 @@ export class DefaultLogger implements Logger {
   private timestamp: boolean
 
   constructor(options?: LoggerOptions) {
-    this.currentLevel = options?.level ?? 'info'
+    // An explicit level always wins; otherwise fall back to the env-based
+    // default (info in development, error in production).
+    this.currentLevel = options?.level ?? getDefaultLogLevel()
     this.timestamp = options?.timestamp ?? true
   }
 

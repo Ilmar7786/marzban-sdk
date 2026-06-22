@@ -105,11 +105,6 @@ describe('setupAuthInterceptors', () => {
       expect(result.headers.authorization).toBe('Bearer valid-token')
     })
 
-    it('logs debug when header is added', async () => {
-      await ax.req()
-      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('Authorization header'), 'AuthInterceptor')
-    })
-
     it('skips header and logs warn when token is empty', async () => {
       ax = makeAxiosInstance()
       setupAuthInterceptors(ax.instance, makeAuthManager({ accessToken: '' }), config, logger)

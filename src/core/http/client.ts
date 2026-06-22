@@ -13,16 +13,18 @@ function createClientFromAxios(instance: AxiosInstance): Client {
 }
 
 export type HttpClientInstance = {
+  /** Authenticated client used for all API requests. */
   client: Client
-  getPublicInstance: () => AxiosInstance
   /** Client for unauthenticated requests (e.g. login). Use this in AuthManager. */
   publicClient: Client
 }
 
 /**
- * Configures HTTP client for a given base URL and auth, and returns an instance-bound client.
- * Also updates the global client/getPublicInstance for backward compatibility (last-created instance).
- * Store and use the returned instance when creating multiple MarzbanSDK instances.
+ * Configures an HTTP client for the given base URL and auth service, and returns
+ * an instance-bound pair of clients (authenticated + public).
+ *
+ * Each call produces independent Axios instances, so multiple MarzbanSDK
+ * instances never share state — store and use the returned object per SDK.
  */
 export const configureHttpClient = (
   baseUrl: string,
@@ -55,7 +57,6 @@ export const configureHttpClient = (
 
   return {
     client: createClientFromAxios(instanceAxios),
-    getPublicInstance: () => instancePublic,
     publicClient: createClientFromAxios(instancePublic),
   }
 }

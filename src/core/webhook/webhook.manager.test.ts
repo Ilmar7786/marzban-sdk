@@ -178,7 +178,7 @@ describe('WebhookManager', () => {
         try {
           secretManager.parseWebhook(Buffer.from('[]'))
         } catch {}
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('missing'), 'WebhookManager')
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('missing'), undefined, 'WebhookManager')
       })
 
       it('throws WebhookSignatureError when body is not Buffer or string', () => {
@@ -189,7 +189,7 @@ describe('WebhookManager', () => {
         try {
           secretManager.parseWebhook([{}], 'sig')
         } catch {}
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('raw'), 'WebhookManager')
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('raw'), undefined, 'WebhookManager')
       })
 
       it('throws WebhookSignatureError when signature verification fails', () => {
@@ -288,6 +288,18 @@ describe('WebhookManager', () => {
       manager.on('batch', batchListener)
       await manager.handleWebhook([p1, p2])
       await vi.waitFor(() => expect(batchListener).toHaveBeenCalledWith([p1, p2]))
+    })
+
+    it('waits for async listeners to settle before resolving', async () => {
+      const payload = makePayload()
+      mockValidate.mockReturnValue([payload] as never)
+      let settled = false
+      manager.on('*', async () => {
+        await new Promise(resolve => setTimeout(resolve, 10))
+        settled = true
+      })
+      await manager.handleWebhook([payload])
+      expect(settled).toBe(true)
     })
 
     it('logs error and rethrows when parseWebhook throws', async () => {

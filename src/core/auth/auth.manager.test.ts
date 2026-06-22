@@ -152,10 +152,10 @@ describe('AuthManager', () => {
       expect(adminTokenFn).toHaveBeenCalledWith({ username: 'admin', password: 'secret' }, { client: undefined })
     })
 
-    it('logs info when authentication starts', async () => {
+    it('logs at debug when authentication starts', async () => {
       makeAdminToken({ access_token: 'tok' })
       await manager.authenticate('admin', 'secret')
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('admin'), 'AuthManager')
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('admin'), 'AuthManager')
     })
 
     it('logs info when authentication succeeds', async () => {

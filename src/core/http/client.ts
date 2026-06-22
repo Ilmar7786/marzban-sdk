@@ -2,7 +2,7 @@ import { Client } from '@kubb/plugin-client/clients/axios'
 import axios, { AxiosInstance } from 'axios'
 import axiosRetry from 'axios-retry'
 
-import { Config } from '@/config'
+import { MAX_RETRY_DELAY_MS, RETRY_BASE_DELAY_MS, ValidatedConfig } from '@/config'
 
 import { AuthManager } from '../auth'
 import { Logger } from '../logger'
@@ -13,25 +13,29 @@ function createClientFromAxios(instance: AxiosInstance): Client {
 }
 
 export type HttpClientInstance = {
+  /** Authenticated client used for all API requests. */
   client: Client
-  getPublicInstance: () => AxiosInstance
   /** Client for unauthenticated requests (e.g. login). Use this in AuthManager. */
   publicClient: Client
 }
 
 /**
- * Configures HTTP client for a given base URL and auth, and returns an instance-bound client.
- * Also updates the global client/getPublicInstance for backward compatibility (last-created instance).
- * Store and use the returned instance when creating multiple MarzbanSDK instances.
+ * Configures an HTTP client for the given base URL and auth service, and returns
+ * an instance-bound pair of clients (authenticated + public).
+ *
+ * Each call produces independent Axios instances, so multiple MarzbanSDK
+ * instances never share state — store and use the returned object per SDK.
  */
 export const configureHttpClient = (
   baseUrl: string,
   authService: AuthManager,
-  config: Config,
+  config: ValidatedConfig,
   logger: Logger
 ): HttpClientInstance => {
-  logger.info(`Configuring HTTP client with base URL: ${baseUrl}`, 'HttpClient')
-  logger.debug(`HTTP client configuration: timeout=${config.timeout}s, retries=${config.retries}`, 'HttpClient')
+  logger.debug(
+    `Configuring HTTP client: baseURL=${baseUrl}, timeout=${config.timeout}ms, retries=${config.retries}`,
+    'HttpClient'
+  )
 
   const instanceAxios = axios.create({ baseURL: baseUrl, timeout: config.timeout })
   const instancePublic = axios.create({ baseURL: baseUrl, timeout: config.timeout })
@@ -39,30 +43,20 @@ export const configureHttpClient = (
   logger.debug('Setting up authentication interceptors', 'HttpClient')
   setupAuthInterceptors(instanceAxios, authService, config, logger)
 
-  logger.debug(`Configuring retry logic: ${config?.retries ?? 3} retries with exponential backoff`, 'HttpClient')
-  axiosRetry(instanceAxios, {
-    retries: config?.retries ?? 3,
-    retryDelay: retryCount => {
-      const delay = retryCount * 1000
-      logger.debug(`Retry attempt ${retryCount}, delay: ${delay}ms`, 'HttpClient')
-      return delay
-    },
-  })
+  const retries = config.retries
+  // Exponential backoff capped at MAX_RETRY_DELAY_MS: 1s, 2s, 4s, 8s, ...
+  const retryDelay = (retryCount: number): number => {
+    const delay = Math.min(2 ** (retryCount - 1) * RETRY_BASE_DELAY_MS, MAX_RETRY_DELAY_MS)
+    logger.debug(`Retry attempt ${retryCount}, delay: ${delay}ms`, 'HttpClient')
+    return delay
+  }
 
-  axiosRetry(instancePublic, {
-    retries: config?.retries ?? 3,
-    retryDelay: retryCount => {
-      const delay = retryCount * 1000
-      logger.debug(`Public instance retry attempt ${retryCount}, delay: ${delay}ms`, 'HttpClient')
-      return delay
-    },
-  })
-
-  logger.info('HTTP client configuration completed successfully', 'HttpClient')
+  logger.debug(`Configuring retry logic: ${retries} retries with exponential backoff`, 'HttpClient')
+  axiosRetry(instanceAxios, { retries, retryDelay })
+  axiosRetry(instancePublic, { retries, retryDelay })
 
   return {
     client: createClientFromAxios(instanceAxios),
-    getPublicInstance: () => instancePublic,
     publicClient: createClientFromAxios(instancePublic),
   }
 }

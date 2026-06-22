@@ -1,9 +1,18 @@
-import { SafeEventEmitter, toBuffer } from '@/common'
-import { WebhookSignatureError, WebhookValidationError } from '@/core/errors'
+import { SafeEventEmitter, toBytes } from '@/common'
+import { SdkError, WebhookSignatureError, WebhookValidationError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
 import { WebhookType } from './webhook.schema'
 import { validateWebhookPayload, verifyWebhookSignature } from './webhook.utils'
+
+const textDecoder = new TextDecoder()
+
+/** Raw request body accepted for signature verification (no Node `Buffer` dependency). */
+type RawBody = string | Uint8Array | ArrayBuffer
+
+function isRawBody(value: unknown): value is RawBody {
+  return typeof value === 'string' || value instanceof Uint8Array || value instanceof ArrayBuffer
+}
 
 /**
  * WebhookActionMap
@@ -70,16 +79,16 @@ export class WebhookManager {
   private readonly _logger: Logger
 
   /**
-   * Constructor
-   * @param secret Optional webhook secret for verifying signatures
-   * @param logger Logger instance for logging events
+   * @param options Webhook manager options.
+   * @param options.secret Optional webhook secret for verifying signatures.
+   * @param options.logger Logger instance for logging events.
    */
   constructor({ secret, logger }: WebhookManagerOptions) {
     this._secret = secret
     this._logger = logger
     this._emitter = new SafeEventEmitter<WebhookEventMap>()
 
-    this._logger.info('WebhookManager initialized', 'WebhookManager')
+    this._logger.debug('WebhookManager initialized', 'WebhookManager')
   }
 
   // --- Subscription methods ---
@@ -118,33 +127,36 @@ export class WebhookManager {
    *
    * Important:
    * - If a secret is configured for the manager, the caller MUST pass the raw request body
-   *   (Buffer or string) so signature verification is performed against the original bytes.
+   *   (string, Uint8Array, or ArrayBuffer) so signature verification is performed against the original bytes.
    *
-   * @param rawBody Incoming webhook raw body (Buffer|string) OR already-parsed object.
+   * @param rawBody Incoming webhook raw body (string|Uint8Array|ArrayBuffer) OR already-parsed object.
    * @param signature Optional webhook signature to verify (hex string)
    * @returns Array of validated webhook payloads
    */
-  parseWebhook(rawBody: unknown, signature?: string): WebhookType[] {
+  async parseWebhook(rawBody: unknown, signature?: string): Promise<WebhookType[]> {
     this._logger.debug('Parsing incoming webhook payload', 'WebhookManager')
 
-    // If secret is configured — require signature and raw body (Buffer|string)
+    // If secret is configured — require signature and raw body bytes.
+    // verifyWebhookSignature itself blocks browser runtimes (server-side only).
     if (this._secret) {
       if (!signature) {
-        this._logger.error('Webhook signature is missing but secret is configured', 'WebhookManager')
+        this._logger.error('Webhook signature is missing but secret is configured', undefined, 'WebhookManager')
         throw new WebhookSignatureError()
       }
 
-      if (!(Buffer.isBuffer(rawBody) || typeof rawBody === 'string')) {
+      if (!isRawBody(rawBody)) {
         this._logger.error(
-          'Webhook secret is configured: parseWebhook requires raw request body (Buffer or string) for signature verification',
+          'Webhook secret is configured: parseWebhook requires the raw request body (string, Uint8Array, or ArrayBuffer) for signature verification',
+          undefined,
           'WebhookManager'
         )
         throw new WebhookSignatureError('Raw body required for signature verification')
       }
 
-      const ok = verifyWebhookSignature(signature, this._secret, toBuffer(rawBody))
+      const ok = await verifyWebhookSignature(signature, this._secret, toBytes(rawBody))
       if (!ok) {
-        this._logger.error('Webhook signature verification failed', { rawBody, signature }, 'WebhookManager')
+        // Do not log rawBody — it may contain user PII. The signature is a hash, not a secret.
+        this._logger.error('Webhook signature verification failed', { signature }, 'WebhookManager')
         throw new WebhookSignatureError()
       } else {
         this._logger.debug('Webhook signature verified successfully', 'WebhookManager')
@@ -153,9 +165,9 @@ export class WebhookManager {
 
     // Parse JSON if necessary
     let parsed: unknown = rawBody
-    if (Buffer.isBuffer(rawBody) || typeof rawBody === 'string') {
+    if (isRawBody(rawBody)) {
       try {
-        parsed = JSON.parse(Buffer.isBuffer(rawBody) ? rawBody.toString() : rawBody)
+        parsed = JSON.parse(typeof rawBody === 'string' ? rawBody : textDecoder.decode(rawBody))
       } catch (err) {
         this._logger.error('Failed to parse webhook JSON body', err, 'WebhookManager')
         // Let validateWebhookPayload throw a structured error if necessary,
@@ -166,7 +178,7 @@ export class WebhookManager {
 
     // Validate payload structure (will throw WebhookValidationError on failure)
     const payloads = validateWebhookPayload(parsed)
-    this._logger.info(`Validated ${payloads.length} webhook payload(s)`, 'WebhookManager')
+    this._logger.debug(`Validated ${payloads.length} webhook payload(s)`, 'WebhookManager')
 
     return payloads
   }
@@ -177,33 +189,38 @@ export class WebhookManager {
    * Handle an incoming webhook:
    * - Verifies signature (if secret configured)
    * - Validates the payload
-   * - Emits 'batch' event if multiple payloads
-   * - Emits individual events for each payload
-   * - Emits wildcard '*' event for each payload
-   * @param rawBody Incoming webhook raw body (Buffer|string) or already-parsed object
+   * - Emits the 'batch' event once with all payloads
+   * - Emits an individual event for each payload's action
+   * - Emits the wildcard '*' event for each payload
+   *
+   * The returned promise resolves only after all listeners (including async
+   * ones) have settled, so awaiting it guarantees processing is complete
+   * before you respond to the request.
+   *
+   * @param rawBody Incoming webhook raw body (string|Uint8Array|ArrayBuffer) or already-parsed object
    * @param signature Optional signature for verification
-   * @returns true if at least one event was emitted
+   * @returns true if at least one event had listeners
    */
   async handleWebhook(rawBody: unknown, signature?: string): Promise<boolean> {
-    this._logger.info('Handling incoming webhook', 'WebhookManager')
+    this._logger.debug('Handling incoming webhook', 'WebhookManager')
     let emitted = false
 
     try {
-      const payloads = this.parseWebhook(rawBody, signature)
+      const payloads = await this.parseWebhook(rawBody, signature)
 
-      // Emit batch event once with all payloads
-      if (this._emitter.emit('batch', payloads)) {
+      // Emit batch event once with all payloads, awaiting listeners.
+      if (await this._emitter.emitAsync('batch', payloads)) {
         this._logger.debug('Batch event emitted', 'WebhookManager')
         emitted = true
       }
 
       // Emit each individual action and '*' wildcard events
       for (const payload of payloads) {
-        if (this._emitter.emit(payload.action, payload)) {
+        if (await this._emitter.emitAsync(payload.action, payload)) {
           this._logger.debug(`Event emitted for action: ${payload.action}`, 'WebhookManager')
           emitted = true
         }
-        if (this._emitter.emit('*', payload)) {
+        if (await this._emitter.emitAsync('*', payload)) {
           this._logger.debug(`Wildcard '*' event emitted for action: ${payload.action}`, 'WebhookManager')
           emitted = true
         }
@@ -212,6 +229,7 @@ export class WebhookManager {
       this._logger.info(`Webhook processing completed, emitted=${emitted}`, 'WebhookManager')
     } catch (err) {
       this._logger.error('Error handling webhook', err, 'WebhookManager')
+      if (err instanceof SdkError) throw err
       throw new WebhookValidationError(err)
     }
 
@@ -229,8 +247,8 @@ export class WebhookManager {
     payload: WebhookEventMap[E]
   ): Promise<boolean> {
     this._logger.debug(`Dispatching event: ${String(event)}`, 'WebhookManager')
-    const result = await this._emitter.emit(event, payload)
-    this._logger.info(`Event dispatched: ${String(event)}, result=${result}`, 'WebhookManager')
+    const result = await this._emitter.emitAsync(event, payload)
+    this._logger.debug(`Event dispatched: ${String(event)}, result=${result}`, 'WebhookManager')
     return result
   }
 }

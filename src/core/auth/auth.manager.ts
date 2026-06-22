@@ -12,7 +12,12 @@ export class AuthManager {
   /** When set, used for login (adminToken) instead of global client. */
   private httpClient!: Client
 
-  authPromise: Promise<void> | null = null
+  private _authPromise: Promise<void> | null = null
+
+  /** Read-only view of the in-flight authentication promise (null when idle). */
+  get authPromise(): Promise<void> | null {
+    return this._authPromise
+  }
 
   constructor(storage: Storage, logger: Logger) {
     this.storage = storage
@@ -27,22 +32,22 @@ export class AuthManager {
   }
 
   authenticate(username: string, password: string): Promise<void> {
-    if (this.authPromise) {
+    if (this._authPromise) {
       this.logger.debug('Authentication already in progress, returning existing promise', 'AuthManager')
-      return this.authPromise
+      return this._authPromise
     }
 
-    this.logger.info(`Starting authentication for user: ${username}`, 'AuthManager')
+    this.logger.debug(`Starting authentication for user: ${username}`, 'AuthManager')
 
-    this.authPromise = this.authenticateInternal(username, password)
-    return this.authPromise
+    this._authPromise = this.authenticateInternal(username, password)
+    return this._authPromise
   }
 
   async waitForCurrentAuth(): Promise<void> {
-    if (this.authPromise) {
+    if (this._authPromise) {
       this.logger.debug('Waiting for existing authentication to complete', 'AuthManager')
     }
-    await this.authPromise
+    await this._authPromise
   }
 
   retryAuth() {
@@ -58,7 +63,7 @@ export class AuthManager {
   }
 
   get isAuthenticating() {
-    return this.authPromise !== null
+    return this._authPromise !== null
   }
 
   get accessToken() {
@@ -103,7 +108,7 @@ export class AuthManager {
       this.logger.error('Authentication request failed', err, 'AuthManager')
       throw err
     } finally {
-      this.authPromise = null
+      this._authPromise = null
       this.logger.debug('Authentication process completed', 'AuthManager')
     }
   }

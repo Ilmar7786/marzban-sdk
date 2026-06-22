@@ -1,4 +1,3 @@
-/* eslint-disable no-empty */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { WebhookSignatureError, WebhookValidationError } from '@/core/errors'
@@ -52,8 +51,8 @@ describe('WebhookManager', () => {
   // ─── constructor ───────────────────────────────────────────────────────────
 
   describe('constructor', () => {
-    it('logs initialization', () => {
-      expect(logger.info).toHaveBeenCalledWith('WebhookManager initialized', 'WebhookManager')
+    it('logs initialization at debug level', () => {
+      expect(logger.debug).toHaveBeenCalledWith('WebhookManager initialized', 'WebhookManager')
     })
 
     it('creates a manager without a secret', () => {
@@ -110,36 +109,34 @@ describe('WebhookManager', () => {
 
   describe('parseWebhook', () => {
     describe('without secret', () => {
-      it('parses a Buffer body', () => {
+      it('parses a Uint8Array body', async () => {
         const payload = makePayload()
         mockValidate.mockReturnValue([payload] as never)
-        const body = Buffer.from(JSON.stringify([payload]))
-        const result = manager.parseWebhook(body)
+        const body = new TextEncoder().encode(JSON.stringify([payload]))
+        const result = await manager.parseWebhook(body)
         expect(result).toEqual([payload])
       })
 
-      it('parses a string body', () => {
+      it('parses a string body', async () => {
         const payload = makePayload()
         mockValidate.mockReturnValue([payload] as never)
-        const result = manager.parseWebhook(JSON.stringify([payload]))
+        const result = await manager.parseWebhook(JSON.stringify([payload]))
         expect(result).toEqual([payload])
       })
 
-      it('passes an already-parsed object directly to validateWebhookPayload', () => {
+      it('passes an already-parsed object directly to validateWebhookPayload', async () => {
         const payload = makePayload()
         mockValidate.mockReturnValue([payload] as never)
-        manager.parseWebhook([payload])
+        await manager.parseWebhook([payload])
         expect(mockValidate).toHaveBeenCalledWith([payload])
       })
 
-      it('throws when JSON.parse fails', () => {
-        expect(() => manager.parseWebhook('not json')).toThrow(WebhookValidationError)
+      it('throws when JSON.parse fails', async () => {
+        await expect(manager.parseWebhook('not json')).rejects.toThrow(WebhookValidationError)
       })
 
-      it('logs error when JSON.parse fails', () => {
-        try {
-          manager.parseWebhook('not json')
-        } catch {}
+      it('logs error when JSON.parse fails', async () => {
+        await expect(manager.parseWebhook('not json')).rejects.toThrow()
         expect(logger.error).toHaveBeenCalledWith(
           expect.stringContaining('parse'),
           expect.any(SyntaxError),
@@ -147,18 +144,18 @@ describe('WebhookManager', () => {
         )
       })
 
-      it('throws WebhookValidationError when payload is invalid', () => {
+      it('throws WebhookValidationError when payload is invalid', async () => {
         mockValidate.mockImplementation(() => {
           throw new WebhookValidationError()
         })
-        expect(() => manager.parseWebhook([{}])).toThrow(WebhookValidationError)
+        await expect(manager.parseWebhook([{}])).rejects.toThrow(WebhookValidationError)
       })
 
-      it('logs validation info with payload count', () => {
+      it('logs the validated payload count at debug level', async () => {
         const payload = makePayload()
         mockValidate.mockReturnValue([payload, payload] as never)
-        manager.parseWebhook([payload, payload])
-        expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('2'), 'WebhookManager')
+        await manager.parseWebhook([payload, payload])
+        expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('2'), 'WebhookManager')
       })
     })
 
@@ -170,38 +167,34 @@ describe('WebhookManager', () => {
         vi.clearAllMocks()
       })
 
-      it('throws WebhookSignatureError when signature is missing', () => {
-        expect(() => secretManager.parseWebhook(Buffer.from('[]'))).toThrow(WebhookSignatureError)
+      it('throws WebhookSignatureError when signature is missing', async () => {
+        await expect(secretManager.parseWebhook(new TextEncoder().encode('[]'))).rejects.toThrow(WebhookSignatureError)
       })
 
-      it('logs error when signature is missing', () => {
-        try {
-          secretManager.parseWebhook(Buffer.from('[]'))
-        } catch {}
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('missing'), 'WebhookManager')
+      it('logs error when signature is missing', async () => {
+        await expect(secretManager.parseWebhook(new TextEncoder().encode('[]'))).rejects.toThrow()
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('missing'), undefined, 'WebhookManager')
       })
 
-      it('throws WebhookSignatureError when body is not Buffer or string', () => {
-        expect(() => secretManager.parseWebhook([{}], 'sig')).toThrow(WebhookSignatureError)
+      it('throws WebhookSignatureError when body is not a raw body type', async () => {
+        await expect(secretManager.parseWebhook([{}], 'sig')).rejects.toThrow(WebhookSignatureError)
       })
 
-      it('logs error when body type is invalid for signature verification', () => {
-        try {
-          secretManager.parseWebhook([{}], 'sig')
-        } catch {}
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('raw'), 'WebhookManager')
+      it('logs error when body type is invalid for signature verification', async () => {
+        await expect(secretManager.parseWebhook([{}], 'sig')).rejects.toThrow()
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('raw'), undefined, 'WebhookManager')
       })
 
-      it('throws WebhookSignatureError when signature verification fails', () => {
-        mockVerify.mockReturnValue(false)
-        expect(() => secretManager.parseWebhook(Buffer.from('[]'), 'badsig')).toThrow(WebhookSignatureError)
+      it('throws WebhookSignatureError when signature verification fails', async () => {
+        mockVerify.mockResolvedValue(false)
+        await expect(secretManager.parseWebhook(new TextEncoder().encode('[]'), 'badsig')).rejects.toThrow(
+          WebhookSignatureError
+        )
       })
 
-      it('logs error when signature verification fails', () => {
-        mockVerify.mockReturnValue(false)
-        try {
-          secretManager.parseWebhook(Buffer.from('[]'), 'badsig')
-        } catch {}
+      it('logs error when signature verification fails', async () => {
+        mockVerify.mockResolvedValue(false)
+        await expect(secretManager.parseWebhook(new TextEncoder().encode('[]'), 'badsig')).rejects.toThrow()
         expect(logger.error).toHaveBeenCalledWith(
           expect.stringContaining('verification failed'),
           expect.objectContaining({ signature: 'badsig' }),
@@ -209,29 +202,29 @@ describe('WebhookManager', () => {
         )
       })
 
-      it('proceeds to parse when signature is valid', () => {
-        mockVerify.mockReturnValue(true)
+      it('proceeds to parse when signature is valid', async () => {
+        mockVerify.mockResolvedValue(true)
         const payload = makePayload()
         mockValidate.mockReturnValue([payload] as never)
-        const body = Buffer.from(JSON.stringify([payload]))
-        const result = secretManager.parseWebhook(body, 'validsig')
+        const body = new TextEncoder().encode(JSON.stringify([payload]))
+        const result = await secretManager.parseWebhook(body, 'validsig')
         expect(result).toEqual([payload])
       })
 
-      it('logs debug when signature is verified successfully', () => {
-        mockVerify.mockReturnValue(true)
+      it('logs debug when signature is verified successfully', async () => {
+        mockVerify.mockResolvedValue(true)
         const payload = makePayload()
         mockValidate.mockReturnValue([payload] as never)
-        secretManager.parseWebhook(Buffer.from(JSON.stringify([payload])), 'validsig')
+        await secretManager.parseWebhook(new TextEncoder().encode(JSON.stringify([payload])), 'validsig')
         expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('verified'), 'WebhookManager')
       })
 
-      it('accepts a string body for signature verification', () => {
-        mockVerify.mockReturnValue(true)
+      it('accepts a string body for signature verification', async () => {
+        mockVerify.mockResolvedValue(true)
         const payload = makePayload()
         mockValidate.mockReturnValue([payload] as never)
         const body = JSON.stringify([payload])
-        const result = secretManager.parseWebhook(body, 'validsig')
+        const result = await secretManager.parseWebhook(body, 'validsig')
         expect(result).toEqual([payload])
       })
     })
@@ -290,6 +283,18 @@ describe('WebhookManager', () => {
       await vi.waitFor(() => expect(batchListener).toHaveBeenCalledWith([p1, p2]))
     })
 
+    it('waits for async listeners to settle before resolving', async () => {
+      const payload = makePayload()
+      mockValidate.mockReturnValue([payload] as never)
+      let settled = false
+      manager.on('*', async () => {
+        await new Promise(resolve => setTimeout(resolve, 10))
+        settled = true
+      })
+      await manager.handleWebhook([payload])
+      expect(settled).toBe(true)
+    })
+
     it('logs error and rethrows when parseWebhook throws', async () => {
       mockValidate.mockImplementation(() => {
         throw new WebhookValidationError()
@@ -300,6 +305,14 @@ describe('WebhookManager', () => {
         expect.any(WebhookValidationError),
         'WebhookManager'
       )
+    })
+
+    it('wraps a non-SdkError thrown during processing in WebhookValidationError', async () => {
+      // A plain (non-SdkError) failure must be normalized to WebhookValidationError.
+      mockValidate.mockImplementation(() => {
+        throw new Error('unexpected boom')
+      })
+      await expect(manager.handleWebhook([{}])).rejects.toThrow(WebhookValidationError)
     })
 
     it('logs completion with emitted status', async () => {
@@ -326,11 +339,11 @@ describe('WebhookManager', () => {
       expect(result).toBe(false)
     })
 
-    it('logs dispatch debug and info', async () => {
+    it('logs dispatch at debug level (start and result)', async () => {
       const payload = makePayload('user_updated')
       await manager.dispatch('user_updated' as never, payload as never)
-      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('user_updated'), 'WebhookManager')
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('user_updated'), 'WebhookManager')
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('Dispatching'), 'WebhookManager')
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('Event dispatched'), 'WebhookManager')
     })
   })
 })

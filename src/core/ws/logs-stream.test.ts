@@ -75,7 +75,7 @@ describe('LogsStream', () => {
     const wsClient = createFakeWebSocketClient()
     mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
 
-    const stream = new LogsStream(basePath, authService, logger)
+    const stream = new LogsStream({ basePath, authService, logger })
     const onMessage = vi.fn()
     const onError = vi.fn()
 
@@ -114,7 +114,7 @@ describe('LogsStream', () => {
       authService.accessToken = 'refreshed-token'
     })
 
-    const stream = new LogsStream(basePath, authService, logger)
+    const stream = new LogsStream({ basePath, authService, logger })
 
     const onMessage = vi.fn()
     const onError = vi.fn()
@@ -139,6 +139,28 @@ describe('LogsStream', () => {
     expect((stream as AnyType).activeConnections.size).toBe(1)
   })
 
+  it('calls onError when re-authentication fails during a 403 retry', async () => {
+    const wsClient = createFakeWebSocketClient()
+    mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
+
+    // Token is present, so the initial connect succeeds; the retry's retryAuth fails.
+    authService.retryAuth.mockRejectedValueOnce(new Error('re-auth failed'))
+
+    const stream = new LogsStream({ basePath, authService, logger })
+    const onMessage = vi.fn()
+    const onError = vi.fn()
+
+    await stream.connectByCore({ interval: 1, onMessage, onError })
+
+    await wsClient.trigger('error', { message: '403 Forbidden' })
+
+    expect(authService.retryAuth).toHaveBeenCalled()
+    expect(onError).toHaveBeenCalled()
+    // The failing connection was removed and no new one was established.
+    expect((stream as AnyType).activeConnections.size).toBe(0)
+    expect(mockCreate).toHaveBeenCalledTimes(1)
+  })
+
   it('calls onError after reaching max retry attempts', async () => {
     const firstWsClient = createFakeWebSocketClient()
     const secondWsClient = createFakeWebSocketClient()
@@ -147,7 +169,7 @@ describe('LogsStream', () => {
       .mockResolvedValueOnce(firstWsClient as unknown as BaseWebSocketClient)
       .mockResolvedValueOnce(secondWsClient as unknown as BaseWebSocketClient)
 
-    const stream = new LogsStream(basePath, authService, logger)
+    const stream = new LogsStream({ basePath, authService, logger })
 
     // Force max retries to 1 so we can assert behavior deterministically.
     ;(stream as AnyType).maxRetries = 1
@@ -176,7 +198,7 @@ describe('LogsStream', () => {
       authService.accessToken = 'new-token'
     })
 
-    const stream = new LogsStream(basePath, authService, logger)
+    const stream = new LogsStream({ basePath, authService, logger })
     const onMessage = vi.fn()
     const onError = vi.fn()
 
@@ -197,7 +219,7 @@ describe('LogsStream', () => {
     const wsClient = createFakeWebSocketClient()
     mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
 
-    const stream = new LogsStream(basePath, authService, logger)
+    const stream = new LogsStream({ basePath, authService, logger })
     const onMessage = vi.fn()
     const onError = vi.fn()
 
@@ -215,7 +237,7 @@ describe('LogsStream', () => {
     const wsClient = createFakeWebSocketClient()
     mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
 
-    const stream = new LogsStream(basePath, authService, logger)
+    const stream = new LogsStream({ basePath, authService, logger })
     const onMessage = vi.fn()
 
     await stream.connectByCore({ onMessage })
@@ -238,7 +260,7 @@ describe('LogsStream', () => {
     const wsClient = createFakeWebSocketClient()
     mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
 
-    const stream = new LogsStream(basePath, authService, logger)
+    const stream = new LogsStream({ basePath, authService, logger })
     const onMessage = vi.fn()
     const onError = vi.fn()
 
@@ -258,7 +280,7 @@ describe('LogsStream', () => {
       .mockResolvedValueOnce(wsClient1 as unknown as BaseWebSocketClient)
       .mockResolvedValueOnce(wsClient2 as unknown as BaseWebSocketClient)
 
-    const stream = new LogsStream(basePath, authService, logger)
+    const stream = new LogsStream({ basePath, authService, logger })
 
     const onMessage = vi.fn()
     const onError = vi.fn()

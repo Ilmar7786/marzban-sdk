@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DefaultLogger } from './default-logger'
 import { Logger } from './logger.types'
-import { isLogger, isLoggerOptions } from './logger.utils'
+import { getDefaultLogLevel, isLogger, isLoggerOptions } from './logger.utils'
 import { createLogger } from './logger-factory'
 
 // ─── isLogger ────────────────────────────────────────────────────────────────
@@ -100,6 +100,24 @@ describe('isLoggerOptions', () => {
   })
 })
 
+// ─── getDefaultLogLevel ──────────────────────────────────────────────────────
+
+describe('getDefaultLogLevel', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('returns "info" in a development environment', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    expect(getDefaultLogLevel()).toBe('info')
+  })
+
+  it('returns "error" in a production environment', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    expect(getDefaultLogLevel()).toBe('error')
+  })
+})
+
 // ─── createLogger ────────────────────────────────────────────────────────────
 
 describe('createLogger', () => {
@@ -166,15 +184,32 @@ describe('DefaultLogger', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllEnvs()
   })
 
   describe('constructor defaults', () => {
-    it('defaults to level "info"', () => {
+    it('defaults to "info" in a development environment (vitest runs as NODE_ENV=test)', () => {
       const logger = new DefaultLogger()
       logger.debug('hidden')
       expect(debugSpy).not.toHaveBeenCalled()
       logger.info('visible')
       expect(infoSpy).toHaveBeenCalled()
+    })
+
+    it('defaults to "error" in a production environment', () => {
+      vi.stubEnv('NODE_ENV', 'production')
+      const logger = new DefaultLogger()
+      logger.info('hidden in prod')
+      expect(infoSpy).not.toHaveBeenCalled()
+      logger.error('visible')
+      expect(errorSpy).toHaveBeenCalled()
+    })
+
+    it('an explicit level always overrides the env-based default', () => {
+      vi.stubEnv('NODE_ENV', 'production')
+      const logger = new DefaultLogger({ level: 'debug' })
+      logger.debug('still visible')
+      expect(debugSpy).toHaveBeenCalled()
     })
 
     it('defaults timestamp to true', () => {

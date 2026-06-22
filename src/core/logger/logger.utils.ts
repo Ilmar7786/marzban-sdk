@@ -1,6 +1,18 @@
-import { AnyType } from '@/common'
+import { AnyType, isDevEnvironment } from '@/common'
 
-import { Logger, LoggerOptions } from './logger.types'
+import { Logger, LoggerOptions, LogLevel } from './logger.types'
+
+/**
+ * Default log level when the caller does not specify one.
+ *
+ * Development environments get `info` (useful visibility during local work),
+ * while production stays at `error` to avoid noisy output. See
+ * {@link isDevEnvironment}. An explicit `level` in the logger config always
+ * takes precedence over this default.
+ */
+export function getDefaultLogLevel(): LogLevel {
+  return isDevEnvironment() ? 'info' : 'error'
+}
 
 export function isLogger(obj: unknown): obj is Logger {
   return (

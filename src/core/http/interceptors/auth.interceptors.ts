@@ -27,7 +27,6 @@ export const setupAuthInterceptors = (
       const accessToken = authService.accessToken
       if (accessToken) {
         requestConfig.headers.authorization = `Bearer ${accessToken}`
-        logger.debug('Authorization header added to request', 'AuthInterceptor')
       } else {
         logger.warn('No access token available for request', 'AuthInterceptor')
       }
@@ -46,7 +45,7 @@ export const setupAuthInterceptors = (
     async error => {
       const retryConfig = error?.config
 
-      if (error?.response?.status === 401 && !retryConfig?.sent) {
+      if (error?.response?.status === 401 && retryConfig && !retryConfig.sent) {
         logger.warn('Received 401 Unauthorized, attempting to re-authenticate', 'AuthInterceptor')
         retryConfig.sent = true
 

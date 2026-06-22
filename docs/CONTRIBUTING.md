@@ -19,13 +19,14 @@ To submit changes, follow these steps:
 1. **Fork** the repository.
 2. **Create a new branch** (`feat/your-feature` or `fix/your-bug`).
 3. **Make your changes** and ensure they follow the project's coding style.
-4. **Build the project** to ensure there are no errors.
+4. **Run the test suite** with `npm test` and **build the project** with `npm run build` to ensure there are no errors.
 5. **Commit with a meaningful message** (see below).
 6. **Push to your fork** and open a PR against the `main` branch.
 
 ### 📝 Commit Message Guidelines
 
-We follow a structured format for commit messages:
+We follow [Conventional Commits](https://www.conventionalcommits.org/), enforced
+automatically by **commitlint** via a Husky `commit-msg` hook:
 
 ```
 type: short description
@@ -38,6 +39,9 @@ Optional longer description
 - `feat: add WebSocket support for logs`
 - `fix: resolve token refresh issue`
 - `docs: update README with installation guide`
+
+Use `type!` or a `BREAKING CHANGE:` footer for breaking changes (drives the major
+version bump in the automated release).
 
 ### 🔍 Code Guidelines
 

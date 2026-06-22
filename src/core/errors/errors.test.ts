@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest'
 import { AuthError, AuthTokenError } from './categories/auth.error'
 import { ConfigurationError } from './categories/configuration.error'
 import { HttpError } from './categories/http.error'
-import { WebhookSignatureError, WebhookValidationError } from './categories/webhook.error'
+import { WebhookEnvironmentError, WebhookSignatureError, WebhookValidationError } from './categories/webhook.error'
 import { ERROR_CODES, ErrorCode } from './codes'
-import { isAuthError } from './guards/auth.guard'
+import { isAuthError, isAuthTokenError } from './guards/auth.guard'
 import { isConfigurationError } from './guards/configuration.guard'
 import { isHttpError } from './guards/http.guard'
 import { isSdkError } from './guards/sdk.guard'
-import { isWebhookSignatureError, isWebhookValidationError } from './guards/webhook.guard'
+import { isWebhookEnvironmentError, isWebhookSignatureError, isWebhookValidationError } from './guards/webhook.guard'
 import { SdkError } from './sdk.error'
 
 // ─── SdkError ────────────────────────────────────────────────────────────────
@@ -280,5 +280,33 @@ describe('isWebhookValidationError', () => {
 
   it('returns false for null', () => {
     expect(isWebhookValidationError(null)).toBe(false)
+  })
+})
+
+describe('isAuthTokenError', () => {
+  it('returns true for AuthTokenError', () => {
+    expect(isAuthTokenError(new AuthTokenError())).toBe(true)
+  })
+
+  it('returns false for a plain AuthError', () => {
+    expect(isAuthTokenError(new AuthError())).toBe(false)
+  })
+
+  it('returns false for null', () => {
+    expect(isAuthTokenError(null)).toBe(false)
+  })
+})
+
+describe('isWebhookEnvironmentError', () => {
+  it('returns true for WebhookEnvironmentError', () => {
+    expect(isWebhookEnvironmentError(new WebhookEnvironmentError())).toBe(true)
+  })
+
+  it('returns false for WebhookSignatureError', () => {
+    expect(isWebhookEnvironmentError(new WebhookSignatureError())).toBe(false)
+  })
+
+  it('returns false for null', () => {
+    expect(isWebhookEnvironmentError(null)).toBe(false)
   })
 })

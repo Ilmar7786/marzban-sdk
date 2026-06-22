@@ -139,6 +139,28 @@ describe('LogsStream', () => {
     expect((stream as AnyType).activeConnections.size).toBe(1)
   })
 
+  it('calls onError when re-authentication fails during a 403 retry', async () => {
+    const wsClient = createFakeWebSocketClient()
+    mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
+
+    // Token is present, so the initial connect succeeds; the retry's retryAuth fails.
+    authService.retryAuth.mockRejectedValueOnce(new Error('re-auth failed'))
+
+    const stream = new LogsStream(basePath, authService, logger)
+    const onMessage = vi.fn()
+    const onError = vi.fn()
+
+    await stream.connectByCore({ interval: 1, onMessage, onError })
+
+    await wsClient.trigger('error', { message: '403 Forbidden' })
+
+    expect(authService.retryAuth).toHaveBeenCalled()
+    expect(onError).toHaveBeenCalled()
+    // The failing connection was removed and no new one was established.
+    expect((stream as AnyType).activeConnections.size).toBe(0)
+    expect(mockCreate).toHaveBeenCalledTimes(1)
+  })
+
   it('calls onError after reaching max retry attempts', async () => {
     const firstWsClient = createFakeWebSocketClient()
     const secondWsClient = createFakeWebSocketClient()

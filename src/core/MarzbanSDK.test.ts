@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AnyType } from '@/common'
 
+import { HttpError } from './errors'
 import { LoggerConfig } from './logger'
 
 // ─── Shared mock references ───────────────────────────────────────────────────
@@ -312,6 +313,31 @@ describe('MarzbanSDK', () => {
       })
 
       await expect(sdk.destroy()).resolves.toBeUndefined()
+    })
+
+    it('logs the error code when closeAllConnections throws an SdkError', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+      const err = new HttpError('boom') // HttpError extends SdkError
+      mockLogsStreamInstance.closeAllConnections.mockImplementation(() => {
+        throw err
+      })
+
+      await expect(sdk.destroy()).resolves.toBeUndefined()
+      expect(mockLogger.error).toHaveBeenCalledWith(err.message, err.stack, err.code)
+    })
+
+    it('logs a generic message when closeAllConnections throws a non-Error', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+      mockLogsStreamInstance.closeAllConnections.mockImplementation(() => {
+        throw 'string failure'
+      })
+
+      await expect(sdk.destroy()).resolves.toBeUndefined()
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to close connections during destroy',
+        'string failure',
+        'MarzbanSDK'
+      )
     })
   })
 })

@@ -21,6 +21,20 @@ export interface LogOptions {
 }
 
 /**
+ * Options for constructing a {@link LogsStream}.
+ */
+export interface LogsStreamOptions {
+  /** Base URL for WebSocket connections. */
+  basePath: string
+  /** Authentication service for managing tokens. */
+  authService: AuthManager
+  /** Logger instance for logging WebSocket events. */
+  logger: Logger
+  /** Max reconnection attempts on auth (403) failures. Defaults to {@link DEFAULT_RETRIES}. */
+  maxRetries?: number
+}
+
+/**
  * Handles streaming logs from the Marzban API via WebSocket.
  * Supports both core logs and node-specific logs.
  */
@@ -33,12 +47,9 @@ export class LogsStream {
 
   /**
    * Creates an API instance for handling logs via WebSocket.
-   * @param basePath The base URL for WebSocket connections.
-   * @param authService Authentication service for managing tokens.
-   * @param logger Logger instance for logging WebSocket events.
-   * @param maxRetries Max reconnection attempts on auth (403) failures. Defaults to {@link DEFAULT_RETRIES}.
+   * @param options Configuration for the log stream. See {@link LogsStreamOptions}.
    */
-  constructor(basePath: string, authService: AuthManager, logger: Logger, maxRetries: number = DEFAULT_RETRIES) {
+  constructor({ basePath, authService, logger, maxRetries = DEFAULT_RETRIES }: LogsStreamOptions) {
     this.basePath = basePath
     this.authService = authService
     this.logger = logger

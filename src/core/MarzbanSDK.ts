@@ -141,7 +141,12 @@ export class MarzbanSDK {
     this.system = new systemApi({ client: http.client })
     this.subscription = new subscriptionApi({ client: http.client })
     this.userTemplate = new userTemplateApi({ client: http.client })
-    this.logs = new LogsStream(this._config.baseUrl, this._authService, this._logger, this._config.retries)
+    this.logs = new LogsStream({
+      basePath: this._config.baseUrl,
+      authService: this._authService,
+      logger: this._logger,
+      maxRetries: this._config.retries,
+    })
     this.webhook = new WebhookManager({ ...this._config.webhook, logger: this._logger })
   }
 

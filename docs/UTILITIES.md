@@ -25,6 +25,7 @@ Parse a human-readable size string to bytes.
 **Returns:** `number` – Size in bytes
 
 **Supported Units:**
+
 - `B` – Bytes
 - `KB`/`KIB` – Kilobytes
 - `MB`/`MIB` – Megabytes
@@ -37,19 +38,19 @@ Parse a human-readable size string to bytes.
 ```typescript
 import { parseSize } from 'marzban-sdk'
 
-parseSize('1GB')           // → 1073741824
-parseSize('1.5 GB')        // → 1610612736
-parseSize('500MB')         // → 524288000
-parseSize('2 tb')          // → 2199023255552
-parseSize('1024')          // → 1024
-parseSize(1024)            // → 1024
+parseSize('1GB') // → 1073741824
+parseSize('1.5 GB') // → 1610612736
+parseSize('500MB') // → 524288000
+parseSize('2 tb') // → 2199023255552
+parseSize('1024') // → 1024
+parseSize(1024) // → 1024
 
 // Decimal (1000 units)
-parseSize('1GB', { decimal: true })  // → 1000000000
-parseSize('1MB', { decimal: true })  // → 1000000
+parseSize('1GB', { decimal: true }) // → 1000000000
+parseSize('1MB', { decimal: true }) // → 1000000
 
 // Case insensitive
-parseSize('2gb')  // → 2147483648
+parseSize('2gb') // → 2147483648
 parseSize('2 Gb') // → 2147483648
 ```
 
@@ -70,18 +71,18 @@ Format bytes to human-readable size string.
 ```typescript
 import { formatBytes } from 'marzban-sdk'
 
-formatBytes(1073741824)              // → "1.00 GB"
-formatBytes(1610612736)              // → "1.50 GB"
-formatBytes(524288000)               // → "500.00 MB"
-formatBytes(2199023255552)           // → "2.00 TB"
+formatBytes(1073741824) // → "1.00 GB"
+formatBytes(1610612736) // → "1.50 GB"
+formatBytes(524288000) // → "500.00 MB"
+formatBytes(2199023255552) // → "2.00 TB"
 
 // With decimals option
-formatBytes(1500000000, { decimals: 1 })   // → "1.4 GB"
-formatBytes(1500000000, { decimals: 0 })   // → "1 GB"
+formatBytes(1500000000, { decimals: 1 }) // → "1.4 GB"
+formatBytes(1500000000, { decimals: 0 }) // → "1 GB"
 
 // Decimal units
-formatBytes(1000000000, { decimal: true })  // → "1.00 GB"
-formatBytes(1500000000, { decimal: true })  // → "1.50 GB"
+formatBytes(1000000000, { decimal: true }) // → "1.00 GB"
+formatBytes(1500000000, { decimal: true }) // → "1.50 GB"
 ```
 
 ### Size Parsing in User Creation
@@ -90,7 +91,7 @@ formatBytes(1500000000, { decimal: true })  // → "1.50 GB"
 import { parseSize } from 'marzban-sdk'
 
 // From user input
-const dataLimit = parseSize('10GB')  // → 10737418240
+const dataLimit = parseSize('10GB') // → 10737418240
 
 await sdk.user.addUser({
   username: 'john',
@@ -127,16 +128,18 @@ import { addToDate, addDays, addHours } from 'marzban-sdk'
 const now = new Date()
 
 // Add multiple components
-addToDate(now, { days: 30, hours: 5 })     // 30 days and 5 hours
-addToDate(now, { days: -7 })               // 7 days ago
-addToDate('2024-01-01', { days: 1 })       // Next day
-addToDate(1704067200000, { hours: 24 })    // From timestamp
+addToDate(now, { days: 30, hours: 5 }) // 30 days and 5 hours
+addToDate(now, { days: -7 }) // 7 days ago
+addToDate('2024-01-01', { days: 1 }) // Next day
+addToDate(1704067200000, { hours: 24 }) // From timestamp
 
 // Specific helpers
-addDays(now, 30)                           // Add 30 days
-addHours(now, 5)                           // Add 5 hours
-addMinutes(now, 30)                        // Add 30 minutes
-addSeconds(now, 60)                        // Add 60 seconds
+addDays(now, 30) // Add 30 days
+addHours(now, 5) // Add 5 hours
+
+// For minutes/seconds, use addToDate
+addToDate(now, { minutes: 30 }) // Add 30 minutes
+addToDate(now, { seconds: 60 }) // Add 60 seconds
 ```
 
 ### `remainingTime(targetDate)`
@@ -148,6 +151,7 @@ Calculate remaining time until a target date.
 - `targetDate` – Target date, ISO string, or timestamp
 
 **Returns:** `Remaining` object with:
+
 - `days` – Complete days remaining
 - `hours` – Hours component (0-23)
 - `minutes` – Minutes component (0-59)
@@ -167,6 +171,29 @@ console.log(`${remaining.days} days, ${remaining.hours} hours remaining`)
 if (remaining.days < 7) {
   console.log('Expires in less than a week!')
 }
+```
+
+### `humanRemaining(to, from?)`
+
+Format the remaining time as a compact human-readable string.
+
+**Returns:** `string` – e.g. `"2d 5h 3m 10s"`, `"< 1s"`, or `"expired"` when the target is in the past.
+
+```typescript
+import { humanRemaining } from 'marzban-sdk'
+
+humanRemaining(new Date(Date.now() + 90_000)) // → "1m 30s"
+humanRemaining(new Date(Date.now() - 1000)) // → "expired"
+```
+
+### `toIso(date)`
+
+Format a date as an ISO 8601 string without milliseconds.
+
+```typescript
+import { toIso } from 'marzban-sdk'
+
+toIso('2024-01-01T00:00:00.000Z') // → "2024-01-01T00:00:00Z"
 ```
 
 ### Expiration Handling
@@ -206,23 +233,23 @@ Enumeration of supported template variables (without braces).
 
 - `SERVER_IP` – Master server IPv4 address
 - `USERNAME` – User's username/login
-- `CLIENT_IP` – Client's IP address
-- `CLIENT_PORT` – Client's connecting port
-- `PROTOCOL` – Protocol being used (e.g., "vmess", "vless")
-- `METHOD` – Connection method
-- `TRANSPORT` – Transport protocol (e.g., "tcp", "ws")
-- `TLS_VERSION` – TLS version if applicable
+- `DATA_USAGE` – Amount of data consumed by the user
+- `DATA_LEFT` – Remaining data for the user
+- `DATA_LIMIT` – Total data limit for the user
+- `DAYS_LEFT` – Remaining days of subscription (integer)
+- `TIME_LEFT` – Human-friendly remaining time (days/hours/mins/secs)
+- `EXPIRE_DATE` – Expiration date in the Gregorian calendar
+- `JALALI_EXPIRE_DATE` – Expiration date in the Jalali calendar
+- `STATUS_EMOJI` – User status as an emoji (✅, ⌛️, 🪫, ❌, 🔌)
+- `PROTOCOL` – Configuration protocol (e.g., "vless", "vmess", "trojan")
+- `TRANSPORT` – Transport type (e.g., "tcp", "ws", "grpc")
 
 **Usage:**
 
 ```typescript
 import { Variable } from 'marzban-sdk'
 
-const vars: Variable[] = [
-  Variable.SERVER_IP,
-  Variable.USERNAME,
-  Variable.CLIENT_IP,
-]
+const vars: Variable[] = [Variable.SERVER_IP, Variable.USERNAME, Variable.DATA_LEFT]
 ```
 
 ### `varAs(variable)`
@@ -231,18 +258,17 @@ Format a variable name as a template token.
 
 **Parameters:**
 
-- `variable` – Variable enum value or string
+- `variable` – A `Variable` enum member
 
-**Returns:** `string` – Variable wrapped in braces (e.g., "{USERNAME}")
+**Returns:** `string` – Variable wrapped in braces, precisely typed (e.g. `"{USERNAME}"`)
 
 **Examples:**
 
 ```typescript
 import { varAs, Variable } from 'marzban-sdk'
 
-varAs(Variable.SERVER_IP)   // → "{SERVER_IP}"
-varAs(Variable.USERNAME)    // → "{USERNAME}"
-varAs('CUSTOM_VAR')         // → "{CUSTOM_VAR}"
+varAs(Variable.SERVER_IP) // → "{SERVER_IP}"
+varAs(Variable.USERNAME) // → "{USERNAME}"
 ```
 
 ### `VariableBraced` Object
@@ -254,10 +280,10 @@ Pre-wrapped template tokens for quick access.
 ```typescript
 import { VariableBraced } from 'marzban-sdk'
 
-VariableBraced.SERVER_IP    // "{SERVER_IP}"
-VariableBraced.USERNAME     // "{USERNAME}"
-VariableBraced.CLIENT_IP    // "{CLIENT_IP}"
-VariableBraced.PROTOCOL     // "{PROTOCOL}"
+VariableBraced.SERVER_IP // "{SERVER_IP}"
+VariableBraced.USERNAME // "{USERNAME}"
+VariableBraced.DATA_LEFT // "{DATA_LEFT}"
+VariableBraced.PROTOCOL // "{PROTOCOL}"
 ```
 
 ### `varExtract(template)`
@@ -301,25 +327,19 @@ Replace template variables with actual values.
 ```typescript
 import { interpolateTemplateVariables } from 'marzban-sdk'
 
-interpolateTemplateVariables(
-  'Welcome {USERNAME}! Your IP: {SERVER_IP}',
-  {
-    USERNAME: 'john',
-    SERVER_IP: '192.168.1.1',
-  }
-)
+interpolateTemplateVariables('Welcome {USERNAME}! Your IP: {SERVER_IP}', {
+  USERNAME: 'john',
+  SERVER_IP: '192.168.1.1',
+})
 // → "Welcome john! Your IP: 192.168.1.1"
 
 // Partial substitution
-interpolateTemplateVariables(
-  '{USERNAME}@{SERVER_IP}:{CLIENT_PORT}',
-  {
-    USERNAME: 'admin',
-    SERVER_IP: '10.0.0.1',
-    // CLIENT_PORT is missing, stays as-is
-  }
-)
-// → "admin@10.0.0.1:{CLIENT_PORT}"
+interpolateTemplateVariables('{USERNAME}@{SERVER_IP} ({DAYS_LEFT})', {
+  USERNAME: 'admin',
+  SERVER_IP: '10.0.0.1',
+  // DAYS_LEFT is missing, stays as-is
+})
+// → "admin@10.0.0.1 ({DAYS_LEFT})"
 ```
 
 ## Examples
@@ -333,7 +353,7 @@ async function createUser(config: {
   username: string
   email: string
   dataLimitString: string // "10GB"
-  validDays: number        // 30
+  validDays: number // 30
 }) {
   const sdk = await createMarzbanSDK({
     baseUrl: process.env.MARZBAN_URL,
@@ -343,11 +363,11 @@ async function createUser(config: {
 
   // Parse data limit from string
   const dataLimit = parseSize(config.dataLimitString)
-  
+
   // Calculate expiration date
   const expireDate = addDays(new Date(), config.validDays)
   const expireTimestamp = Math.floor(expireDate.getTime() / 1000)
-  
+
   // Create user
   const user = await sdk.user.addUser({
     username: config.username,
@@ -355,12 +375,12 @@ async function createUser(config: {
     data_limit: dataLimit,
     expire: expireTimestamp,
   })
-  
+
   // Log summary
   console.log(`✓ Created ${config.username}`)
   console.log(`  Data: ${formatBytes(dataLimit)}`)
   console.log(`  Expires: ${expireDate.toLocaleDateString()}`)
-  
+
   return user
 }
 
@@ -402,10 +422,10 @@ const sdk = await createMarzbanSDK({
   password: process.env.ADMIN_PASS,
 })
 
-sdk.webhook.on('data.usage_percent', (webhook) => {
+sdk.webhook.on('reached_usage_percent', webhook => {
   const user = webhook.user
   const usedBytes = (user.data_limit * webhook.used_percent) / 100
-  
+
   console.log(`
     User: ${webhook.username}
     Usage: ${formatBytes(usedBytes)} / ${formatBytes(user.data_limit)}
@@ -413,11 +433,11 @@ sdk.webhook.on('data.usage_percent', (webhook) => {
   `)
 })
 
-sdk.webhook.on('data.days_left', (webhook) => {
+sdk.webhook.on('reached_days_left', webhook => {
   const user = webhook.user
   const expireDate = new Date(user.expire * 1000)
   const remaining = remainingTime(expireDate)
-  
+
   console.log(`
     User: ${webhook.username}
     Expires: ${remaining.days}d ${remaining.hours}h left
@@ -439,13 +459,13 @@ async function updateUserPlan(username: string, planSizeString: string) {
 
   try {
     const dataLimit = parseSize(planSizeString)
-    
+
     if (dataLimit < parseSize('100MB')) {
       throw new Error('Plan too small, minimum 100MB')
     }
-    
+
     await sdk.user.modifyUser(username, { data_limit: dataLimit })
-    
+
     console.log(`✓ Updated to ${formatBytes(dataLimit)}`)
   } catch (e) {
     console.error('Plan update failed:', e.message)

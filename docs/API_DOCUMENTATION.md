@@ -1,548 +1,507 @@
 # API Documentation 🚀
 
-Welcome to the API documentation. This document describes the available API endpoints, their parameters, and how to use them effectively.
+Welcome to the API documentation. This document describes the available API
+endpoints grouped by namespace, their signatures, and how to call them.
 
-All API parameters are validated using **Zod schemas** at runtime. For more information about validation, see the [Validation Guide](./VALIDATION.md).
+All requests and responses are validated with **Zod schemas** at runtime. For
+more information about validation, see the [Validation Guide](./VALIDATION.md).
+
+## Calling Convention
+
+API methods are accessed through namespaces on the SDK instance — `sdk.admin`,
+`sdk.core`, `sdk.node`, `sdk.user`, `sdk.system`, `sdk.subscription`, and
+`sdk.userTemplate`:
+
+```typescript
+const sdk = await createMarzbanSDK({ baseUrl, username, password })
+
+const user = await sdk.user.getUser('john')
+const users = await sdk.user.getUsers({ limit: 20, status: 'active' })
+```
+
+Every method follows the same shape:
+
+- **Path parameters** come first as positional arguments (e.g. `username`, `nodeId`).
+- **Request bodies** are passed as a single typed `data` object (e.g. `UserCreate`).
+- **Query parameters** are passed as a single typed `params` object (e.g. `GetUsersQueryParams`).
+- The **last argument is always an optional `config`** of type
+  `Partial<RequestConfig> & { client?: Client }`. It lets you override Axios
+  options per request; the SDK injects the authenticated `client` automatically,
+  so you normally omit it.
+
+Each method returns a **Promise resolving to the parsed, fully-typed response**.
+On failure it throws an [`HttpError`](./ERRORS.md#httperror) (see the
+[Error Handling Guide](./ERRORS.md)). All payload/response types are exported
+from the package, so you get full IntelliSense for the `data`/`params` objects.
+
+> In the signatures below, the trailing `config?` argument is omitted for brevity
+> but is accepted by every method.
 
 ## Table of Contents
 
-- [AdminApi](#adminapi)
-- [CoreApi](#coreapi)
-- [DefaultApi](#defaultapi)
-- [NodeApi](#nodeapi)
-- [SubscriptionApi](#subscriptionapi)
-- [SystemApi](#systemapi)
-- [UserApi](#userapi)
-- [UserTemplateApi](#usertemplateapi)
+- [AdminApi](#-adminapi) (`sdk.admin`)
+- [CoreApi](#-coreapi) (`sdk.core`)
+- [NodeApi](#-nodeapi) (`sdk.node`)
+- [SubscriptionApi](#-subscriptionapi) (`sdk.subscription`)
+- [SystemApi](#-systemapi) (`sdk.system`)
+- [UserApi](#-userapi) (`sdk.user`)
+- [UserTemplateApi](#-usertemplateapi) (`sdk.userTemplate`)
 
 ---
 
 ## 🏢 AdminApi
 
----
-
-Description of the **AdminApi** class.
-
-### 🛠 activateAllDisabledUsers
-
-Activate all disabled users under a specific admin
-
-**Parameters:**
-
-- `username` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+Accessed via `sdk.admin`.
 
 ### 🛠 adminToken
 
-Authenticate an admin and issue a token.
+Authenticate an admin and issue a token. The SDK calls this internally during
+`authorize()` — you rarely need it directly.
 
-**Parameters:**
-
-- `username` (_string_) – Description here.
-- `password` (_string_) – Description here.
-- `grantType?` (_string | null_) – Description here.
-- `scope?` (_string_) – Description here.
-- `clientId?` (_string | null_) – Description here.
-- `clientSecret?` (_string | null_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 createAdmin
-
-Create a new admin if the current admin has sudo privileges.
-
-**Parameters:**
-
-- `adminCreate` (_AdminCreate_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 disableAllActiveUsers
-
-Disable all active users under a specific admin
-
-**Parameters:**
-
-- `username` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 getAdminUsage
-
-Retrieve the usage of given admin.
-
-**Parameters:**
-
-- `username` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 getAdmins
-
-Fetch a list of admins with optional filters for pagination and username.
-
-**Parameters:**
-
-- `offset?` (_number | null_) – Description here.
-- `limit?` (_number | null_) – Description here.
-- `username?` (_string | null_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.admin.adminToken(data: BodyAdminTokenApiAdminTokenPost)
+// data: { username, password, grant_type?, scope?, client_id?, client_secret? }
+```
 
 ### 🛠 getCurrentAdmin
 
 Retrieve the current authenticated admin.
 
-**Parameters:**
+```typescript
+sdk.admin.getCurrentAdmin()
+```
 
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 createAdmin
+
+Create a new admin (requires sudo privileges).
+
+```typescript
+sdk.admin.createAdmin(data: AdminCreate)
+```
 
 ### 🛠 modifyAdmin
 
-Modify an existing admin\'s details.
+Modify an existing admin's details.
 
-**Parameters:**
-
-- `username` (_string_) – Description here.
-- `adminModify` (_AdminModify_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.admin.modifyAdmin(username: string, data: AdminModify)
+```
 
 ### 🛠 removeAdmin
 
 Remove an admin from the database.
 
-**Parameters:**
+```typescript
+sdk.admin.removeAdmin(username: string)
+```
 
-- `username` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 getAdmins
+
+Fetch a list of admins with optional pagination and username filter.
+
+```typescript
+sdk.admin.getAdmins(params?: GetAdminsQueryParams)
+// params: { offset?, limit?, username? }
+```
+
+### 🛠 disableAllActiveUsers
+
+Disable all active users under a specific admin.
+
+```typescript
+sdk.admin.disableAllActiveUsers(username: string)
+```
+
+### 🛠 activateAllDisabledUsers
+
+Activate all disabled users under a specific admin.
+
+```typescript
+sdk.admin.activateAllDisabledUsers(username: string)
+```
 
 ### 🛠 resetAdminUsage
 
-Resets usage of admin.
+Reset the usage counters of an admin.
 
-**Parameters:**
+```typescript
+sdk.admin.resetAdminUsage(username: string)
+```
 
-- `username` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 getAdminUsage
+
+Retrieve the usage of a given admin.
+
+```typescript
+sdk.admin.getAdminUsage(username: string)
+```
 
 ---
 
 ## 🏢 CoreApi
 
----
-
-Description of the **CoreApi** class.
-
-### 🛠 getCoreConfig
-
-Get the current core configuration.
-
-**Parameters:**
-
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+Accessed via `sdk.core`.
 
 ### 🛠 getCoreStats
 
 Retrieve core statistics such as version and uptime.
 
-**Parameters:**
+```typescript
+sdk.core.getCoreStats()
+```
 
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 getCoreConfig
+
+Get the current core configuration.
+
+```typescript
+sdk.core.getCoreConfig()
+```
 
 ### 🛠 modifyCoreConfig
 
 Modify the core configuration and restart the core.
 
-**Parameters:**
-
-- `body` (_object_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.core.modifyCoreConfig(data: object) // core config JSON
+```
 
 ### 🛠 restartCore
 
 Restart the core and all connected nodes.
 
-**Parameters:**
-
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
----
-
-## 🏢 DefaultApi
-
----
-
-Description of the **DefaultApi** class.
-
-### 🛠 base
-
-**Parameters:**
-
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.core.restartCore()
+```
 
 ---
 
 ## 🏢 NodeApi
 
----
+Accessed via `sdk.node`.
 
-Description of the **NodeApi** class.
+### 🛠 getNodes
 
-### 🛠 addNode
+Retrieve a list of all nodes (sudo admins only).
 
-Add a new node to the database and optionally add it as a host.
-
-**Parameters:**
-
-- `nodeCreate` (_NodeCreate_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.node.getNodes()
+```
 
 ### 🛠 getNode
 
 Retrieve details of a specific node by its ID.
 
-**Parameters:**
+```typescript
+sdk.node.getNode(nodeId: number)
+```
 
-- `nodeId` (_number_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 addNode
 
-### 🛠 getNodeSettings
+Add a new node and optionally register it as a host.
 
-Retrieve the current node settings, including TLS certificate.
-
-**Parameters:**
-
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 getNodes
-
-Retrieve a list of all nodes. Accessible only to sudo admins.
-
-**Parameters:**
-
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 getUsage
-
-Retrieve usage statistics for nodes within a specified date range.
-
-**Parameters:**
-
-- `start?` (_string_) – Description here.
-- `end?` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.node.addNode(data: NodeCreate)
+```
 
 ### 🛠 modifyNode
 
-Update a node\'s details. Only accessible to sudo admins.
+Update a node's details (sudo admins only).
 
-**Parameters:**
-
-- `nodeId` (_number_) – Description here.
-- `nodeModify` (_NodeModify_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 reconnectNode
-
-Trigger a reconnection for the specified node. Only accessible to sudo admins.
-
-**Parameters:**
-
-- `nodeId` (_number_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.node.modifyNode(nodeId: number, data: NodeModify)
+```
 
 ### 🛠 removeNode
 
 Delete a node and remove it from xray in the background.
 
-**Parameters:**
+```typescript
+sdk.node.removeNode(nodeId: number)
+```
 
-- `nodeId` (_number_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 reconnectNode
+
+Trigger a reconnection for the specified node (sudo admins only).
+
+```typescript
+sdk.node.reconnectNode(nodeId: number)
+```
+
+### 🛠 getNodeSettings
+
+Retrieve the current node settings, including the TLS certificate.
+
+```typescript
+sdk.node.getNodeSettings()
+```
+
+### 🛠 getUsage
+
+Retrieve usage statistics for nodes within a date range.
+
+```typescript
+sdk.node.getUsage(params?: GetUsageQueryParams) // { start?, end? }
+```
 
 ---
 
 ## 🏢 SubscriptionApi
 
----
-
-Description of the **SubscriptionApi** class.
-
-### 🛠 userGetUsage
-
-Fetches the usage statistics for the user within a specified date range.
-
-**Parameters:**
-
-- `token` (_string_) – Description here.
-- `start?` (_string_) – Description here.
-- `end?` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+Accessed via `sdk.subscription`.
 
 ### 🛠 userSubscription
 
-Provides a subscription link based on the user agent (Clash, V2Ray, etc.).
+Provide a subscription link based on the user agent (Clash, V2Ray, etc.).
 
-**Parameters:**
-
-- `token` (_string_) – Description here.
-- `userAgent?` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 userSubscriptionInfo
-
-Retrieves detailed information about the user\'s subscription.
-
-**Parameters:**
-
-- `token` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.subscription.userSubscription(token: string, headers?: UserSubscriptionHeaderParams)
+```
 
 ### 🛠 userSubscriptionWithClientType
 
-Provides a subscription link based on the specified client type (e.g., Clash, V2Ray).
+Provide a subscription link for a specific client type (e.g. `clash`, `v2ray`).
 
-**Parameters:**
+```typescript
+sdk.subscription.userSubscriptionWithClientType(
+  clientType: string,
+  token: string,
+  headers?: UserSubscriptionWithClientTypeHeaderParams,
+)
+```
 
-- `clientType` (_string_) – Description here.
-- `token` (_string_) – Description here.
-- `userAgent?` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 userSubscriptionInfo
+
+Retrieve detailed information about a user's subscription.
+
+```typescript
+sdk.subscription.userSubscriptionInfo(token: string)
+```
+
+### 🛠 userGetUsage
+
+Fetch the usage statistics for a user within a date range.
+
+```typescript
+sdk.subscription.userGetUsage(token: string, params?: UserGetUsageQueryParams)
+// params: { start?, end? }
+```
 
 ---
 
 ## 🏢 SystemApi
 
----
-
-Description of the **SystemApi** class.
-
-### 🛠 getHosts
-
-Get a list of proxy hosts grouped by inbound tag.
-
-**Parameters:**
-
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 getInbounds
-
-Retrieve inbound configurations grouped by protocol.
-
-**Parameters:**
-
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+Accessed via `sdk.system`.
 
 ### 🛠 getSystemStats
 
 Fetch system stats including memory, CPU, and user metrics.
 
-**Parameters:**
+```typescript
+sdk.system.getSystemStats()
+```
 
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 getInbounds
+
+Retrieve inbound configurations grouped by protocol.
+
+```typescript
+sdk.system.getInbounds()
+```
+
+### 🛠 getHosts
+
+Get a list of proxy hosts grouped by inbound tag.
+
+```typescript
+sdk.system.getHosts()
+```
 
 ### 🛠 modifyHosts
 
 Modify proxy hosts and update the configuration.
 
-**Parameters:**
-
-- `requestBody` (_{ [key_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.system.modifyHosts(data: ModifyHostsMutationRequest)
+// data: a record of inbound tag → array of proxy host definitions
+```
 
 ---
 
 ## 🏢 UserApi
 
----
-
-Description of the **UserApi** class.
-
-### 🛠 activeNextPlan
-
-Reset user by next plan
-
-**Parameters:**
-
-- `username` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+Accessed via `sdk.user`.
 
 ### 🛠 addUser
 
-Add a new user - **username**: 3 to 32 characters, can include a-z, 0-9, and underscores. - **status**: User\'s status, defaults to `active`. Special rules if `on_hold`. - **expire**: UTC timestamp for account expiration. Use `0` for unlimited. - **data_limit**: Max data usage in bytes (e.g., `1073741824` for 1GB). `0` means unlimited. - **data_limit_reset_strategy**: Defines how/if data limit resets. `no_reset` means it never resets. - **proxies**: Dictionary of protocol settings (e.g., `vmess`, `vless`). - **inbounds**: Dictionary of protocol tags to specify inbound connections. - **note**: Optional text field for additional user information or notes. - **on_hold_timeout**: UTC timestamp when `on_hold` status should start or end. - **on_hold_expire_duration**: Duration (in seconds) for how long the user should stay in `on_hold` status. - **next_plan**: Next user plan (resets after use).
+Add a new user. Notable `UserCreate` fields: `username` (3–32 chars, `a-z`,
+`0-9`, `_`), `status` (defaults to `active`; special rules for `on_hold`),
+`expire` (UTC timestamp, `0` = unlimited), `data_limit` (bytes, `0` = unlimited),
+`data_limit_reset_strategy`, `proxies`, `inbounds`, `note`, `on_hold_timeout`,
+`on_hold_expire_duration`, `next_plan`.
 
-**Parameters:**
-
-- `userCreate` (_UserCreate_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 deleteExpiredUsers
-
-Delete users who have expired within the specified date range. - **expired_after** UTC datetime (optional) - **expired_before** UTC datetime (optional) - At least one of expired_after or expired_before must be provided
-
-**Parameters:**
-
-- `expiredAfter?` (_string | null_) – Description here.
-- `expiredBefore?` (_string | null_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 getExpiredUsers
-
-Get users who have expired within the specified date range. - **expired_after** UTC datetime (optional) - **expired_before** UTC datetime (optional) - At least one of expired_after or expired_before must be provided for filtering - If both are omitted, returns all expired users
-
-**Parameters:**
-
-- `expiredAfter?` (_string | null_) – Description here.
-- `expiredBefore?` (_string | null_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.user.addUser(data: UserCreate)
+```
 
 ### 🛠 getUser
 
-Get user information
+Get user information.
 
-**Parameters:**
-
-- `username` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 getUserUsage
-
-Get users usage
-
-**Parameters:**
-
-- `username` (_string_) – Description here.
-- `start?` (_string_) – Description here.
-- `end?` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 getUsers
-
-Get all users
-
-**Parameters:**
-
-- `offset?` (_number_) – Description here.
-- `limit?` (_number_) – Description here.
-- `username?` (_Array<string>_) – Description here.
-- `search?` (_string | null_) – Description here.
-- `admin?` (_Array<string> | null_) – Description here.
-- `status?` (_UserStatus_) – Description here.
-- `sort?` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 getUsersUsage
-
-Get all users usage
-
-**Parameters:**
-
-- `start?` (_string_) – Description here.
-- `end?` (_string_) – Description here.
-- `admin?` (_Array<string> | null_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.user.getUser(username: string)
+```
 
 ### 🛠 modifyUser
 
-Modify an existing user - **username**: Cannot be changed. Used to identify the user. - **status**: User\'s new status. Can be \'active\', \'disabled\', \'on_hold\', \'limited\', or \'expired\'. - **expire**: UTC timestamp for new account expiration. Set to `0` for unlimited, `null` for no change. - **data_limit**: New max data usage in bytes (e.g., `1073741824` for 1GB). Set to `0` for unlimited, `null` for no change. - **data_limit_reset_strategy**: New strategy for data limit reset. Options include \'daily\', \'weekly\', \'monthly\', or \'no_reset\'. - **proxies**: Dictionary of new protocol settings (e.g., `vmess`, `vless`). Empty dictionary means no change. - **inbounds**: Dictionary of new protocol tags to specify inbound connections. Empty dictionary means no change. - **note**: New optional text for additional user information or notes. `null` means no change. - **on_hold_timeout**: New UTC timestamp for when `on_hold` status should start or end. Only applicable if status is changed to \'on_hold\'. - **on_hold_expire_duration**: New duration (in seconds) for how long the user should stay in `on_hold` status. Only applicable if status is changed to \'on_hold\'. - **next_plan**: Next user plan (resets after use). Note: Fields set to `null` or omitted will not be modified.
+Modify an existing user. Fields set to `null` or omitted are not changed;
+`username` cannot be changed.
 
-**Parameters:**
-
-- `username` (_string_) – Description here.
-- `userModify` (_UserModify_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.user.modifyUser(username: string, data: UserModify)
+```
 
 ### 🛠 removeUser
 
-Remove a user
+Remove a user.
 
-**Parameters:**
+```typescript
+sdk.user.removeUser(username: string)
+```
 
-- `username` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 getUsers
+
+Get all users with optional filtering and pagination.
+
+```typescript
+sdk.user.getUsers(params?: GetUsersQueryParams)
+// params: { offset?, limit?, username?: string[], search?, admin?: string[], status?: UserStatus, sort? }
+```
 
 ### 🛠 resetUserDataUsage
 
-Reset user data usage
+Reset a single user's data usage.
 
-**Parameters:**
-
-- `username` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.user.resetUserDataUsage(username: string)
+```
 
 ### 🛠 resetUsersDataUsage
 
-Reset all users data usage
+Reset data usage for all users.
 
-**Parameters:**
-
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.user.resetUsersDataUsage()
+```
 
 ### 🛠 revokeUserSubscription
 
-Revoke users subscription (Subscription link and proxies)
+Revoke a user's subscription (regenerates the subscription link and proxies).
 
-**Parameters:**
+```typescript
+sdk.user.revokeUserSubscription(username: string)
+```
 
-- `username` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 activeNextPlan
+
+Reset a user by their next plan.
+
+```typescript
+sdk.user.activeNextPlan(username: string)
+```
 
 ### 🛠 setOwner
 
-Set a new owner (admin) for a user.
+Set a new owner (admin) for a user. `admin_username` is required.
 
-**Parameters:**
+```typescript
+sdk.user.setOwner(username: string, params: SetOwnerQueryParams)
+// params: { admin_username }
+```
 
-- `username` (_string_) – Description here.
-- `adminUsername` (_string_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 getUserUsage
+
+Get a single user's usage within a date range.
+
+```typescript
+sdk.user.getUserUsage(username: string, params?: GetUserUsageQueryParams)
+// params: { start?, end? }
+```
+
+### 🛠 getUsersUsage
+
+Get usage for all users within a date range.
+
+```typescript
+sdk.user.getUsersUsage(params?: GetUsersUsageQueryParams)
+// params: { start?, end?, admin?: string[] }
+```
+
+### 🛠 getExpiredUsers
+
+Get users who expired within a date range. At least one of `expired_after` /
+`expired_before` is used for filtering; omitting both returns all expired users.
+
+```typescript
+sdk.user.getExpiredUsers(params?: GetExpiredUsersQueryParams)
+// params: { expired_after?, expired_before? }
+```
+
+### 🛠 deleteExpiredUsers
+
+Delete users who expired within a date range. At least one of `expired_after` /
+`expired_before` must be provided.
+
+```typescript
+sdk.user.deleteExpiredUsers(params?: DeleteExpiredUsersQueryParams)
+// params: { expired_after?, expired_before? }
+```
 
 ---
 
 ## 🏢 UserTemplateApi
 
----
-
-Description of the **UserTemplateApi** class.
-
-### 🛠 addUserTemplate
-
-Add a new user template - **name** can be up to 64 characters - **data_limit** must be in bytes and larger or equal to 0 - **expire_duration** must be in seconds and larger or equat to 0 - **inbounds** dictionary of protocol:inbound_tags, empty means all inbounds
-
-**Parameters:**
-
-- `userTemplateCreate` (_UserTemplateCreate_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
-
-### 🛠 getUserTemplateEndpoint
-
-Get User Template information with id
-
-**Parameters:**
-
-- `templateId` (_number_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+Accessed via `sdk.userTemplate`.
 
 ### 🛠 getUserTemplates
 
-Get a list of User Templates with optional pagination
+Get a list of user templates with optional pagination.
 
-**Parameters:**
+```typescript
+sdk.userTemplate.getUserTemplates(params?: GetUserTemplatesQueryParams)
+// params: { offset?, limit? }
+```
 
-- `offset?` (_number_) – Description here.
-- `limit?` (_number_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+### 🛠 getUserTemplateEndpoint
+
+Get a single user template by ID.
+
+```typescript
+sdk.userTemplate.getUserTemplateEndpoint(templateId: number)
+```
+
+### 🛠 addUserTemplate
+
+Add a new user template. Notable fields: `name` (≤ 64 chars), `data_limit`
+(bytes, ≥ 0), `expire_duration` (seconds, ≥ 0), `inbounds` (protocol → inbound
+tags; empty means all inbounds).
+
+```typescript
+sdk.userTemplate.addUserTemplate(data: UserTemplateCreate)
+```
 
 ### 🛠 modifyUserTemplate
 
-Modify User Template - **name** can be up to 64 characters - **data_limit** must be in bytes and larger or equal to 0 - **expire_duration** must be in seconds and larger or equat to 0 - **inbounds** dictionary of protocol:inbound_tags, empty means all inbounds
+Modify a user template.
 
-**Parameters:**
-
-- `templateId` (_number_) – Description here.
-- `userTemplateModify` (_UserTemplateModify_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.userTemplate.modifyUserTemplate(templateId: number, data: UserTemplateModify)
+```
 
 ### 🛠 removeUserTemplate
 
-Remove a User Template by its ID
+Remove a user template by its ID.
 
-**Parameters:**
-
-- `templateId` (_number_) – Description here.
-- `options?` (_RawAxiosRequestConfig_) – Description here.
+```typescript
+sdk.userTemplate.removeUserTemplate(templateId: number)
+```

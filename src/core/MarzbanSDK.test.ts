@@ -52,8 +52,8 @@ const mockLogsStreamCtor = vi.fn()
 class MockLogsStream {
   closeAllConnections = vi.fn()
 
-  constructor(baseUrl: string, auth: AnyType, logger: AnyType, maxRetries?: number) {
-    mockLogsStreamCtor(baseUrl, auth, logger, maxRetries)
+  constructor(options: AnyType) {
+    mockLogsStreamCtor(options)
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     mockLogsStreamInstance = this
   }
@@ -207,15 +207,15 @@ describe('MarzbanSDK', () => {
   })
 
   describe('constructor – LogsStream', () => {
-    it('creates LogsStream with baseUrl, authService, and logger', () => {
+    it('creates LogsStream with basePath, authService, and logger', () => {
       new MarzbanSDK(BASE_CONFIG)
 
-      expect(mockLogsStreamCtor).toHaveBeenCalledWith(
-        BASE_CONFIG.baseUrl,
-        expect.any(MockAuthManager),
-        expect.any(Object),
-        undefined // config.retries is filled by validateConfig in production
-      )
+      expect(mockLogsStreamCtor).toHaveBeenCalledWith({
+        basePath: BASE_CONFIG.baseUrl,
+        authService: expect.any(MockAuthManager),
+        logger: expect.any(Object),
+        maxRetries: undefined, // config.retries is filled by validateConfig in production
+      })
     })
 
     it('exposes the LogsStream instance as sdk.logs', () => {

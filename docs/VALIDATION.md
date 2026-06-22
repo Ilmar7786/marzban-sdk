@@ -28,9 +28,9 @@ Validation happens automatically during initialization and request processing.
 When you create an SDK instance, the configuration is validated:
 
 ```typescript
-import { MarzbanSDK } from 'marzban-sdk'
+import { createMarzbanSDK } from 'marzban-sdk'
 
-const sdk = new MarzbanSDK({
+const sdk = await createMarzbanSDK({
   baseUrl: 'https://api.example.com',
   username: 'admin',
   password: 'secret',
@@ -42,10 +42,11 @@ const sdk = new MarzbanSDK({
 **Validation Rules:**
 
 - `baseUrl` – Required, must be a valid URL string
-- `username` – Required, string
-- `password` – Required, string
+- `username` – Required, non-empty string
+- `password` – Required, non-empty string
 - `token` – Optional, JWT token string
-- `retries` – Optional, number, default 3
+- `timeout` – Optional, non-negative integer (ms), default 30000 (`0` disables the timeout)
+- `retries` – Optional, non-negative integer, default 3
 - `authenticateOnInit` – Optional, boolean, default true
 - `logger` – Optional, false or LoggerOptions or Logger instance
 - `webhook` – Optional, `{ secret?: string }`
@@ -53,10 +54,10 @@ const sdk = new MarzbanSDK({
 **Error Handling:**
 
 ```typescript
-import { ConfigurationError } from 'marzban-sdk'
+import { createMarzbanSDK, ConfigurationError } from 'marzban-sdk'
 
 try {
-  const sdk = new MarzbanSDK({
+  const sdk = await createMarzbanSDK({
     baseUrl: '', // Invalid: empty URL
     username: 'admin',
     password: 'secret',
@@ -86,19 +87,15 @@ The `ConfigurationError.details` contains Zod validation issues:
 Incoming webhooks are validated using discriminated union schemas:
 
 ```typescript
-import { WebhookManager } from 'marzban-sdk'
-
-const webhookManager = new WebhookManager({
-  secret: process.env.WEBHOOK_SECRET,
-  logger: sdk.logger,
-})
-
-// Validates against WebhookSchema
-webhookManager.handleRequest(req)
-
-// If validation fails, throws WebhookValidationError
-// with details from Zod validation
+// Webhooks received via sdk.webhook are validated against WebhookSchema.
+// handleWebhook is async and throws WebhookValidationError on invalid payloads
+// (and WebhookSignatureError when a configured signature does not match).
+await sdk.webhook.handleWebhook(rawBody, signature)
 ```
+
+> If you construct a `WebhookManager` directly, note that its `logger` option is
+> required (the SDK does not expose `sdk.logger`). Pass `false`, `LoggerOptions`,
+> or your own `Logger` implementation.
 
 **Webhook Schemas:**
 
@@ -163,6 +160,7 @@ export const WebhookSchema = z.discriminatedUnion('action', [
 ```
 
 This ensures:
+
 - Correct shape for each action
 - Type narrowing in event listeners
 - Fast validation (discriminator matched first)
@@ -180,8 +178,12 @@ import { WebhookType } from 'marzban-sdk'
 const webhook: WebhookType = {
   action: 'user_created',
   username: 'john',
-  by: { /* admin */ },
-  user: { /* user data */ },
+  by: {
+    /* admin */
+  },
+  user: {
+    /* user data */
+  },
   enqueued_at: 1234567890,
   send_at: 1234567890,
   tries: 0,
@@ -237,10 +239,12 @@ Validation errors are caught and wrapped in SDK error types:
 ### Configuration Validation Error
 
 ```typescript
-import { ConfigurationError } from 'marzban-sdk'
+import { createMarzbanSDK, ConfigurationError } from 'marzban-sdk'
 
 try {
-  const sdk = new MarzbanSDK({ /* invalid */ })
+  const sdk = await createMarzbanSDK({
+    /* invalid */
+  })
 } catch (e) {
   if (e instanceof ConfigurationError) {
     const issues = e.details
@@ -257,7 +261,7 @@ try {
 import { WebhookValidationError } from 'marzban-sdk'
 
 try {
-  webhookManager.handleRequest(req)
+  await sdk.webhook.handleWebhook(rawBody, signature)
 } catch (e) {
   if (e instanceof WebhookValidationError) {
     // details: Zod validation error
@@ -289,7 +293,8 @@ try {
     role: 'user',
   })
 } catch (e) {
-  console.log('Validation error:', e.errors)
+  // Zod (v4) exposes issues on the ZodError
+  console.log('Validation error:', (e as z.ZodError).issues)
 }
 
 // Safe parse (doesn't throw)
@@ -309,9 +314,13 @@ if (result.success) {
 import { z } from 'zod/v4'
 
 const userInputSchema = z.object({
-  username: z.string().min(3).max(32).regex(/^[a-z0-9_]+$/),
+  username: z
+    .string()
+    .min(3)
+    .max(32)
+    .regex(/^[a-z0-9_]+$/),
   email: z.string().email().optional(),
-  data_limit: z.string().transform((val) => parseSize(val)), // Custom transform
+  data_limit: z.string().transform(val => parseSize(val)), // Custom transform
   expire: z.number().positive().optional(),
 })
 
@@ -385,7 +394,7 @@ async function initializeSDK(config: Record<string, unknown>) {
     return { success: true, sdk }
   } catch (e) {
     if (e instanceof ConfigurationError) {
-      const errors = e.details.map((issue) => ({
+      const errors = e.details.map(issue => ({
         field: issue.path.join('.'),
         message: issue.message,
       }))
@@ -404,7 +413,7 @@ const result = await initializeSDK({
 
 if (!result.success) {
   console.error('Configuration validation failed:')
-  result.errors.forEach((e) => {
+  result.errors.forEach(e => {
     console.error(`  ${e.field}: ${e.message}`)
   })
   process.exit(1)

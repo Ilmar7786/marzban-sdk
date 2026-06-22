@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AnyType } from '@/common'
 
+import { HttpError } from './errors'
 import { LoggerConfig } from './logger'
 
 // ─── Shared mock references ───────────────────────────────────────────────────
@@ -51,8 +52,8 @@ const mockLogsStreamCtor = vi.fn()
 class MockLogsStream {
   closeAllConnections = vi.fn()
 
-  constructor(baseUrl: string, auth: AnyType, logger: AnyType) {
-    mockLogsStreamCtor(baseUrl, auth, logger)
+  constructor(options: AnyType) {
+    mockLogsStreamCtor(options)
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     mockLogsStreamInstance = this
   }
@@ -206,14 +207,15 @@ describe('MarzbanSDK', () => {
   })
 
   describe('constructor – LogsStream', () => {
-    it('creates LogsStream with baseUrl, authService, and logger', () => {
+    it('creates LogsStream with basePath, authService, and logger', () => {
       new MarzbanSDK(BASE_CONFIG)
 
-      expect(mockLogsStreamCtor).toHaveBeenCalledWith(
-        BASE_CONFIG.baseUrl,
-        expect.any(MockAuthManager),
-        expect.any(Object)
-      )
+      expect(mockLogsStreamCtor).toHaveBeenCalledWith({
+        basePath: BASE_CONFIG.baseUrl,
+        authService: expect.any(MockAuthManager),
+        logger: expect.any(Object),
+        maxRetries: undefined, // config.retries is filled by validateConfig in production
+      })
     })
 
     it('exposes the LogsStream instance as sdk.logs', () => {
@@ -281,24 +283,14 @@ describe('MarzbanSDK', () => {
       expect(mockAuthInstance.authenticate).toHaveBeenCalledWith('admin', 's3cr3t')
     })
 
-    it('returns the existing authPromise when already authenticating (no force)', () => {
+    it('returns the promise produced by authenticate (dedup is AuthManager’s responsibility)', () => {
       const sdk = new MarzbanSDK(BASE_CONFIG)
       const ongoingPromise = Promise.resolve()
-      mockAuthInstance.isAuthenticating = true
-      mockAuthInstance.authPromise = ongoingPromise
+      mockAuthInstance.authenticate.mockReturnValueOnce(ongoingPromise)
 
-      // Must be the exact same reference – callers can await it safely.
+      // authorize delegates straight to authenticate; concurrent-call
+      // de-duplication is covered by AuthManager's own unit tests.
       expect(sdk.authorize()).toBe(ongoingPromise)
-      expect(mockAuthInstance.authenticate).not.toHaveBeenCalled()
-    })
-
-    it('bypasses the in-flight check when force = true', async () => {
-      const sdk = new MarzbanSDK(BASE_CONFIG)
-      mockAuthInstance.isAuthenticating = true
-      mockAuthInstance.authPromise = Promise.resolve()
-
-      await sdk.authorize(true)
-
       expect(mockAuthInstance.authenticate).toHaveBeenCalledWith('admin', 's3cr3t')
     })
   })
@@ -321,6 +313,31 @@ describe('MarzbanSDK', () => {
       })
 
       await expect(sdk.destroy()).resolves.toBeUndefined()
+    })
+
+    it('logs the error code when closeAllConnections throws an SdkError', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+      const err = new HttpError('boom') // HttpError extends SdkError
+      mockLogsStreamInstance.closeAllConnections.mockImplementation(() => {
+        throw err
+      })
+
+      await expect(sdk.destroy()).resolves.toBeUndefined()
+      expect(mockLogger.error).toHaveBeenCalledWith(err.message, err.stack, err.code)
+    })
+
+    it('logs a generic message when closeAllConnections throws a non-Error', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+      mockLogsStreamInstance.closeAllConnections.mockImplementation(() => {
+        throw 'string failure'
+      })
+
+      await expect(sdk.destroy()).resolves.toBeUndefined()
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to close connections during destroy',
+        'string failure',
+        'MarzbanSDK'
+      )
     })
   })
 })
@@ -350,14 +367,14 @@ describe('createMarzbanSDK', () => {
     expect(mockAuthInstance.authenticate).not.toHaveBeenCalled()
   })
 
-  it('skips authentication when authenticateOnInit is not provided', async () => {
-    await createMarzbanSDK(BASE_CONFIG)
-    expect(mockAuthInstance.authenticate).not.toHaveBeenCalled()
+  it('authenticates when authenticateOnInit is not provided (defaults to true)', async () => {
+    await createMarzbanSDK({ ...BASE_CONFIG, authenticateOnInit: true })
+    expect(mockAuthInstance.authenticate).toHaveBeenCalledWith('admin', 's3cr3t')
   })
 
-  it('creates its own logger (separate from the one in the constructor)', async () => {
+  it('creates a single logger (in the constructor only)', async () => {
     await createMarzbanSDK({ ...BASE_CONFIG, authenticateOnInit: true })
-    // Called once by the factory, once by the MarzbanSDK constructor.
-    expect(mockCreateLogger).toHaveBeenCalledTimes(2)
+    // The factory no longer builds its own logger from unvalidated config.
+    expect(mockCreateLogger).toHaveBeenCalledTimes(1)
   })
 })

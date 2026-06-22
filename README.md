@@ -73,17 +73,20 @@ The `Config` object is used to initialize the MarzbanSDK instance. Below are all
 | Name                 | Type                             | Required | Default | Description                                                                                        |
 | -------------------- | -------------------------------- | -------- | ------- | -------------------------------------------------------------------------------------------------- |
 | `baseUrl`            | string                           | Yes      | —       | The base URL of the Marzban API instance. Example: `https://api.example.com`                       |
-| `username`           | string                           | Yes      | —       | The username for authentication.                                                                   |
-| `password`           | string                           | Yes      | —       | The password for authentication.                                                                   |
+| `username`           | string                           | Yes      | —       | The username for authentication (non-empty).                                                       |
+| `password`           | string                           | Yes      | —       | The password for authentication (non-empty).                                                       |
 | `token`              | string                           | No       | —       | Optional JWT token for direct authorization. If provided, SDK uses this token for requests.        |
-| `retries`            | number                           | No       | 3       | Number of automatic retries for failed HTTP requests.                                              |
+| `timeout`            | number                           | No       | 30000   | Request timeout in milliseconds. Set `0` to disable the timeout (wait forever).                    |
+| `retries`            | number                           | No       | 3       | Number of automatic retries for failed HTTP requests and WebSocket reconnections.                  |
 | `authenticateOnInit` | boolean                          | No       | true    | If true (default), SDK authenticates automatically on init. If false, call `authorize()` manually. |
-| `logger`             | false \| LoggerOptions \| Logger | No       | —       | Configure SDK logging behavior or supply a custom logger implementation.                           |
+| `logger`             | false \| LoggerOptions \| Logger | No       | env     | Logging config or a custom logger. Default level: `info` in dev, `error` in production.            |
+| `webhook`            | { secret?: string }              | No       | —       | Webhook handling options. Set `secret` to enable HMAC-SHA256 signature verification.               |
 
 ## 📝 Logging
 
 MarzbanSDK supports flexible logger configuration via the `logger` option.
 
+- **Environment-aware default** – with no `level` set, the SDK logs at `info` in development and `error` in production (detected from `process.env.NODE_ENV`)
 - Disable SDK logs with `logger: false`
 - Use built-in logger settings with `logger: { level, timestamp }`
 - Provide a custom logger object with `debug`, `info`, `warn`, and `error` methods
@@ -118,10 +121,12 @@ try {
 }
 ```
 
-You can also force re-authentication at any time:
+You can re-authenticate at any time by calling `authorize()` again. Concurrent
+calls are de-duplicated — if a login is already in progress, the same promise is
+returned:
 
 ```typescript
-await sdk.authorize(true) // Force a new login, even if already authenticated
+await sdk.authorize() // Performs a fresh login using the stored credentials
 ```
 
 See [Error Handling Guide](./docs/ERRORS.md) for comprehensive error handling patterns.
@@ -152,7 +157,7 @@ const user = await sdk.user.getUser('username')
 console.log(user)
 
 // Get an authorization token
-const token = sdk.getAuthToken()
+const token = await sdk.getAuthToken()
 console.log(token)
 ```
 

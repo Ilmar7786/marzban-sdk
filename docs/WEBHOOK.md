@@ -41,6 +41,20 @@ Each webhook includes:
 
 All webhooks are **fully typed** with Zod schemas for validation.
 
+### Server-Side Only
+
+Webhook handling is **server-to-server** and must run in a server-side runtime
+(Node.js, Bun, Deno, or an edge/worker runtime). Signature verification needs
+the shared secret, which must never be shipped to a browser client.
+
+`parseWebhook`, `handleWebhook`, and `verifyWebhookSignature` throw
+`WebhookEnvironmentError` when invoked in a browser (detected via `window` +
+`document`). Web Workers and Node-like runtimes are not treated as browsers and
+work normally.
+
+Signature verification uses the **Web Crypto API** (`crypto.subtle`) under the
+hood, so no `node:crypto` module is bundled for browser builds.
+
 ### Accessing Webhooks
 
 Access the webhook manager through the SDK instance:
@@ -104,7 +118,7 @@ const sdk = await createMarzbanSDK({
 })
 
 // Subscribe to specific event
-sk.webhook.on('user_created', webhook => {
+sdk.webhook.on('user_created', webhook => {
   console.log(`User created: ${webhook.username}`)
 })
 ```
@@ -252,8 +266,8 @@ The webhook manager provides two methods for processing webhooks:
 Parse and validate a webhook payload without emitting events:
 
 ```typescript
-// Parse webhook
-const payloads = sdk.webhook.parseWebhook(req.body, req.headers['x-webhook-secret'] as string)
+// Parse webhook (async)
+const payloads = await sdk.webhook.parseWebhook(req.body, req.headers['x-webhook-secret'] as string)
 
 // Process parsed payloads
 for (const payload of payloads) {
@@ -263,10 +277,10 @@ for (const payload of payloads) {
 
 **Important:**
 
-- If secret is configured, you MUST pass the raw request body (Buffer or string)
-- This is necessary for signature verification
-- Returns array of validated webhooks
-- Throws `WebhookSignatureError` or `WebhookValidationError` on failure
+- `parseWebhook` is **async** — always `await` it.
+- If a secret is configured, you MUST pass the raw request body (`string`, `Uint8Array`, or `ArrayBuffer`). This is required for signature verification.
+- Returns an array of validated webhooks.
+- Throws `WebhookSignatureError`, `WebhookValidationError`, or `WebhookEnvironmentError` (see [server-side only](#server-side-only)) on failure.
 
 ### Handle Webhook
 
@@ -285,9 +299,13 @@ if (emitted) {
 
 1. Signature verification (if secret configured)
 2. Payload validation (Zod schemas)
-3. Batch event emission (if multiple payloads)
+3. Batch event emission (always, with all payloads)
 4. Individual action events emission
 5. Wildcard '\*' event emission
+
+`handleWebhook` awaits all listeners (including async ones) before resolving, so
+once the `await` returns you can safely respond to the request knowing
+processing has completed. It returns `true` if at least one event had listeners.
 
 ## Advanced Usage
 
@@ -298,15 +316,17 @@ You can build your own webhook handler using the provided utilities:
 ```typescript
 import { validateWebhookPayload, verifyWebhookSignature, type WebhookType } from 'marzban-sdk'
 
-async function customWebhookHandler(rawBody: unknown, signature: string, secret: string) {
-  // 1. Verify signature
-  const isValid = verifyWebhookSignature(signature, secret, rawBody as Buffer)
+// Server-side only: verifyWebhookSignature throws WebhookEnvironmentError in the browser.
+async function customWebhookHandler(rawBody: string | Uint8Array, signature: string, secret: string) {
+  // 1. Verify signature (async — pass the raw body directly, no Buffer needed)
+  const isValid = await verifyWebhookSignature(signature, secret, rawBody)
   if (!isValid) {
     throw new Error('Invalid signature')
   }
 
-  // 2. Validate payload
-  const webhooks = validateWebhookPayload(rawBody)
+  // 2. Validate payload (parse JSON first if the body is raw bytes/string)
+  const data = typeof rawBody === 'string' ? JSON.parse(rawBody) : JSON.parse(new TextDecoder().decode(rawBody))
+  const webhooks = validateWebhookPayload(data)
 
   // 3. Process webhooks
   for (const webhook of webhooks) {
@@ -322,7 +342,7 @@ async function customWebhookHandler(rawBody: unknown, signature: string, secret:
 Access webhook utilities for custom implementations:
 
 ```typescript
-import { validateWebhookPayload, verifyWebhookSignature, toBuffer } from 'marzban-sdk'
+import { validateWebhookPayload, verifyWebhookSignature } from 'marzban-sdk'
 
 // Validate payload
 try {
@@ -333,8 +353,8 @@ try {
   }
 }
 
-// Verify signature
-const isValid = verifyWebhookSignature(signatureHeader, secret, toBuffer(rawBody))
+// Verify signature (async; rawBody may be a string, Uint8Array, or ArrayBuffer)
+const isValid = await verifyWebhookSignature(signatureHeader, secret, rawBody)
 
 if (!isValid) {
   console.log('Signature invalid')
@@ -368,7 +388,25 @@ Object.values(ACTIONS).forEach(action => {
 
 ## Error Handling
 
-The webhook manager throws two types of errors:
+The webhook manager throws three types of errors:
+
+### WebhookEnvironmentError
+
+Thrown when webhook verification is attempted in a browser environment (see
+[Server-Side Only](#server-side-only)):
+
+```typescript
+import { WebhookEnvironmentError } from 'marzban-sdk'
+
+try {
+  await sdk.webhook.handleWebhook(rawBody, signature)
+} catch (e) {
+  if (e instanceof WebhookEnvironmentError) {
+    // Webhooks must be handled server-side, not in the browser.
+    console.error('Move webhook handling to your server')
+  }
+}
+```
 
 ### WebhookSignatureError
 
@@ -425,19 +463,19 @@ const sdk = await createMarzbanSDK({
 })
 
 // Subscribe to user creation
-sk.webhook.on('user_created', webhook => {
+sdk.webhook.on('user_created', webhook => {
   console.log(`✓ New user: ${webhook.username}`)
   console.log(`  Created by: ${webhook.by.username}`)
   console.log(`  Email: ${webhook.user.email}`)
 })
 
 // Subscribe to user deletion
-sk.webhook.on('user_deleted', webhook => {
+sdk.webhook.on('user_deleted', webhook => {
   console.log(`✗ User deleted: ${webhook.username}`)
 })
 
 // Subscribe to data usage
-sk.webhook.on('reached_usage_percent', webhook => {
+sdk.webhook.on('reached_usage_percent', webhook => {
   console.log(`📊 ${webhook.username}: ${webhook.used_percent}% used`)
 
   if (webhook.used_percent >= 80) {
@@ -588,6 +626,7 @@ The webhook module exports everything needed for custom implementations:
 
 - `WebhookSignatureError` – Signature verification failed
 - `WebhookValidationError` – Payload validation failed
+- `WebhookEnvironmentError` – Verification attempted in a browser (server-side only)
 
 ## See Also
 

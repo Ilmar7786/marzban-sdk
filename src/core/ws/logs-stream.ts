@@ -1,4 +1,5 @@
 import { AnyType } from '@/common'
+import { DEFAULT_RETRIES, DEFAULT_WS_INTERVAL } from '@/config'
 import { AuthManager } from '@/core/auth'
 import { Logger } from '@/core/logger'
 
@@ -20,6 +21,20 @@ export interface LogOptions {
 }
 
 /**
+ * Options for constructing a {@link LogsStream}.
+ */
+export interface LogsStreamOptions {
+  /** Base URL for WebSocket connections. */
+  basePath: string
+  /** Authentication service for managing tokens. */
+  authService: AuthManager
+  /** Logger instance for logging WebSocket events. */
+  logger: Logger
+  /** Max reconnection attempts on auth (403) failures. Defaults to {@link DEFAULT_RETRIES}. */
+  maxRetries?: number
+}
+
+/**
  * Handles streaming logs from the Marzban API via WebSocket.
  * Supports both core logs and node-specific logs.
  */
@@ -28,18 +43,17 @@ export class LogsStream {
   private authService: AuthManager
   private logger: Logger
   private activeConnections: Set<BaseWebSocketClient> = new Set()
-  private maxRetries = 3
+  private maxRetries: number
 
   /**
    * Creates an API instance for handling logs via WebSocket.
-   * @param basePath The base URL for WebSocket connections.
-   * @param authService Authentication service for managing tokens.
-   * @param logger Logger instance for logging WebSocket events.
+   * @param options Configuration for the log stream. See {@link LogsStreamOptions}.
    */
-  constructor(basePath: string, authService: AuthManager, logger: Logger) {
+  constructor({ basePath, authService, logger, maxRetries = DEFAULT_RETRIES }: LogsStreamOptions) {
     this.basePath = basePath
     this.authService = authService
     this.logger = logger
+    this.maxRetries = maxRetries
     this.logger.debug('LogsStream initialized', 'LogsStream')
   }
 
@@ -68,27 +82,35 @@ export class LogsStream {
    * @returns A function to close the WebSocket connection.
    */
   private async connect(endpoint: string, options: LogOptions, retryCount = 0): Promise<HandleCloseConnection> {
-    this.logger.info(`Establishing WebSocket connection to: ${endpoint}`, 'LogsStream')
+    this.logger.debug(`Establishing WebSocket connection to: ${endpoint}`, 'LogsStream')
     await this.ensureAuthenticated()
 
     const wsUrl = configurationUrlWs({
       basePath: this.basePath,
       endpoint,
       token: this.authService.accessToken,
-      interval: options?.interval ?? 1,
+      interval: options?.interval ?? DEFAULT_WS_INTERVAL,
     })
 
-    this.logger.debug(`WebSocket URL generated: ${wsUrl}`, 'LogsStream')
+    // Redact the token query param so JWTs never leak into logs.
+    const redactedUrl = wsUrl.replace(/(token=)[^&]+/i, '$1***')
+    this.logger.debug(`WebSocket URL generated: ${redactedUrl}`, 'LogsStream')
     const wsClient: BaseWebSocketClient = await WebSocketClient.create(wsUrl)
     this.activeConnections.add(wsClient)
+
+    // Mutable ref so the close handle returned to the caller always points to
+    // the currently-active socket, even after a 403 retry replaces it.
+    let closeActive: HandleCloseConnection = () => {
+      this.logger.debug(`Closing WebSocket connection: ${endpoint}`, 'LogsStream')
+      wsClient.close()
+      this.activeConnections.delete(wsClient)
+    }
 
     wsClient.on('open', () => {
       this.logger.info(`WebSocket connection established: ${endpoint}`, 'LogsStream')
     })
 
     wsClient.on('message', async ({ data }) => {
-      this.logger.debug(`WebSocket message received from ${endpoint}`, 'LogsStream')
-      // Forward possibly transformed payload
       options.onMessage(data as AnyType)
     })
 
@@ -99,7 +121,6 @@ export class LogsStream {
       if (errorMessage.includes('403')) {
         this.logger.warn(`Received 403 Forbidden (retry ${retryCount + 1}/${this.maxRetries})`, 'LogsStream')
 
-        // Close and remove the failing connection before attempting a retry
         wsClient.close()
         this.activeConnections.delete(wsClient)
 
@@ -109,9 +130,15 @@ export class LogsStream {
           return
         }
 
-        this.logger.info('Attempting to re-authenticate and retry connection', 'LogsStream')
-        await this.authService.retryAuth()
-        return this.connect(endpoint, options, retryCount + 1)
+        this.logger.debug('Attempting to re-authenticate and retry connection', 'LogsStream')
+        try {
+          await this.authService.retryAuth()
+          const newClose = await this.connect(endpoint, options, retryCount + 1)
+          closeActive = newClose
+        } catch {
+          options.onError?.(event)
+        }
+        return
       }
 
       options.onError?.(event)
@@ -122,11 +149,7 @@ export class LogsStream {
       this.logger.info(`WebSocket connection closed: ${endpoint}`, 'LogsStream')
     })
 
-    return () => {
-      this.logger.debug(`Closing WebSocket connection: ${endpoint}`, 'LogsStream')
-      wsClient.close()
-      this.activeConnections.delete(wsClient)
-    }
+    return () => closeActive()
   }
 
   /**
@@ -135,7 +158,7 @@ export class LogsStream {
    * @returns A function to close the WebSocket connection.
    */
   async connectByCore(options: LogOptions) {
-    this.logger.info('Connecting to core logs WebSocket', 'LogsStream')
+    this.logger.debug('Connecting to core logs WebSocket', 'LogsStream')
     return this.connect('/api/core/logs', options)
   }
 
@@ -146,7 +169,7 @@ export class LogsStream {
    * @returns A function to close the WebSocket connection.
    */
   async connectByNode(nodeId: number | string, options: LogOptions) {
-    this.logger.info(`Connecting to node logs WebSocket for node ID: ${nodeId}`, 'LogsStream')
+    this.logger.debug(`Connecting to node logs WebSocket for node ID: ${nodeId}`, 'LogsStream')
     return this.connect(`/api/node/${nodeId}/logs`, options)
   }
 
@@ -160,6 +183,6 @@ export class LogsStream {
     this.activeConnections.forEach(wsClient => wsClient.close())
     this.activeConnections.clear()
 
-    this.logger.info('All WebSocket connections closed successfully', 'LogsStream')
+    this.logger.debug('All WebSocket connections closed successfully', 'LogsStream')
   }
 }

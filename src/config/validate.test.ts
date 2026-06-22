@@ -15,7 +15,7 @@ describe('validateConfig', () => {
 
     expect(result).toEqual({
       ...baseConfig,
-      timeout: 0,
+      timeout: 30_000,
       retries: 3,
       authenticateOnInit: true,
     })

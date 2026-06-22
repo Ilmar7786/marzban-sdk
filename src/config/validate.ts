@@ -1,7 +1,7 @@
 import { ConfigurationError } from '../core/errors'
-import { Config, configSchema } from './config'
+import { configSchema, ValidatedConfig } from './config'
 
-export function validateConfig(config: unknown): Config {
+export function validateConfig(config: unknown): ValidatedConfig {
   const { data, success, error } = configSchema.safeParse(config)
 
   if (!success) {

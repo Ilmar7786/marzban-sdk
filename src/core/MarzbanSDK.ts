@@ -1,4 +1,4 @@
-import { Config, validateConfig } from '@/config'
+import { Config, validateConfig, ValidatedConfig } from '@/config'
 import { adminApi, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTemplateApi } from '@/gen/api'
 
 import { AuthManager } from './auth'
@@ -14,7 +14,7 @@ import { LogsStream } from './ws'
  * Provides access to API modules (AdminApi, CoreApi, etc.) and handles authentication, retries, and interceptors.
  */
 export class MarzbanSDK {
-  private readonly _config: Config
+  private readonly _config: ValidatedConfig
   private readonly _authService: AuthManager
   private readonly _logger: Logger
 
@@ -95,8 +95,12 @@ export class MarzbanSDK {
   /**
    * Creates an instance of MarzbanSDK.
    *
+   * Prefer the {@link createMarzbanSDK} factory, which also authenticates on
+   * init when configured. The config is validated here, so constructing
+   * directly is safe too.
+   *
    * @param {Config} config - Configuration object for the SDK.
-   * @throws {Error} If required credentials (`username` or `password`) are missing.
+   * @throws {ConfigurationError} If the configuration fails schema validation.
    *
    * @example
    * // Automatic authentication (default)
@@ -123,7 +127,7 @@ export class MarzbanSDK {
     const storageAuth: AuthManager['storage'] = {
       username: this._config.username,
       password: this._config.password,
-      accessToken: this._config?.token,
+      accessToken: this._config.token,
     }
     this._authService = new AuthManager(storageAuth, this._logger)
 
@@ -137,8 +141,15 @@ export class MarzbanSDK {
     this.system = new systemApi({ client: http.client })
     this.subscription = new subscriptionApi({ client: http.client })
     this.userTemplate = new userTemplateApi({ client: http.client })
-    this.logs = new LogsStream(this._config.baseUrl, this._authService, this._logger)
+    this.logs = new LogsStream({
+      basePath: this._config.baseUrl,
+      authService: this._authService,
+      logger: this._logger,
+      maxRetries: this._config.retries,
+    })
     this.webhook = new WebhookManager({ ...this._config.webhook, logger: this._logger })
+
+    this._logger.debug('MarzbanSDK instance created', 'MarzbanSDK')
   }
 
   /**
@@ -160,10 +171,8 @@ export class MarzbanSDK {
   /**
    * Performs user authentication with stored credentials.
    *
-   * If a login is already in progress and `force` is false, returns the existing promise.
-   * If `force` is true or no login is in progress, starts a new authentication request.
+   * If a login is already in progress, returns the existing promise (deduplicates concurrent calls).
    *
-   * @param {boolean} [force=false] - If true, forces a new authentication request even if one is in progress.
    * @returns {Promise<void>} Resolves on successful authentication; rejects with {@link AuthError} on failure.
    *
    * @example
@@ -175,43 +184,43 @@ export class MarzbanSDK {
    *     // Handle auth error
    *   }
    * }
-   *
-   * @example
-   * // Force re-authentication (e.g., token refresh)
-   * await sdk.authorize(true);
    */
-  authorize(force = false): Promise<void> {
-    if (this._authService.isAuthenticating && !force) {
-      return this._authService.authPromise!
-    }
+  authorize(): Promise<void> {
+    // Concurrent-call de-duplication is handled inside AuthManager.authenticate,
+    // which returns the in-flight promise when a login is already running.
     return this._authService.authenticate(this._config.username, this._config.password)
   }
 
+  /**
+   * Releases resources held by the SDK.
+   *
+   * Closes all active WebSocket log streams. Safe to call multiple times;
+   * any error while closing connections is logged and swallowed.
+   *
+   * @returns {Promise<void>} Resolves once cleanup has completed.
+   */
   async destroy(): Promise<void> {
+    this._logger.info('Destroying SDK and closing active connections', 'MarzbanSDK')
     try {
       this.logs.closeAllConnections()
     } catch (err) {
       if (err instanceof SdkError) {
-        this._logger.error(err.details, err.stack, err.code)
-      }
-      if (err instanceof Error) {
+        this._logger.error(err.message, err.stack, err.code)
+      } else if (err instanceof Error) {
         this._logger.error(err.message, err.stack, 'MarzbanSDK')
+      } else {
+        this._logger.error('Failed to close connections during destroy', err, 'MarzbanSDK')
       }
     }
   }
 }
 
 export const createMarzbanSDK = async (config: Config): Promise<MarzbanSDK> => {
-  const logger = createLogger(config.logger)
-  const sdk = new MarzbanSDK(config)
+  const validatedConfig = validateConfig(config)
+  const sdk = new MarzbanSDK(validatedConfig)
 
-  // --- Authentication ---
-  if (config.authenticateOnInit) {
-    logger.info('Performing initial authentication as configured', 'MarzbanSDK')
+  if (validatedConfig.authenticateOnInit) {
     await sdk.authorize()
-    logger.info('Initial authentication completed successfully', 'MarzbanSDK')
-  } else {
-    logger.debug('Skipping initial authentication as configured', 'MarzbanSDK')
   }
 
   return sdk

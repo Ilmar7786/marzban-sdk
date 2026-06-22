@@ -20,9 +20,10 @@ MarzbanSDK errors are categorized by type, allowing you to handle different fail
 - **Configuration Errors** – Invalid SDK configuration
 - **Authentication Errors** – Login failures, token issues
 - **HTTP Errors** – Network failures, API errors
-- **Webhook Errors** – Invalid webhook signatures or payloads
+- **Webhook Errors** – Invalid webhook signatures, payloads, or browser misuse
 
 All errors extend `SdkError`, which provides:
+
 - `code` – Machine-readable error code
 - `message` – Human-readable message
 - `details` – Additional context (varies by error type)
@@ -30,25 +31,34 @@ All errors extend `SdkError`, which provides:
 
 ## Error Codes
 
-All possible error codes are defined in `ERROR_CODES`:
+All possible error codes are defined in `ERROR_CODES`. Each entry is a
+`{ code, message }` pair:
 
 ```typescript
 export const ERROR_CODES = {
-  CONFIG_INVALID: 'Invalid SDK configuration',
-  
-  NETWORK_HTTP_ERROR: 'HTTP request failed',
-  
-  AUTH_TOKEN_FAILED: 'Failed to retrieve access token',
-  AUTH_FAILED: 'Authentication failed',
-  
-  LOGGER_INVALID: 'Invalid logger option: must be false, LoggerOptions, or Logger instance',
-  
-  WEBHOOK_SIGNATURE_ERROR: 'Invalid webhook signature',
-  WEBHOOK_VALIDATION_ERROR: 'Invalid webhook payload',
+  CONFIG_INVALID: { code: 'CONFIG_INVALID', message: 'Invalid SDK configuration' },
+
+  NETWORK_HTTP_ERROR: { code: 'NETWORK_HTTP_ERROR', message: 'HTTP request failed' },
+
+  AUTH_TOKEN_FAILED: { code: 'AUTH_TOKEN_FAILED', message: 'Failed to retrieve access token' },
+  AUTH_FAILED: { code: 'AUTH_FAILED', message: 'Authentication failed' },
+
+  LOGGER_INVALID: {
+    code: 'LOGGER_INVALID',
+    message: 'Invalid logger option: must be false, LoggerOptions, or Logger instance',
+  },
+
+  WEBHOOK_SIGNATURE_ERROR: { code: 'WEBHOOK_SIGNATURE_ERROR', message: 'Invalid webhook signature' },
+  WEBHOOK_VALIDATION_ERROR: { code: 'WEBHOOK_VALIDATION_ERROR', message: 'Invalid webhook payload' },
+  WEBHOOK_ENVIRONMENT_ERROR: {
+    code: 'WEBHOOK_ENVIRONMENT_ERROR',
+    message: 'Webhook signature verification is not supported in the browser…',
+  },
 } as const
 ```
 
-You can reference error codes using the `ErrorCode` type:
+The `ErrorCode` type is the union of the `code` string literals (e.g.
+`'CONFIG_INVALID' | 'AUTH_FAILED' | …`), which is what `SdkError.code` exposes:
 
 ```typescript
 import type { ErrorCode } from 'marzban-sdk'
@@ -77,9 +87,9 @@ export class SdkError<T = unknown> extends Error {
 import { SdkError } from 'marzban-sdk'
 
 const error = SdkError.fromCode('CONFIG_INVALID', { reason: 'baseUrl is required' })
-console.log(error.code)     // 'CONFIG_INVALID'
-console.log(error.message)  // 'Invalid SDK configuration'
-console.log(error.details)  // { reason: 'baseUrl is required' }
+console.log(error.code) // 'CONFIG_INVALID'
+console.log(error.message) // 'Invalid SDK configuration'
+console.log(error.details) // { reason: 'baseUrl is required' }
 ```
 
 **Serializing errors:**
@@ -117,10 +127,12 @@ try {
 Thrown when SDK configuration is invalid:
 
 ```typescript
-import { ConfigurationError } from 'marzban-sdk'
+import { createMarzbanSDK, ConfigurationError } from 'marzban-sdk'
 
 try {
-  const sdk = new MarzbanSDK({ /* invalid config */ })
+  const sdk = await createMarzbanSDK({
+    /* invalid config */
+  })
 } catch (e) {
   if (e instanceof ConfigurationError) {
     console.log('Configuration error:', e.details)
@@ -137,49 +149,55 @@ Thrown when HTTP requests fail:
 
 ```typescript
 import { HttpError } from 'marzban-sdk'
+import type { AxiosError } from 'axios'
 
 try {
   await sdk.user.getUser('john')
 } catch (e) {
   if (e instanceof HttpError) {
-    console.log('HTTP error:', e.code, e.details.statusCode)
+    // e.code is the SDK code ('NETWORK_HTTP_ERROR').
+    // e.details holds the underlying cause — usually the original AxiosError.
+    const cause = e.details as AxiosError
+    console.log('HTTP error:', e.code, cause.response?.status)
   }
 }
 ```
 
-**Details:** `{ statusCode: number, response?: unknown, originalError?: Error }`
+**Details:** `details` is typed `unknown`. In practice it holds the underlying
+cause — typically the original `AxiosError` (with `response`, `config`, `code`,
+…), or a string message for synthetic failures. Narrow it before use.
 
-#### WebhookSignatureError / WebhookValidationError
+#### WebhookSignatureError / WebhookValidationError / WebhookEnvironmentError
 
 Thrown when webhook processing fails:
 
 ```typescript
-import { WebhookSignatureError, WebhookValidationError } from 'marzban-sdk'
+import { WebhookSignatureError, WebhookValidationError, WebhookEnvironmentError } from 'marzban-sdk'
 
 try {
-  webhook.handleRequest(req)
+  await sdk.webhook.handleWebhook(rawBody, signature)
 } catch (e) {
   if (e instanceof WebhookSignatureError) {
     console.log('Invalid webhook signature')
   } else if (e instanceof WebhookValidationError) {
     console.log('Invalid webhook payload:', e.details)
+  } else if (e instanceof WebhookEnvironmentError) {
+    console.log('Webhooks must be handled server-side, not in the browser')
   }
 }
 ```
 
 **Details:** Validation error details or signature mismatch info.
+`WebhookEnvironmentError` is thrown when verification is attempted in a browser —
+see the [Webhook Guide](./WEBHOOK.md#server-side-only).
 
 ## Error Guards
 
 Error guards are type-safe utility functions to check error types:
 
 ```typescript
-import {
-  isAuthError,
-  isConfigError,
-  isHttpError,
-  isSdkError,
-} from 'marzban-sdk'
+import { isAuthError, isHttpError, isSdkError } from 'marzban-sdk'
+import type { AxiosError } from 'axios'
 
 try {
   await sdk.authorize()
@@ -189,7 +207,7 @@ try {
     console.log(e.code) // typed as ErrorCode
   } else if (isHttpError(e)) {
     // e is narrowed to HttpError
-    console.log(e.details.statusCode)
+    console.log((e.details as AxiosError).response?.status)
   } else if (isSdkError(e)) {
     // e is narrowed to SdkError
     console.log(e.code, e.message)
@@ -199,11 +217,14 @@ try {
 
 ### Available Guards
 
-- `isAuthError(error)` – Check if error is `AuthError`
-- `isConfigError(error)` – Check if error is `ConfigurationError`
-- `isHttpError(error)` – Check if error is `HttpError`
 - `isSdkError(error)` – Check if error is any `SdkError`
-- `isWebhookError(error)` – Check if error is webhook-related
+- `isAuthError(error)` – Check if error is `AuthError`
+- `isAuthTokenError(error)` – Check if error is `AuthTokenError`
+- `isConfigurationError(error)` – Check if error is `ConfigurationError`
+- `isHttpError(error)` – Check if error is `HttpError`
+- `isWebhookSignatureError(error)` – Check if error is `WebhookSignatureError`
+- `isWebhookValidationError(error)` – Check if error is `WebhookValidationError`
+- `isWebhookEnvironmentError(error)` – Check if error is `WebhookEnvironmentError`
 
 ## Error Handling Patterns
 
@@ -211,7 +232,7 @@ try {
 
 ```typescript
 async function setupSDK() {
-  const sdk = new MarzbanSDK({
+  const sdk = await createMarzbanSDK({
     baseUrl: 'https://api.example.com',
     username: 'admin',
     password: 'secret',
@@ -244,9 +265,9 @@ try {
   if (isSdkError(e)) {
     console.log(`Error [${e.code}]: ${e.message}`)
     console.log('Details:', e.details)
-    
+
     // Handle specific scenarios
-    if (e instanceof HttpError && e.details.statusCode === 404) {
+    if (e instanceof HttpError && (e.details as { response?: { status?: number } }).response?.status === 404) {
       console.log('User not found')
     }
   }
@@ -281,7 +302,11 @@ async function deleteMultipleUsers(usernames: string[]) {
 ### Pattern 4: Custom Error Handling Middleware
 
 ```typescript
-function createErrorHandler(logger: Logger) {
+// Use your own logger (Winston, Pino, console, …) — the SDK does not expose its
+// internal logger instance.
+const logger = console
+
+function createErrorHandler() {
   return (error: unknown) => {
     if (isSdkError(error)) {
       logger.error(`[${error.code}] ${error.message}`, {
@@ -291,10 +316,11 @@ function createErrorHandler(logger: Logger) {
 
       // Send to error tracking service
       if (error instanceof HttpError) {
+        const cause = error.details as { response?: { status?: number }; config?: { url?: string } }
         sendToErrorTracking({
           type: 'http_error',
-          statusCode: error.details.statusCode,
-          endpoint: error.details.response?.url,
+          statusCode: cause.response?.status,
+          endpoint: cause.config?.url,
         })
       }
     } else {
@@ -303,7 +329,7 @@ function createErrorHandler(logger: Logger) {
   }
 }
 
-const handleError = createErrorHandler(sdk.logger)
+const handleError = createErrorHandler()
 
 try {
   await sdk.authorize()
@@ -336,7 +362,8 @@ async function initializeSDK() {
     }
 
     if (isHttpError(error)) {
-      console.error(`✗ HTTP Error: ${error.details.statusCode}`)
+      const status = (error.details as { response?: { status?: number } }).response?.status
+      console.error(`✗ HTTP Error: ${status}`)
       console.error(`  Failed to reach ${process.env.MARZBAN_URL}`)
       console.error('  Check your MARZBAN_URL environment variable')
       process.exit(1)
@@ -369,10 +396,7 @@ const sdk = await createMarzbanSDK({
 app.post('/webhook', async (req, res) => {
   try {
     // handleWebhook validates signature and parses payload
-    await sdk.webhook.handleWebhook(
-      req.body,
-      req.headers['x-webhook-secret'] as string
-    )
+    await sdk.webhook.handleWebhook(req.body, req.headers['x-webhook-secret'] as string)
     res.status(200).json({ status: 'ok' })
   } catch (e) {
     if (e instanceof WebhookSignatureError) {

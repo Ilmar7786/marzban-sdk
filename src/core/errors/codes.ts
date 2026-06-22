@@ -18,6 +18,12 @@ export const ERROR_CODES = {
 
   WEBHOOK_SIGNATURE_ERROR: { code: 'WEBHOOK_SIGNATURE_ERROR', message: 'Invalid webhook signature' },
   WEBHOOK_VALIDATION_ERROR: { code: 'WEBHOOK_VALIDATION_ERROR', message: 'Invalid webhook payload' },
+  WEBHOOK_ENVIRONMENT_ERROR: {
+    code: 'WEBHOOK_ENVIRONMENT_ERROR',
+    message:
+      'Webhook signature verification is not supported in the browser. ' +
+      'Handle webhooks on a server-side runtime (Node.js, Bun, Deno, or an edge/worker runtime) so the secret is never exposed to clients.',
+  },
 } as const satisfies Record<string, FormatCode>
 
 export type ErrorMap = typeof ERROR_CODES

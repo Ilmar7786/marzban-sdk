@@ -78,9 +78,19 @@ export class LogsStream {
       interval: options?.interval ?? 1,
     })
 
-    this.logger.debug(`WebSocket URL generated: ${wsUrl}`, 'LogsStream')
+    // Redact the token query param so JWTs never leak into logs.
+    const redactedUrl = wsUrl.replace(/(token=)[^&]+/i, '$1***')
+    this.logger.debug(`WebSocket URL generated: ${redactedUrl}`, 'LogsStream')
     const wsClient: BaseWebSocketClient = await WebSocketClient.create(wsUrl)
     this.activeConnections.add(wsClient)
+
+    // Mutable ref so the close handle returned to the caller always points to
+    // the currently-active socket, even after a 403 retry replaces it.
+    let closeActive: HandleCloseConnection = () => {
+      this.logger.debug(`Closing WebSocket connection: ${endpoint}`, 'LogsStream')
+      wsClient.close()
+      this.activeConnections.delete(wsClient)
+    }
 
     wsClient.on('open', () => {
       this.logger.info(`WebSocket connection established: ${endpoint}`, 'LogsStream')
@@ -88,7 +98,6 @@ export class LogsStream {
 
     wsClient.on('message', async ({ data }) => {
       this.logger.debug(`WebSocket message received from ${endpoint}`, 'LogsStream')
-      // Forward possibly transformed payload
       options.onMessage(data as AnyType)
     })
 
@@ -99,7 +108,6 @@ export class LogsStream {
       if (errorMessage.includes('403')) {
         this.logger.warn(`Received 403 Forbidden (retry ${retryCount + 1}/${this.maxRetries})`, 'LogsStream')
 
-        // Close and remove the failing connection before attempting a retry
         wsClient.close()
         this.activeConnections.delete(wsClient)
 
@@ -110,8 +118,14 @@ export class LogsStream {
         }
 
         this.logger.info('Attempting to re-authenticate and retry connection', 'LogsStream')
-        await this.authService.retryAuth()
-        return this.connect(endpoint, options, retryCount + 1)
+        try {
+          await this.authService.retryAuth()
+          const newClose = await this.connect(endpoint, options, retryCount + 1)
+          closeActive = newClose
+        } catch {
+          options.onError?.(event)
+        }
+        return
       }
 
       options.onError?.(event)
@@ -122,11 +136,7 @@ export class LogsStream {
       this.logger.info(`WebSocket connection closed: ${endpoint}`, 'LogsStream')
     })
 
-    return () => {
-      this.logger.debug(`Closing WebSocket connection: ${endpoint}`, 'LogsStream')
-      wsClient.close()
-      this.activeConnections.delete(wsClient)
-    }
+    return () => closeActive()
   }
 
   /**

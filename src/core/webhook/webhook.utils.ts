@@ -25,16 +25,15 @@ export function verifyWebhookSignature(
   if (!secret) return true // secret not configured
   if (!signature) return false
 
+  // Buffer.from(_, 'hex') never throws on invalid input — it silently drops
+  // bad characters and truncates odd-length strings. Validate hex explicitly.
+  if (signature.length % 2 !== 0 || !/^[0-9a-f]*$/i.test(signature)) return false
+
   const hmac = crypto.createHmac('sha256', secret)
   hmac.update(data)
   const expected = hmac.digest() // Buffer
 
-  let actual: Buffer
-  try {
-    actual = Buffer.from(signature, 'hex')
-  } catch {
-    return false
-  }
+  const actual = Buffer.from(signature, 'hex')
 
   if (actual.length !== expected.length) return false
 

@@ -281,7 +281,7 @@ describe('MarzbanSDK', () => {
       expect(mockAuthInstance.authenticate).toHaveBeenCalledWith('admin', 's3cr3t')
     })
 
-    it('returns the existing authPromise when already authenticating (no force)', () => {
+    it('returns the existing authPromise when already authenticating', () => {
       const sdk = new MarzbanSDK(BASE_CONFIG)
       const ongoingPromise = Promise.resolve()
       mockAuthInstance.isAuthenticating = true
@@ -290,16 +290,6 @@ describe('MarzbanSDK', () => {
       // Must be the exact same reference – callers can await it safely.
       expect(sdk.authorize()).toBe(ongoingPromise)
       expect(mockAuthInstance.authenticate).not.toHaveBeenCalled()
-    })
-
-    it('bypasses the in-flight check when force = true', async () => {
-      const sdk = new MarzbanSDK(BASE_CONFIG)
-      mockAuthInstance.isAuthenticating = true
-      mockAuthInstance.authPromise = Promise.resolve()
-
-      await sdk.authorize(true)
-
-      expect(mockAuthInstance.authenticate).toHaveBeenCalledWith('admin', 's3cr3t')
     })
   })
 

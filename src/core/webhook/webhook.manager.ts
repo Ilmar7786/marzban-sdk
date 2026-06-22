@@ -1,5 +1,5 @@
 import { SafeEventEmitter, toBuffer } from '@/common'
-import { WebhookSignatureError, WebhookValidationError } from '@/core/errors'
+import { SdkError, WebhookSignatureError, WebhookValidationError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
 import { WebhookType } from './webhook.schema'
@@ -144,7 +144,8 @@ export class WebhookManager {
 
       const ok = verifyWebhookSignature(signature, this._secret, toBuffer(rawBody))
       if (!ok) {
-        this._logger.error('Webhook signature verification failed', { rawBody, signature }, 'WebhookManager')
+        // Do not log rawBody — it may contain user PII. The signature is a hash, not a secret.
+        this._logger.error('Webhook signature verification failed', { signature }, 'WebhookManager')
         throw new WebhookSignatureError()
       } else {
         this._logger.debug('Webhook signature verified successfully', 'WebhookManager')
@@ -212,6 +213,7 @@ export class WebhookManager {
       this._logger.info(`Webhook processing completed, emitted=${emitted}`, 'WebhookManager')
     } catch (err) {
       this._logger.error('Error handling webhook', err, 'WebhookManager')
+      if (err instanceof SdkError) throw err
       throw new WebhookValidationError(err)
     }
 
@@ -229,7 +231,7 @@ export class WebhookManager {
     payload: WebhookEventMap[E]
   ): Promise<boolean> {
     this._logger.debug(`Dispatching event: ${String(event)}`, 'WebhookManager')
-    const result = await this._emitter.emit(event, payload)
+    const result = await this._emitter.emitAsync(event, payload)
     this._logger.info(`Event dispatched: ${String(event)}, result=${result}`, 'WebhookManager')
     return result
   }

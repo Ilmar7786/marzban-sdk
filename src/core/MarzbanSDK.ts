@@ -160,10 +160,8 @@ export class MarzbanSDK {
   /**
    * Performs user authentication with stored credentials.
    *
-   * If a login is already in progress and `force` is false, returns the existing promise.
-   * If `force` is true or no login is in progress, starts a new authentication request.
+   * If a login is already in progress, returns the existing promise (deduplicates concurrent calls).
    *
-   * @param {boolean} [force=false] - If true, forces a new authentication request even if one is in progress.
    * @returns {Promise<void>} Resolves on successful authentication; rejects with {@link AuthError} on failure.
    *
    * @example
@@ -175,13 +173,9 @@ export class MarzbanSDK {
    *     // Handle auth error
    *   }
    * }
-   *
-   * @example
-   * // Force re-authentication (e.g., token refresh)
-   * await sdk.authorize(true);
    */
-  authorize(force = false): Promise<void> {
-    if (this._authService.isAuthenticating && !force) {
+  authorize(): Promise<void> {
+    if (this._authService.isAuthenticating) {
       return this._authService.authPromise!
     }
     return this._authService.authenticate(this._config.username, this._config.password)
@@ -192,10 +186,11 @@ export class MarzbanSDK {
       this.logs.closeAllConnections()
     } catch (err) {
       if (err instanceof SdkError) {
-        this._logger.error(err.details, err.stack, err.code)
-      }
-      if (err instanceof Error) {
+        this._logger.error(err.message, err.stack, err.code)
+      } else if (err instanceof Error) {
         this._logger.error(err.message, err.stack, 'MarzbanSDK')
+      } else {
+        this._logger.error('Failed to close connections during destroy', err, 'MarzbanSDK')
       }
     }
   }

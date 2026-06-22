@@ -39,24 +39,18 @@ export const configureHttpClient = (
   logger.debug('Setting up authentication interceptors', 'HttpClient')
   setupAuthInterceptors(instanceAxios, authService, config, logger)
 
-  logger.debug(`Configuring retry logic: ${config?.retries ?? 3} retries with exponential backoff`, 'HttpClient')
-  axiosRetry(instanceAxios, {
-    retries: config?.retries ?? 3,
-    retryDelay: retryCount => {
-      const delay = retryCount * 1000
-      logger.debug(`Retry attempt ${retryCount}, delay: ${delay}ms`, 'HttpClient')
-      return delay
-    },
-  })
+  const retries = config?.retries ?? 3
+  // Exponential backoff with a 30s cap: 1s, 2s, 4s, 8s, ...
+  const MAX_RETRY_DELAY = 30_000
+  const retryDelay = (retryCount: number): number => {
+    const delay = Math.min(2 ** (retryCount - 1) * 1000, MAX_RETRY_DELAY)
+    logger.debug(`Retry attempt ${retryCount}, delay: ${delay}ms`, 'HttpClient')
+    return delay
+  }
 
-  axiosRetry(instancePublic, {
-    retries: config?.retries ?? 3,
-    retryDelay: retryCount => {
-      const delay = retryCount * 1000
-      logger.debug(`Public instance retry attempt ${retryCount}, delay: ${delay}ms`, 'HttpClient')
-      return delay
-    },
-  })
+  logger.debug(`Configuring retry logic: ${retries} retries with exponential backoff`, 'HttpClient')
+  axiosRetry(instanceAxios, { retries, retryDelay })
+  axiosRetry(instancePublic, { retries, retryDelay })
 
   logger.info('HTTP client configuration completed successfully', 'HttpClient')
 

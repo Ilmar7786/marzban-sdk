@@ -1,0 +1,9 @@
+dist
+coverage
+package-lock.json
+
+# docs-site shares the root Prettier rules; only its build artifacts are ignored
+docs-site/.next
+docs-site/out
+docs-site/.source
+docs-site/next-env.d.ts

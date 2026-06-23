@@ -1,0 +1,12 @@
+{
+  "pages": [
+    "index",
+    "---Guide---",
+    "get-started",
+    "core-concepts",
+    "api-reference",
+    "advanced",
+    "utilities",
+    "resources"
+  ]
+}

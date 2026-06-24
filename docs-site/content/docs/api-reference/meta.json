@@ -1,5 +1,0 @@
-{
-  "title": "API Reference",
-  "icon": "Code",
-  "pages": ["index", "users", "admins", "nodes", "system", "core", "subscriptions", "user-templates"]
-}

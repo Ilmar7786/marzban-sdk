@@ -16,10 +16,9 @@ interface CodePreviewProps {
 export async function CodePreview({ code, lang = 'ts', title = 'example.ts' }: CodePreviewProps) {
   const rendered = await highlight(code, {
     lang,
-    themes: { light: 'github-light', dark: 'github-dark' },
     components: {
       pre: props => (
-        <Base.CodeBlock className="my-0">
+        <Base.CodeBlock className="my-0 code-figure">
           <Base.Pre {...props} />
         </Base.CodeBlock>
       ),

@@ -243,6 +243,10 @@ html > body[data-scroll-locked] {
   line-height: 1.65;
 }
 
+.code-figure > div[role='region'] {
+  max-height: none;
+}
+
 /* ── Docs ↔ landing unity ──────────────────────────────────────────────────
    Carry the landing's design language into the docs: the page title uses the
    brand gradient, and content cards pick up the brand accent on hover — so a

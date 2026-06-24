@@ -5,6 +5,7 @@ import { gitConfig, npmPackage } from '@/lib/shared'
 
 import { GithubMark } from './landing/header-github'
 import { LanguageSwitcher } from './landing/language-switcher'
+import { Tooltip } from './ui/tooltip'
 
 /** Ghost icon button matching Fumadocs' own sidebar control styling. */
 const iconButton =
@@ -20,26 +21,34 @@ const iconButton =
 export function DocsSidebarFooter() {
   return (
     <div className="mt-2 flex items-center rounded-lg border bg-fd-secondary/50 p-0.5 text-fd-muted-foreground">
-      <a
-        href={`https://www.npmjs.com/package/${npmPackage}`}
-        target="_blank"
-        rel="noreferrer"
-        aria-label="View on npm"
-        className={iconButton}
-      >
-        <Package />
-      </a>
-      <a
-        href={`https://github.com/${gitConfig.user}/${gitConfig.repo}`}
-        target="_blank"
-        rel="noreferrer"
-        aria-label="View on GitHub"
-        className={iconButton}
-      >
-        <GithubMark />
-      </a>
-      <LanguageSwitcher variant="icon" />
-      <ThemeSwitch className="ms-auto border-0 bg-transparent p-0 *:rounded-md" />
+      <Tooltip label="View on npm" align="start">
+        <a
+          href={`https://www.npmjs.com/package/${npmPackage}`}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="View on npm"
+          className={iconButton}
+        >
+          <Package />
+        </a>
+      </Tooltip>
+      <Tooltip label="View on GitHub">
+        <a
+          href={`https://github.com/${gitConfig.user}/${gitConfig.repo}`}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="View on GitHub"
+          className={iconButton}
+        >
+          <GithubMark />
+        </a>
+      </Tooltip>
+      <Tooltip label="More translations coming soon">
+        <LanguageSwitcher variant="icon" />
+      </Tooltip>
+      <Tooltip label="Toggle theme" align="end" className="ms-auto">
+        <ThemeSwitch className="border-0 bg-transparent p-0 *:rounded-md" />
+      </Tooltip>
     </div>
   )
 }

@@ -1,10 +1,13 @@
 {
   "pages": [
     "index",
-    "---Guide---",
     "get-started",
-    "core-concepts",
-    "api-reference",
+    "configuration",
+    "authentication",
+    "modules",
+    "realtime",
+    "webhooks",
+    "integrations",
     "advanced",
     "utilities",
     "resources"

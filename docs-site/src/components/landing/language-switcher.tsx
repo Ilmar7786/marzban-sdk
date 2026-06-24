@@ -26,7 +26,6 @@ export function LanguageSwitcher({ variant = 'header' }: { variant?: 'header' | 
       <button
         className="inline-flex size-9 items-center justify-center rounded-md text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground disabled:cursor-not-allowed"
         aria-label={`Language: ${label}`}
-        title="Language — more translations coming soon"
         disabled={disabled}
       >
         <Globe className="size-4.5" />
@@ -38,7 +37,6 @@ export function LanguageSwitcher({ variant = 'header' }: { variant?: 'header' | 
     <button
       className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
       aria-label={`Language: ${label}`}
-      title="Language — more translations coming soon"
       disabled={disabled}
     >
       <Globe className="size-4" />

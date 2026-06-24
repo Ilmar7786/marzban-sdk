@@ -40,7 +40,7 @@ import type { SubscriptionUserResponse } from 'marzban-sdk'
 
 ### `userSubscription(token, params?)`
 
-Fetch the user's subscription config in the format for their VPN client.
+Fetch the user's subscription config in the format for their VPN client. Returns `any` — the raw subscription payload (base64-encoded links or a client-specific config).
 
 ```ts
 const config = await sdk.subscription.userSubscription('user-subscription-token')

@@ -29,7 +29,7 @@ npm install
 | `npm run build` | Compile TypeScript → `dist/` (ESM + CJS) |
 | `npm test` | Run the full test suite with Vitest |
 | `npm run lint` | Run ESLint |
-| `npm run generate` | Regenerate the API client from `openapi/` using Kubb |
+| `npm run codegen` | Regenerate the API client from `openapi/` using Kubb |
 
 ### Build & verify
 
@@ -82,7 +82,7 @@ The `src/gen/` directory is auto-generated from the OpenAPI spec. Do **not** edi
 
 ```bash
 # Update the spec in openapi/ first, then:
-npm run generate
+npm run codegen
 ```
 
 If you're fixing a bug in a generated file, fix the template or the spec instead.

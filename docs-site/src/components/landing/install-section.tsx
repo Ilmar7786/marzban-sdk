@@ -59,7 +59,7 @@ export function InstallSection() {
             onClick={() => setActive(m.label)}
             className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               active === m.label
-                ? 'cta-primary'
+                ? 'bg-fd-muted text-fd-foreground shadow-sm'
                 : 'text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-accent-foreground'
             }`}
           >

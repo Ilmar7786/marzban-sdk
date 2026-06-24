@@ -19,7 +19,7 @@ import type { UserResponse } from 'marzban-sdk'
 |-------|------|-------------|
 | `username` | `string` | Unique username |
 | `status` | `'active' \| 'disabled' \| 'limited' \| 'expired' \| 'on_hold'` | Current account state |
-| `proxies` | `object` | Protocol-specific proxy settings |
+| `proxies` | `Record<string, ProxySettings>` | Protocol-specific proxy settings |
 | `inbounds` | `Record<string, string[]>` | Inbound tags per protocol |
 | `data_limit` | `number \| null` | Max data in bytes; `null` or `0` = unlimited |
 | `data_limit_reset_strategy` | `'no_reset' \| 'day' \| 'week' \| 'month' \| 'year'` | When the data counter resets |
@@ -114,7 +114,7 @@ console.log(result.total)  // number
 
 ### `modifyUser(username, data)`
 
-Update an existing user. Fields not provided are left unchanged. Returns `UserResponse`.
+Update an existing user. Accepts `UserModify`; fields not provided are left unchanged. Returns `UserResponse`.
 
 ```ts
 const updated = await sdk.user.modifyUser('alice', {

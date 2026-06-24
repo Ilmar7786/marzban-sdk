@@ -36,6 +36,53 @@ import type { SystemStats } from 'marzban-sdk'
 
 ---
 
+### `ProxyInbound`
+
+A single inbound configured in the Xray core. `getInbounds` returns these grouped by protocol.
+
+```ts
+import type { ProxyInbound } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tag` | `string` | Inbound tag — the identifier you pass in a user's `inbounds`. |
+| `protocol` | `'vmess' \| 'vless' \| 'trojan' \| 'shadowsocks'` | Proxy protocol. |
+| `network` | `string` | Transport network, e.g. `tcp`, `ws`, `grpc`. |
+| `tls` | `string` | TLS mode, e.g. `none`, `tls`, `reality`. |
+| `port` | `number \| string` | Listening port. |
+
+---
+
+### `ProxyHost`
+
+A proxy host entry attached to an inbound tag. `getHosts` returns these grouped by inbound tag.
+
+```ts
+import type { ProxyHost } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `remark` | `string` | Display label for the host. Supports template variables like `{SERVER_IP}`. |
+| `address` | `string` | Host address (domain or IP). Also supports template variables. |
+| `port` | `number \| null` | Override port; `null` uses the inbound's own port. |
+| `sni` | `string \| null` | Server Name Indication. |
+| `host` | `string \| null` | HTTP `Host` header. |
+| `path` | `string \| null` | Request path for `ws` / `grpc` / `http` transports. |
+| `security` | `'inbound_default' \| 'none' \| 'tls'` | TLS security mode. Default: `inbound_default`. |
+| `alpn` | `'' \| 'h2' \| 'h3' \| 'http/1.1' \| …` | ALPN value. Default: `''`. |
+| `fingerprint` | `'' \| 'chrome' \| 'firefox' \| 'safari' \| …` | TLS fingerprint to mimic. Default: `''`. |
+| `allowinsecure` | `boolean \| null` | Allow insecure (unverified) TLS certificates. |
+| `is_disabled` | `boolean \| null` | Disable this host entry. |
+| `mux_enable` | `boolean \| null` | Enable connection multiplexing. |
+| `fragment_setting` | `string \| null` | TLS fragmentation settings. |
+| `noise_setting` | `string \| null` | Noise (obfuscation) settings. |
+| `random_user_agent` | `boolean \| null` | Send a randomised User-Agent per request. |
+| `use_sni_as_host` | `boolean \| null` | Use the SNI value as the `Host` header. |
+
+---
+
 ## Methods
 
 ### `getSystemStats()`
@@ -55,7 +102,7 @@ console.log(`RAM: ${stats.mem_used} / ${stats.mem_total} bytes`)
 
 ### `getInbounds()`
 
-List all available inbounds configured in Xray core.
+List all available inbounds configured in Xray core. Returns `Record<string, ProxyInbound[]>` — inbound tags grouped by protocol.
 
 ```ts
 const inbounds = await sdk.system.getInbounds()
@@ -73,7 +120,7 @@ Use this to discover which inbound tags to pass when creating users.
 
 ### `getHosts()`
 
-Get the current proxy host configuration for all inbound tags.
+Get the current proxy host configuration for all inbound tags. Returns `Record<string, ProxyHost[]>` — proxy hosts grouped by inbound tag.
 
 ```ts
 const hosts = await sdk.system.getHosts()

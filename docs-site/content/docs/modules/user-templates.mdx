@@ -59,7 +59,7 @@ console.log(template.inbounds)
 
 ### `addUserTemplate(data)`
 
-Create a new template. Returns `UserTemplateResponse`.
+Create a new template. Accepts `UserTemplateCreate`, returns `UserTemplateResponse`.
 
 ```ts
 const template = await sdk.userTemplate.addUserTemplate({
@@ -76,7 +76,7 @@ console.log('Created template ID:', template.id)
 
 ### `modifyUserTemplate(id, data)`
 
-Update an existing template. Returns `UserTemplateResponse`.
+Update an existing template. Accepts `UserTemplateModify`, returns `UserTemplateResponse`.
 
 ```ts
 await sdk.userTemplate.modifyUserTemplate(1, {

@@ -96,7 +96,7 @@ console.log(node.status) // 'connecting' initially
 
 ### `modifyNode(node_id, data)`
 
-Update a node's configuration. Returns `NodeResponse`.
+Update a node's configuration. Accepts `NodeModify`, returns `NodeResponse`.
 
 ```ts
 await sdk.node.modifyNode(1, {

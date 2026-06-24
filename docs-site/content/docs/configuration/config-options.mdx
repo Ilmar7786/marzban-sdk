@@ -17,7 +17,7 @@ The `Config` object is passed to `createMarzbanSDK` or the `MarzbanSDK` construc
 | `timeout` | `number` | No | `30000` | HTTP request timeout in milliseconds. Pass `0` to disable (wait forever). |
 | `retries` | `number` | No | `3` | Number of automatic retries for failed HTTP requests and WebSocket reconnections. Uses exponential backoff. |
 | `logger` | `false \| LoggerOptions \| Logger` | No | env-aware | Logging configuration. See [Logging](/docs/configuration/logging). |
-| `webhook` | `{ secret?: string }` | No | — | Webhook configuration. Set `secret` to enable HMAC-SHA256 signature verification. |
+| `webhook` | `{ secret?: string }` | No | — | Webhook configuration. Set `secret` to enable HMAC-SHA256 signature verification. |
 
 ## Minimal config
 

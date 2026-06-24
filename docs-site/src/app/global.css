@@ -15,6 +15,9 @@
   --brand-from: oklch(0.55 0.24 288);
   --brand-to: oklch(0.58 0.22 332);
 
+  /* Amber accent for loose/dynamic type references. */
+  --type-loose: oklch(0.56 0.13 65);
+
   /* CTA gradient — mid-dark stops in BOTH themes so white button text always
      clears AA contrast. Same gradient is reused for accents in the docs. */
   --cta-from: oklch(0.53 0.24 288);
@@ -33,6 +36,8 @@
   --brand-from: oklch(0.74 0.18 290);
   --brand-to: oklch(0.76 0.16 332);
 
+  --type-loose: oklch(0.8 0.12 75);
+
   --code-surface-from: oklch(0.205 0.025 288);
   --code-surface-to: oklch(0.17 0.03 292);
   --code-glow: oklch(0.62 0.21 305 / 0.26);
@@ -45,6 +50,37 @@ html {
 html > body[data-scroll-locked] {
   margin-right: 0px !important;
   --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* Inline SDK-type reference inside docs tables/prose. Looks like part of the
+   surrounding code, but a dotted underline + accent hover signal it opens a
+   description popover on click. */
+.type-ref-trigger {
+  font: inherit;
+  color: var(--color-fd-primary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in oklch, var(--color-fd-primary), transparent 55%);
+  transition: text-decoration-color 0.15s ease;
+}
+
+.type-ref-trigger:hover {
+  text-decoration-color: var(--color-fd-primary);
+}
+
+/* Loose / dynamic value (`object`, `any`, `ProxySettings`). A warm amber +
+   dashed underline sets it apart from concrete accent-coloured types and
+   signals "this isn't a structured type — open me to see why". */
+.type-ref-trigger--loose {
+  color: var(--type-loose);
+  text-decoration-style: dashed;
+  text-decoration-color: color-mix(in oklch, var(--type-loose), transparent 50%);
+}
+
+.type-ref-trigger--loose:hover {
+  text-decoration-color: var(--type-loose);
 }
 
 /* ── Reusable helpers for the landing page ─────────────────────────────── */

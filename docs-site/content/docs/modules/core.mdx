@@ -41,7 +41,7 @@ console.log(stats.logs_websocket)  // "/api/core/logs"
 
 ### `getCoreConfig()`
 
-Retrieve the full current Xray JSON configuration.
+Retrieve the full current Xray JSON configuration. Returns a dynamic `object` — the raw Xray config tree, passed through untyped.
 
 ```ts
 const config = await sdk.core.getCoreConfig()
@@ -53,7 +53,7 @@ console.log(JSON.stringify(config, null, 2))
 
 ### `modifyCoreConfig(data)`
 
-Replace the Xray configuration with a new JSON object. Triggers a core restart.
+Replace the Xray configuration with a new, dynamic `object` (the full Xray config tree). Triggers a core restart.
 
 ```ts
 const config = await sdk.core.getCoreConfig()

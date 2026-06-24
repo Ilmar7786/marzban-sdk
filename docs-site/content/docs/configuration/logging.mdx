@@ -16,7 +16,7 @@ When you don't set `logger` at all, the SDK picks the log level based on the env
 
 ## Built-in logger options
 
-Pass a `LoggerOptions` object to configure the built-in logger:
+To tune the built-in logger, pass an options object to `logger`:
 
 ```ts
 const sdk = await createMarzbanSDK({
@@ -27,6 +27,19 @@ const sdk = await createMarzbanSDK({
   },
 })
 ```
+
+### `LoggerOptions`
+
+The shape of the options object. Both fields are optional — omit one to keep its default.
+
+```ts
+import type { LoggerOptions } from 'marzban-sdk'
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `level` | `'debug' \| 'info' \| 'warn' \| 'error'` | No | Minimum level to emit. Defaults to the environment-based level (`info` in development, `error` in production). |
+| `timestamp` | `boolean` | No | Prepend an ISO timestamp to each line. Default: `true`. |
 
 ### Log levels
 

@@ -1,6 +1,159 @@
 ---
 title: Vue
-description: Initializing and using the SDK in Vue apps with composables.
+description: Initializing and using MarzbanSDK in Vue 3 apps with composables.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+<Callout type="warn">
+  Use MarzbanSDK in browser Vue apps only in controlled network environments (admin dashboards on private networks, Electron apps). In public-facing apps, proxy API calls through a backend.
+</Callout>
+
+## Plugin / composable pattern
+
+```ts
+// plugins/marzban.ts
+import { ref, provide, inject, type InjectionKey, type Ref } from 'vue'
+import { createMarzbanSDK, type MarzbanSDK } from 'marzban-sdk'
+
+const MARZBAN_KEY: InjectionKey<Ref<MarzbanSDK | null>> = Symbol('marzban')
+
+export function provideMarzban() {
+  const sdk = ref<MarzbanSDK | null>(null)
+
+  createMarzbanSDK({
+    baseUrl: import.meta.env.VITE_MARZBAN_URL,
+    username: import.meta.env.VITE_MARZBAN_USER,
+    password: import.meta.env.VITE_MARZBAN_PASS,
+  }).then(s => { sdk.value = s })
+
+  provide(MARZBAN_KEY, sdk)
+
+  // Cleanup on app unmount
+  return () => sdk.value?.destroy()
+}
+
+export function useMarzban(): MarzbanSDK {
+  const sdk = inject(MARZBAN_KEY)
+  if (!sdk?.value) throw new Error('Marzban SDK not initialized')
+  return sdk.value
+}
+```
+
+```ts
+// main.ts
+import { createApp } from 'vue'
+import App from './App.vue'
+import { provideMarzban } from './plugins/marzban'
+
+const app = createApp(App)
+
+// Provide at root level
+app.mount('#app')
+
+const cleanup = provideMarzban()
+// cleanup() on app unmount if needed
+```
+
+## Using in components
+
+```vue
+<!-- components/UserList.vue -->
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useMarzban } from '../plugins/marzban'
+import { formatBytes, humanRemaining } from 'marzban-sdk'
+import type { UserResponse } from 'marzban-sdk'
+
+const sdk = useMarzban()
+const users = ref<UserResponse[]>([])
+const loading = ref(true)
+
+onMounted(async () => {
+  const result = await sdk.user.getUsers({ limit: 50, status: 'active' })
+  users.value = result.users
+  loading.value = false
+})
+</script>
+
+<template>
+  <div v-if="loading">Loading...</div>
+  <table v-else>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Data used</th>
+        <th>Expires in</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="user in users" :key="user.username">
+        <td>{{ user.username }}</td>
+        <td>{{ formatBytes(user.used_traffic) }}</td>
+        <td>{{ user.expire ? humanRemaining(user.expire * 1000) : '∞' }}</td>
+      </tr>
+    </tbody>
+  </table>
+</template>
+```
+
+## Composable with data fetching
+
+```ts
+// composables/useUsers.ts
+import { ref, onMounted } from 'vue'
+import { useMarzban } from '../plugins/marzban'
+import type { UserResponse } from 'marzban-sdk'
+
+export function useUsers() {
+  const sdk = useMarzban()
+  const users = ref<UserResponse[]>([])
+  const total = ref(0)
+  const loading = ref(false)
+  const error = ref<Error | null>(null)
+
+  async function fetchUsers(page = 0, limit = 50) {
+    loading.value = true
+    error.value = null
+    try {
+      const result = await sdk.user.getUsers({ offset: page * limit, limit })
+      users.value = result.users
+      total.value = result.total
+    } catch (e) {
+      error.value = e as Error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  onMounted(() => fetchUsers())
+
+  return { users, total, loading, error, fetchUsers }
+}
+```
+
+## WebSocket logs composable
+
+```ts
+// composables/useCoreLogs.ts
+import { ref, onUnmounted } from 'vue'
+import { useMarzban } from '../plugins/marzban'
+
+export function useCoreLogs() {
+  const sdk = useMarzban()
+  const logs = ref<string[]>([])
+  let close: (() => void) | undefined
+
+  async function start() {
+    close = await sdk.logs.connectByCore({
+      onMessage: (data) => { logs.value.push(String(data)) },
+    })
+  }
+
+  function stop() {
+    close?.()
+  }
+
+  onUnmounted(stop)
+
+  return { logs, start, stop }
+}
+```

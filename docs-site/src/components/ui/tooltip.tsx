@@ -43,7 +43,7 @@ export function Tooltip({
           // tooltip pinned open after the cursor leaves.
           'scale-95 opacity-0 transition-all duration-150 group-hover:scale-100 group-hover:opacity-100 group-has-[:focus-visible]:scale-100 group-has-[:focus-visible]:opacity-100',
           side === 'top' ? 'bottom-full mb-2' : 'top-full mt-2',
-          alignClass,
+          alignClass
         )}
       >
         {label}

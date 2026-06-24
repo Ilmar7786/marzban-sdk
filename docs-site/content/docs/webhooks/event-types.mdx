@@ -3,4 +3,140 @@ title: Event Types
 description: All 12 webhook actions emitted by Marzban with their payload shapes.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+Marzban emits webhooks for 12 distinct user lifecycle events. Each event is a JSON object with a common base and event-specific fields.
+
+## Base fields
+
+Every webhook payload includes:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `action` | `string` | Event type identifier (see table below) |
+| `username` | `string` | Username of the affected user |
+| `enqueued_at` | `number` | Unix timestamp (float) when the event was queued |
+| `send_at` | `number` | Unix timestamp (float) when the event was sent |
+| `tries` | `number` | Number of delivery attempts |
+
+## Events reference
+
+### User lifecycle
+
+| Action | Extra fields | Description |
+|--------|-------------|-------------|
+| `user_created` | `user`, `by` | A new user was created |
+| `user_updated` | `user`, `by` | User profile was modified |
+| `user_deleted` | `by` | User was deleted |
+| `user_enabled` | `user`, `by?` | User was re-enabled (by can be null for automated re-enable) |
+| `user_disabled` | `user`, `by`, `reason?` | User was disabled |
+
+### Data & subscription
+
+| Action | Extra fields | Description |
+|--------|-------------|-------------|
+| `user_limited` | `user` | User reached their data limit |
+| `user_expired` | `user` | User's subscription expired |
+| `data_usage_reset` | `user`, `by` | User's data usage was reset manually |
+| `data_reset_by_next` | `user` | Data was reset by the "next plan" mechanism |
+| `subscription_revoked` | `user`, `by` | Subscription token was revoked and reissued |
+
+### Threshold alerts
+
+| Action | Extra fields | Description |
+|--------|-------------|-------------|
+| `reached_usage_percent` | `user`, `used_percent` | User reached a configured usage percentage threshold |
+| `reached_days_left` | `user`, `days_left` | User has a configured number of days left |
+
+## Payload examples
+
+### `user_created`
+
+```json
+{
+  "action": "user_created",
+  "username": "alice",
+  "enqueued_at": 1705312800.0,
+  "send_at": 1705312800.1,
+  "tries": 0,
+  "user": {
+    "username": "alice",
+    "status": "active",
+    "data_limit": 10737418240,
+    "expire": 1707904800,
+    "subscription_url": "https://vpn.example.com/sub/abc123"
+  },
+  "by": {
+    "username": "admin",
+    "is_sudo": true
+  }
+}
+```
+
+### `user_disabled`
+
+```json
+{
+  "action": "user_disabled",
+  "username": "alice",
+  "enqueued_at": 1705312900.0,
+  "send_at": 1705312900.1,
+  "tries": 0,
+  "user": { "username": "alice", "status": "disabled" },
+  "by": { "username": "admin", "is_sudo": true },
+  "reason": "Suspicious activity"
+}
+```
+
+### `reached_usage_percent`
+
+```json
+{
+  "action": "reached_usage_percent",
+  "username": "alice",
+  "enqueued_at": 1705313000.0,
+  "send_at": 1705313000.0,
+  "tries": 0,
+  "user": { "username": "alice", "used_traffic": 9663676416 },
+  "used_percent": 90.0
+}
+```
+
+### `reached_days_left`
+
+```json
+{
+  "action": "reached_days_left",
+  "username": "alice",
+  "enqueued_at": 1705313100.0,
+  "send_at": 1705313100.0,
+  "tries": 0,
+  "user": { "username": "alice", "expire": 1706004800 },
+  "days_left": 3
+}
+```
+
+## TypeScript types
+
+Every event type is part of the `WebhookType` discriminated union:
+
+```ts
+import type { WebhookType } from 'marzban-sdk'
+
+function handleEvent(payload: WebhookType) {
+  switch (payload.action) {
+    case 'user_created':
+      // payload.user and payload.by are available
+      console.log('New user:', payload.user.username)
+      break
+
+    case 'reached_usage_percent':
+      // payload.used_percent is available
+      console.log(`${payload.username} used ${payload.used_percent}%`)
+      break
+
+    case 'user_deleted':
+      // payload.user is NOT available (user is gone)
+      console.log('Deleted:', payload.username)
+      break
+  }
+}
+```

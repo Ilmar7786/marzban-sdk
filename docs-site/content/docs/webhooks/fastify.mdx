@@ -3,4 +3,88 @@ title: Fastify
 description: Handling Marzban webhooks in Fastify — raw body access and signature verification.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+Fastify does not parse the body by default unless you add a content-type parser. For webhook signature verification you need access to the raw bytes — register a custom parser that preserves them.
+
+## Setup
+
+```bash
+npm install fastify marzban-sdk
+```
+
+## Full example
+
+```ts
+import Fastify from 'fastify'
+import { createMarzbanSDK, isWebhookSignatureError } from 'marzban-sdk'
+
+const app = Fastify()
+
+const sdk = await createMarzbanSDK({
+  baseUrl: process.env.MARZBAN_URL!,
+  username: process.env.MARZBAN_USER!,
+  password: process.env.MARZBAN_PASS!,
+  webhook: {
+    secret: process.env.MARZBAN_WEBHOOK_SECRET,
+  },
+})
+
+// Subscribe to events
+sdk.webhook.on('user_created', payload => {
+  console.log('User created:', payload.user.username)
+})
+
+// Register a raw body parser for the webhook route
+app.addContentTypeParser(
+  'application/json',
+  { parseAs: 'buffer' },
+  (_req, body, done) => done(null, body)
+)
+
+app.post('/webhook', async (req, reply) => {
+  try {
+    await sdk.webhook.handleWebhook(
+      req.body as Buffer,                        // raw Buffer
+      (req.headers['x-signature'] as string)
+    )
+    reply.send({ ok: true })
+  } catch (err) {
+    if (isWebhookSignatureError(err)) {
+      reply.code(401).send({ error: 'Invalid signature' })
+    } else {
+      reply.code(400).send({ error: 'Bad webhook payload' })
+    }
+  }
+})
+
+await app.listen({ port: 3000 })
+console.log('Fastify webhook server listening on :3000')
+```
+
+## Scoped content-type parser
+
+If you only want the raw-buffer parser on the webhook route (to avoid affecting other routes), use a scoped plugin:
+
+```ts
+import Fastify from 'fastify'
+
+const app = Fastify()
+
+// Regular JSON for all routes
+app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) =>
+  done(null, JSON.parse(body as string))
+)
+
+// Scoped raw parser for /webhook only
+app.register(async function webhookPlugin(fastify) {
+  fastify.addContentTypeParser(
+    'application/json',
+    { parseAs: 'buffer' },
+    (_req, body, done) => done(null, body)
+  )
+
+  fastify.post('/webhook', async (req, reply) => {
+    await sdk.webhook.handleWebhook(req.body as Buffer, req.headers['x-signature'] as string)
+    reply.send({ ok: true })
+  })
+})
+```

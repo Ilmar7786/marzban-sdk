@@ -1,20 +1,64 @@
 ---
 title: Introduction
-description: A fully typed, auto-generated client SDK for the Marzban API — for Node.js and the browser.
+description: A fully typed, auto-generated client SDK for the Marzban API — for Node.js, Bun, Deno, and the browser.
 icon: House
 ---
 
-**MarzbanSDK** is a fully typed client library for the [Marzban](https://github.com/Gozargah/Marzban)
-API. It runs in both **Node.js** and the **browser**, giving you a clean,
-strongly-typed interface to Marzban's full feature set — real-time WebSocket
-logs, automatic token refresh, and robust retry handling included.
+**MarzbanSDK** is a fully typed client library for the [Marzban](https://github.com/Gozargah/Marzban) API.
+It works seamlessly in **Node.js**, **Bun**, **Deno**, and the **browser**, giving developers a clean,
+strongly-typed interface to Marzban's full feature set.
 
 <Cards>
-  <Card title="Get Started" href="/docs/get-started/installation" />
-  <Card title="Quick Start" href="/docs/get-started/quick-start" />
-  <Card title="API Reference" href="/docs/api-reference" />
-  <Card title="Error Handling" href="/docs/advanced/error-handling" />
+  <Card title="Installation" href="/docs/get-started/installation" description="npm, yarn, pnpm, or bun" />
+  <Card title="Quick Start" href="/docs/get-started/quick-start" description="First request in under a minute" />
+  <Card title="Configuration" href="/docs/configuration/config-options" description="All options and defaults" />
+  <Card title="Error Handling" href="/docs/advanced/error-handling" description="Typed errors and guards" />
 </Cards>
 
-> 🚧 This documentation is being rebuilt. Sections below are stubs and will be
-> filled in during the content migration pass.
+## Features
+
+- **First-class TypeScript** — every request, response, and error is fully typed, generated directly from the Marzban OpenAPI specification.
+- **Auto authentication** — the SDK logs in on startup and transparently refreshes the JWT on `401` responses. No boilerplate needed.
+- **Automatic retries** — exponential backoff on network failures, configurable retry count.
+- **Classified error system** — `AuthError`, `HttpError`, `ConfigurationError`, and Webhook errors all extend `SdkError` with a machine-readable `code` property and type guard helpers.
+- **Zod validation** — config and all API responses are validated at runtime. Bad data is caught immediately with structured error details.
+- **Webhook support** — `sdk.webhook` handles incoming Marzban events with HMAC-SHA256 signature verification, typed event subscriptions, wildcard listeners, and batch processing.
+- **Real-time log streaming** — `sdk.logs` streams core and node logs via WebSocket with automatic token refresh and configurable reconnection.
+- **Utility helpers** — byte formatting/parsing, datetime calculations, and Marzban template variable utilities.
+- **Cross-runtime** — native `WebSocket` in browsers and modern runtimes; `ws` fallback for older Node.js. Web Crypto API for webhook signatures.
+
+## Module overview
+
+| Module | Access | Description |
+|--------|--------|-------------|
+| Users | `sdk.user` | Create, update, query, and manage users |
+| Admins | `sdk.admin` | Manage admin accounts |
+| Nodes | `sdk.node` | Add, configure, and monitor nodes |
+| System | `sdk.system` | Stats, inbounds, and proxy host config |
+| Core | `sdk.core` | Xray core stats, config, and restart |
+| Subscriptions | `sdk.subscription` | Public subscription endpoints |
+| User Templates | `sdk.userTemplate` | Reusable user configuration templates |
+| Webhooks | `sdk.webhook` | Incoming event handling and verification |
+| Logs | `sdk.logs` | Real-time WebSocket log streaming |
+
+## Quick example
+
+```ts
+import { createMarzbanSDK, formatBytes, humanRemaining } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+})
+
+// List active users
+const { users, total } = await sdk.user.getUsers({ status: 'active' })
+console.log(`${total} active users`)
+
+for (const user of users) {
+  const dataLeft = formatBytes((user.data_limit ?? 0) - user.used_traffic)
+  const timeLeft = user.expire ? humanRemaining(user.expire * 1000) : '∞'
+  console.log(`${user.username} — ${dataLeft} left, expires ${timeLeft}`)
+}
+```

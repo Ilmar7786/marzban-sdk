@@ -1,6 +1,127 @@
 ---
 title: Subscriptions
-description: Subscription endpoints.
+description: Subscription endpoints for fetching user configs and usage via sdk.subscription.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+`sdk.subscription` exposes the public subscription endpoints — the same URLs that end-users open in their VPN client apps.
+
+<Callout type="info">
+  These endpoints are **public** (no admin token required). They are identified by the user's subscription `token`, not by username.
+</Callout>
+
+## Types
+
+### `SubscriptionUserResponse`
+
+Returned by `userSubscriptionInfo`.
+
+```ts
+import type { SubscriptionUserResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `username` | `string` | Username |
+| `status` | `'active' \| 'disabled' \| 'limited' \| 'expired' \| 'on_hold'` | Current account state |
+| `data_limit` | `number \| null` | Max data in bytes; `null` or `0` = unlimited |
+| `used_traffic` | `number` | Bytes consumed in the current period |
+| `lifetime_used_traffic` | `number` | Total bytes consumed since account creation |
+| `expire` | `number \| null` | Unix timestamp expiry; `null` = no expiry |
+| `created_at` | `string` | ISO 8601 creation timestamp |
+| `links` | `string[]` | Proxy connection strings |
+| `subscription_url` | `string` | Full subscription URL |
+| `sub_updated_at` | `string \| null` | Last subscription update timestamp |
+| `sub_last_user_agent` | `string \| null` | Client user-agent from last subscription fetch |
+| `online_at` | `string \| null` | Last seen timestamp |
+
+---
+
+## Methods
+
+### `userSubscription(token, params?)`
+
+Fetch the user's subscription config in the format for their VPN client.
+
+```ts
+const config = await sdk.subscription.userSubscription('user-subscription-token')
+// Returns subscription data — base64-encoded links or raw config depending on client
+```
+
+The `token` is the path segment from `subscription_url`. For `https://vpn.example.com/sub/abc123`, the token is `abc123`.
+
+---
+
+### `userSubscriptionInfo(token)`
+
+Get structured subscription metadata. Returns `SubscriptionUserResponse`.
+
+```ts
+const info = await sdk.subscription.userSubscriptionInfo('user-subscription-token')
+
+console.log(info.username)
+console.log(info.status)
+console.log(info.used_traffic)     // bytes consumed
+console.log(info.data_limit)       // byte limit, null = unlimited
+console.log(info.expire)           // Unix timestamp or null
+console.log(info.subscription_url)
+console.log(info.links)            // proxy connection strings
+```
+
+---
+
+### `userGetUsage(token, params?)`
+
+Get per-node usage stats for a subscription, optionally filtered by date range.
+
+```ts
+const usage = await sdk.subscription.userGetUsage('user-subscription-token', {
+  start: '2024-01-01T00:00:00',
+  end:   '2024-01-31T23:59:59',
+})
+```
+
+---
+
+### `userSubscriptionWithClientType(token, clientType)`
+
+Fetch the subscription formatted for a specific VPN client.
+
+```ts
+const clashConfig = await sdk.subscription.userSubscriptionWithClientType(
+  'user-subscription-token',
+  'clash'
+)
+```
+
+Common client types: `clash`, `singbox`, `v2ray`, `outline`.
+
+## Common patterns
+
+### Build a subscription info card
+
+```ts
+import { formatBytes, humanRemaining } from 'marzban-sdk'
+
+const token = req.params.token
+
+const info = await sdk.subscription.userSubscriptionInfo(token)
+
+return {
+  username: info.username,
+  status: info.status,
+  dataUsed: formatBytes(info.used_traffic),
+  dataLimit: info.data_limit ? formatBytes(info.data_limit) : 'Unlimited',
+  expiry: info.expire
+    ? humanRemaining(info.expire * 1000)
+    : 'Never',
+}
+```
+
+### Proxy subscription requests to Marzban
+
+```ts
+app.get('/sub/:token', async (req, res) => {
+  const data = await sdk.subscription.userSubscription(req.params.token)
+  res.send(data)
+})
+```

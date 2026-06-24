@@ -1,6 +1,108 @@
 ---
 title: Core
-description: Xray core configuration and control.
+description: Xray core statistics, configuration, and restart via sdk.core.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+`sdk.core` provides control over the underlying Xray core — read stats, inspect or update the JSON config, and restart the engine.
+
+## Types
+
+### `CoreStats`
+
+Returned by `getCoreStats`.
+
+```ts
+import type { CoreStats } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `version` | `string` | Xray core version, e.g. `"1.8.4"` |
+| `started` | `boolean` | `true` when the Xray process is running |
+| `logs_websocket` | `string` | WebSocket endpoint path for core log streaming |
+
+---
+
+## Methods
+
+### `getCoreStats()`
+
+Get runtime statistics for the Xray core process. Returns `CoreStats`.
+
+```ts
+const stats = await sdk.core.getCoreStats()
+
+console.log(stats.version)         // "1.8.4"
+console.log(stats.started)         // true
+console.log(stats.logs_websocket)  // "/api/core/logs"
+```
+
+---
+
+### `getCoreConfig()`
+
+Retrieve the full current Xray JSON configuration.
+
+```ts
+const config = await sdk.core.getCoreConfig()
+// Returns a raw JSON object — the full Xray config tree
+console.log(JSON.stringify(config, null, 2))
+```
+
+---
+
+### `modifyCoreConfig(data)`
+
+Replace the Xray configuration with a new JSON object. Triggers a core restart.
+
+```ts
+const config = await sdk.core.getCoreConfig()
+
+await sdk.core.modifyCoreConfig({
+  ...config,
+  log: {
+    ...config.log,
+    loglevel: 'warning',
+  },
+})
+```
+
+<Callout type="warn">
+  Modifying the core config restarts the Xray process and briefly disconnects all users. Test changes in a staging environment first.
+</Callout>
+
+---
+
+### `restartCore()`
+
+Restart the Xray core without changing its configuration.
+
+```ts
+await sdk.core.restartCore()
+```
+
+## Common patterns
+
+### Check if the core is running
+
+```ts
+const stats = await sdk.core.getCoreStats()
+
+if (!stats.started) {
+  console.error('Xray core is not running — restarting...')
+  await sdk.core.restartCore()
+}
+```
+
+### Update log level only
+
+```ts
+const config = await sdk.core.getCoreConfig()
+
+await sdk.core.modifyCoreConfig({
+  ...config,
+  log: { ...config.log, loglevel: 'debug' },
+})
+
+console.log('Core restarted with debug logging')
+```

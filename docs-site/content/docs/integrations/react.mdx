@@ -1,6 +1,148 @@
 ---
 title: React
-description: Initializing and using the SDK in React apps with hooks and TanStack Query.
+description: Initializing and using MarzbanSDK in React apps with hooks and TanStack Query.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+<Callout type="warn">
+  MarzbanSDK must **not** be used directly in browser React apps when your Marzban credentials need to stay secret. Use a backend API (Next.js Route Handler, Express, etc.) as a proxy and call that from React. This page covers cases where you control the network environment (admin dashboards on private networks, Electron apps, etc.).
+</Callout>
+
+## SDK context
+
+Create a React context that holds the SDK instance:
+
+```tsx
+// context/MarzbanContext.tsx
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createMarzbanSDK, type MarzbanSDK } from 'marzban-sdk'
+
+const MarzbanContext = createContext<MarzbanSDK | null>(null)
+
+export function MarzbanProvider({ children }: { children: ReactNode }) {
+  const [sdk, setSdk] = useState<MarzbanSDK | null>(null)
+
+  useEffect(() => {
+    let instance: MarzbanSDK | null = null
+
+    createMarzbanSDK({
+      baseUrl: import.meta.env.VITE_MARZBAN_URL,
+      username: import.meta.env.VITE_MARZBAN_USER,
+      password: import.meta.env.VITE_MARZBAN_PASS,
+    }).then(s => {
+      instance = s
+      setSdk(s)
+    })
+
+    return () => { instance?.destroy() }
+  }, [])
+
+  return (
+    <MarzbanContext.Provider value={sdk}>
+      {children}
+    </MarzbanContext.Provider>
+  )
+}
+
+export function useMarzban(): MarzbanSDK {
+  const sdk = useContext(MarzbanContext)
+  if (!sdk) throw new Error('useMarzban must be used inside MarzbanProvider')
+  return sdk
+}
+```
+
+```tsx
+// main.tsx
+import { MarzbanProvider } from './context/MarzbanContext'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <MarzbanProvider>
+    <App />
+  </MarzbanProvider>
+)
+```
+
+## Using the hook
+
+```tsx
+// components/UserList.tsx
+import { useEffect, useState } from 'react'
+import { useMarzban } from '../context/MarzbanContext'
+import type { UserResponse } from 'marzban-sdk'
+
+export function UserList() {
+  const sdk = useMarzban()
+  const [users, setUsers] = useState<UserResponse[]>([])
+
+  useEffect(() => {
+    sdk.user.getUsers({ limit: 50 }).then(r => setUsers(r.users))
+  }, [sdk])
+
+  return (
+    <ul>
+      {users.map(u => (
+        <li key={u.username}>{u.username} — {u.status}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+## With TanStack Query
+
+```tsx
+// hooks/useUsers.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMarzban } from '../context/MarzbanContext'
+import { parseSize } from 'marzban-sdk'
+
+export function useUsers() {
+  const sdk = useMarzban()
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: () => sdk.user.getUsers({ limit: 1000 }),
+  })
+}
+
+export function useCreateUser() {
+  const sdk = useMarzban()
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: { username: string; limitGb: number }) =>
+      sdk.user.addUser({
+        username: payload.username,
+        proxies: { vless: {} },
+        inbounds: { vless: ['VLESS TCP REALITY'] },
+        data_limit: parseSize(`${payload.limitGb}GB`),
+        expire: 0,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+  })
+}
+```
+
+## WebSocket logs in a component
+
+```tsx
+import { useEffect, useRef } from 'react'
+import { useMarzban } from '../context/MarzbanContext'
+
+export function CoreLogViewer() {
+  const sdk = useMarzban()
+  const ref = useRef<HTMLPreElement>(null)
+
+  useEffect(() => {
+    let close: (() => void) | undefined
+
+    sdk.logs.connectByCore({
+      onMessage: (data) => {
+        if (ref.current) ref.current.textContent += data + '\n'
+      },
+    }).then(fn => { close = fn })
+
+    return () => { close?.() }
+  }, [sdk])
+
+  return <pre ref={ref} style={{ height: 400, overflow: 'auto' }} />
+}
+```

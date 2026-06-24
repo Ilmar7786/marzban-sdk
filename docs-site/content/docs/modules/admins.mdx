@@ -1,6 +1,181 @@
 ---
 title: Admins
-description: Manage admin accounts.
+description: Manage admin accounts via sdk.admin.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+`sdk.admin` provides endpoints for creating, updating, and querying Marzban administrators.
+
+## Types
+
+### `Admin`
+
+Returned by `getCurrentAdmin`, `createAdmin`, `modifyAdmin`, and `getAdmins`.
+
+```ts
+import type { Admin } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `username` | `string` | Admin username |
+| `is_sudo` | `boolean` | Superadmin flag — grants full access to all admins and users |
+| `telegram_id` | `number \| null` | Linked Telegram account ID |
+| `discord_webhook` | `string \| null` | Discord webhook URL for notifications |
+| `users_usage` | `number \| null` | Total traffic used by this admin's users (bytes) |
+
+### `AdminCreate`
+
+Payload for `createAdmin`.
+
+```ts
+import type { AdminCreate } from 'marzban-sdk'
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `username` | `string` | Yes | Admin username |
+| `password` | `string` | Yes | Initial password |
+| `is_sudo` | `boolean` | Yes | Grant superadmin privileges |
+| `telegram_id` | `number \| null` | No | Linked Telegram account |
+| `discord_webhook` | `string \| null` | No | Discord notification webhook |
+
+---
+
+## Methods
+
+### `getCurrentAdmin()`
+
+Get the profile of the currently authenticated admin. Returns `Admin`.
+
+```ts
+const me = await sdk.admin.getCurrentAdmin()
+console.log(me.username)
+console.log(me.is_sudo)       // true for superadmin
+console.log(me.telegram_id)
+```
+
+---
+
+### `getAdmins(params?)`
+
+List all admins. Requires superadmin privileges. Returns `Admin[]`.
+
+```ts
+const admins = await sdk.admin.getAdmins({
+  offset: 0,
+  limit: 25,
+  username: 'op',
+})
+
+for (const admin of admins) {
+  console.log(admin.username, admin.is_sudo)
+}
+```
+
+---
+
+### `createAdmin(data)`
+
+Create a new admin account. Accepts `AdminCreate`, returns `Admin`. Requires superadmin.
+
+```ts
+const admin = await sdk.admin.createAdmin({
+  username: 'operator',
+  password: 'strong-password',
+  is_sudo: false,
+  telegram_id: 123456789,
+  discord_webhook: 'https://discord.com/api/webhooks/...',
+})
+
+console.log(admin.username)
+```
+
+---
+
+### `modifyAdmin(username, data)`
+
+Update an admin's profile or permissions. Returns `Admin`.
+
+```ts
+await sdk.admin.modifyAdmin('operator', {
+  password: 'new-password',
+  is_sudo: true,
+})
+```
+
+---
+
+### `removeAdmin(username)`
+
+Delete an admin account. Requires superadmin.
+
+```ts
+await sdk.admin.removeAdmin('operator')
+```
+
+---
+
+### `getAdminUsage(username, params?)`
+
+Get traffic usage attributed to a specific admin's users.
+
+```ts
+const usage = await sdk.admin.getAdminUsage('operator', {
+  start: '2024-01-01T00:00:00',
+  end:   '2024-01-31T23:59:59',
+})
+```
+
+---
+
+### `resetAdminUsage(username)`
+
+Reset the traffic usage counter for an admin.
+
+```ts
+await sdk.admin.resetAdminUsage('operator')
+```
+
+---
+
+### `disableAllActiveUsers(username)`
+
+Disable all active users owned by a specific admin.
+
+```ts
+await sdk.admin.disableAllActiveUsers('operator')
+```
+
+---
+
+### `activateAllDisabledUsers(username)`
+
+Re-activate all disabled users owned by a specific admin.
+
+```ts
+await sdk.admin.activateAllDisabledUsers('operator')
+```
+
+## Common patterns
+
+### Bootstrap a new operator admin
+
+```ts
+const admin = await sdk.admin.createAdmin({
+  username: 'ops-team',
+  password: process.env.OPS_PASSWORD!,
+  is_sudo: false,
+})
+
+console.log('Admin created:', admin.username)
+```
+
+### Temporarily suspend all users of an admin
+
+```ts
+// Suspend
+await sdk.admin.disableAllActiveUsers('operator')
+
+// Later, restore
+await sdk.admin.activateAllDisabledUsers('operator')
+```

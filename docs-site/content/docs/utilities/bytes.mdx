@@ -1,6 +1,106 @@
 ---
 title: Bytes
-description: Human-readable byte conversion helpers.
+description: Human-readable byte conversion helpers — parse, format, and convert data sizes.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+The `bytes` utilities help you work with Marzban's numeric byte values (e.g. `data_limit`, `used_traffic`) in a human-friendly way.
+
+## Import
+
+```ts
+import { parseSize, formatBytes, gbToBytes, bytesToGb } from 'marzban-sdk'
+```
+
+## `parseSize(size, opts?)`
+
+Parse a human-readable size string into **bytes** (number).
+
+```ts
+parseSize('10GB')          // 10737418240  (binary, 1024³)
+parseSize('10 gb')         // 10737418240
+parseSize('1.5 TB')        // 1649267441664
+parseSize(1073741824)      // 1073741824   (number passthrough)
+parseSize('500MB', { decimal: true }) // 500000000 (SI units, 1000³)
+parseSize('invalid')       // 0
+```
+
+**Supported units:** `B`, `KB`, `MB`, `GB`, `TB`, `PB` (also accepts `KiB`, `MiB`, `GiB`, `TiB`, `PiB`).
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `decimal` | `boolean` | `false` | Use 1000-based units (SI) instead of 1024-based (binary) |
+
+---
+
+## `formatBytes(bytes, opts?)`
+
+Format a byte number to a human-readable string.
+
+```ts
+formatBytes(0)                      // "0 B"
+formatBytes(1024)                   // "1.00 KB"
+formatBytes(10737418240)            // "10.00 GB"
+formatBytes(10737418240, { decimals: 0 }) // "10 GB"
+formatBytes(1500000, { decimal: true })   // "1.50 MB"  (SI)
+formatBytes(-2097152)               // "-2.00 MB"
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `decimals` | `number` | `2` | Number of decimal places |
+| `decimal` | `boolean` | `false` | Use 1000-based units (SI) |
+
+---
+
+## `gbToBytes(gb, decimal?)`
+
+Convert gigabytes to bytes.
+
+```ts
+gbToBytes(10)        // 10737418240   (binary)
+gbToBytes(10, true)  // 10000000000   (decimal/SI)
+```
+
+---
+
+## `bytesToGb(bytes, decimal?)`
+
+Convert bytes to gigabytes (float).
+
+```ts
+bytesToGb(10737418240)       // 10.0
+bytesToGb(10737418240, true) // 10.737418240...  (SI)
+```
+
+## Common usage patterns
+
+### Set data limit for a new user
+
+```ts
+import { parseSize } from 'marzban-sdk'
+
+await sdk.user.addUser({
+  username: 'alice',
+  proxies: { vless: {} },
+  inbounds: { vless: ['VLESS TCP REALITY'] },
+  data_limit: parseSize('50GB'),  // 53687091200 bytes
+  expire: 0,
+})
+```
+
+### Display usage stats
+
+```ts
+import { formatBytes } from 'marzban-sdk'
+
+const user = await sdk.user.getUser('alice')
+
+const used = formatBytes(user.used_traffic)
+const limit = user.data_limit ? formatBytes(user.data_limit) : 'Unlimited'
+const percent = user.data_limit
+  ? ((user.used_traffic / user.data_limit) * 100).toFixed(1)
+  : '—'
+
+console.log(`${used} / ${limit} (${percent}%)`)
+// "3.52 GB / 10.00 GB (35.2%)"
+```

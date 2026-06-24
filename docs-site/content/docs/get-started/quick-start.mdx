@@ -1,6 +1,91 @@
 ---
 title: Quick Start
-description: Create a client and make your first authenticated request.
+description: Create a client and make your first authenticated request in under a minute.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+## Create the SDK instance
+
+The recommended way to create the SDK is via `createMarzbanSDK`. It validates your config, constructs the client, and authenticates in one step.
+
+```ts
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://your-marzban-instance.com',
+  username: 'admin',
+  password: 'your-password',
+})
+```
+
+`createMarzbanSDK` is an **async factory** — it calls `sdk.authorize()` internally before returning. If authentication fails, it throws an `AuthError`.
+
+## Make your first request
+
+```ts
+// Get all users (paginated)
+const users = await sdk.user.getUsers()
+console.log(users)
+
+// Get a single user by username
+const user = await sdk.user.getUser('alice')
+console.log(user.status, user.data_limit)
+
+// Get system statistics
+const stats = await sdk.system.getSystemStats()
+console.log(`Memory: ${stats.mem_used} / ${stats.mem_total}`)
+```
+
+Every method returns a **Promise** that resolves to a fully typed response object.
+
+## Create a user
+
+```ts
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({ /* ... */ })
+
+const newUser = await sdk.user.addUser({
+  username: 'alice',
+  proxies: { vless: {} },
+  inbounds: { vless: ['VLESS TCP REALITY'] },
+  data_limit: 10 * 1024 ** 3, // 10 GB in bytes
+  expire: Math.floor(Date.now() / 1000) + 30 * 24 * 3600, // 30 days from now
+})
+
+console.log(newUser.subscription_url)
+```
+
+## Handle errors
+
+```ts
+import { createMarzbanSDK, isAuthError, isHttpError } from 'marzban-sdk'
+
+try {
+  const sdk = await createMarzbanSDK({ /* ... */ })
+  const user = await sdk.user.getUser('unknown')
+} catch (err) {
+  if (isAuthError(err)) {
+    console.error('Authentication failed:', err.message)
+  } else if (isHttpError(err)) {
+    console.error('HTTP error:', err.message, err.details)
+  } else {
+    throw err
+  }
+}
+```
+
+See [Error Handling](/docs/advanced/error-handling) for the full error reference.
+
+## What happens under the hood
+
+1. `createMarzbanSDK` validates your config with Zod — bad config throws immediately with a clear message.
+2. An Axios-based HTTP client is configured with your `baseUrl`, `timeout`, and `retries`.
+3. `sdk.authorize()` is called — credentials are posted to `/api/admin/token`, and the returned JWT is stored.
+4. All subsequent API calls include `Authorization: Bearer <token>` automatically.
+5. If the server returns `401`, the SDK re-authenticates once and retries the request transparently.
+
+## Next steps
+
+- [Configuration options](/docs/configuration/config-options) — `timeout`, `retries`, `logger`, and more.
+- [Authentication](/docs/authentication/auto-authentication) — auto-auth vs. manual mode.
+- [Modules](/docs/modules/users) — full API reference for Users, Admins, Nodes, and more.

@@ -1,6 +1,168 @@
 ---
 title: Datetime
-description: Datetime calculation helpers.
+description: Helpers for working with dates, expiry times, and human-readable durations.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+The `datetime` utilities help you work with Marzban's Unix timestamp expiry values — calculating remaining time, formatting durations, and manipulating dates.
+
+## Import
+
+```ts
+import {
+  addToDate,
+  addDays,
+  addHours,
+  remainingTime,
+  humanRemaining,
+  toIso,
+} from 'marzban-sdk'
+```
+
+## `addToDate(date, opts)`
+
+Add duration components to a date (immutable — returns a new `Date`).
+
+```ts
+const now = new Date()
+const in30Days = addToDate(now, { days: 30 })
+const in2Hours = addToDate(now, { hours: 2 })
+const combined = addToDate(now, { days: 7, hours: 6, minutes: 30 })
+```
+
+Accepts `Date`, ISO string, or Unix timestamp (ms).
+
+---
+
+## `addDays(date, days)`
+
+Shorthand for adding days.
+
+```ts
+const expiry = addDays(new Date(), 30)
+
+// Convert to Unix timestamp for the API
+const unixExpiry = Math.floor(expiry.getTime() / 1000)
+```
+
+---
+
+## `addHours(date, hours)`
+
+Shorthand for adding hours.
+
+```ts
+const expiryTimestamp = Math.floor(addHours(new Date(), 24).getTime() / 1000)
+```
+
+---
+
+## `remainingTime(to, from?)`
+
+Calculate the remaining time between `from` (default: now) and `to`.
+
+Returns a `Remaining` object:
+
+```ts
+interface Remaining {
+  days: number
+  hours: number
+  minutes: number
+  seconds: number
+  totalMs: number  // negative when expired
+}
+```
+
+```ts
+const user = await sdk.user.getUser('alice')
+const expiryMs = (user.expire ?? 0) * 1000
+
+const r = remainingTime(expiryMs)
+console.log(`${r.days}d ${r.hours}h ${r.minutes}m remaining`)
+
+// Check if expired
+if (r.totalMs < 0) {
+  console.log('Account has expired')
+}
+```
+
+---
+
+## `humanRemaining(to, from?)`
+
+Get a compact, human-readable remaining time string.
+
+```ts
+humanRemaining(Date.now() + 86400 * 1000 * 3)  // "3d"
+humanRemaining(Date.now() + 3600 * 1000 * 2)   // "2h"
+humanRemaining(Date.now() + 60 * 1000 * 90)    // "1h 30m"
+humanRemaining(Date.now() - 1000)               // "expired"
+humanRemaining(Date.now() + 500)                // "< 1s"
+```
+
+---
+
+## `toIso(date)`
+
+Format a date as an ISO 8601 string without milliseconds.
+
+```ts
+toIso(new Date())           // "2024-01-15T10:23:05Z"
+toIso(1705312800000)        // "2024-01-15T10:00:00Z"
+toIso('2024-01-15')         // "2024-01-15T00:00:00Z"
+```
+
+## Common usage patterns
+
+### Create a user with a 30-day expiry
+
+```ts
+import { addDays } from 'marzban-sdk'
+
+const expiry = Math.floor(addDays(new Date(), 30).getTime() / 1000)
+
+await sdk.user.addUser({
+  username: 'alice',
+  proxies: { vless: {} },
+  inbounds: { vless: ['VLESS TCP REALITY'] },
+  data_limit: 0,
+  expire: expiry,
+})
+```
+
+### Display subscription card info
+
+```ts
+import { humanRemaining, formatBytes } from 'marzban-sdk'
+
+const user = await sdk.user.getUser('alice')
+
+const timeLeft = user.expire
+  ? humanRemaining(user.expire * 1000)
+  : 'Never'
+
+const dataUsed = formatBytes(user.used_traffic)
+const dataLimit = user.data_limit ? formatBytes(user.data_limit) : 'Unlimited'
+
+console.log(`
+  User: ${user.username}
+  Status: ${user.status}
+  Data: ${dataUsed} / ${dataLimit}
+  Expires in: ${timeLeft}
+`)
+```
+
+### Filter users expiring soon
+
+```ts
+import { remainingTime } from 'marzban-sdk'
+
+const result = await sdk.user.getUsers({ status: 'active', limit: 1000 })
+
+const expiringSoon = result.users.filter(user => {
+  if (!user.expire) return false
+  const { days, totalMs } = remainingTime(user.expire * 1000)
+  return totalMs > 0 && days <= 3
+})
+
+console.log(`${expiringSoon.length} users expire within 3 days`)
+```

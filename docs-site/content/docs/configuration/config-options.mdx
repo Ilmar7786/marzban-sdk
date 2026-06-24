@@ -3,4 +3,102 @@ title: Config Options
 description: All SDK configuration fields, defaults, and validation rules.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+The `Config` object is passed to `createMarzbanSDK` or the `MarzbanSDK` constructor. All fields are validated by Zod before the SDK boots — invalid config throws a `ConfigurationError` immediately.
+
+## Reference
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `baseUrl` | `string` | Yes | — | Base URL of the Marzban instance. Must be a valid URL with protocol. Example: `https://vpn.example.com` |
+| `username` | `string` | Yes | — | Admin username for authentication (non-empty). |
+| `password` | `string` | Yes | — | Admin password for authentication (non-empty). |
+| `token` | `string` | No | — | Existing JWT token. If provided, the SDK uses it directly instead of calling the login endpoint. |
+| `authenticateOnInit` | `boolean` | No | `true` | When `true`, `createMarzbanSDK` calls `authorize()` before returning. Set to `false` for deferred or manual auth. |
+| `timeout` | `number` | No | `30000` | HTTP request timeout in milliseconds. Pass `0` to disable (wait forever). |
+| `retries` | `number` | No | `3` | Number of automatic retries for failed HTTP requests and WebSocket reconnections. Uses exponential backoff. |
+| `logger` | `false \| LoggerOptions \| Logger` | No | env-aware | Logging configuration. See [Logging](/docs/configuration/logging). |
+| `webhook` | `{ secret?: string }` | No | — | Webhook configuration. Set `secret` to enable HMAC-SHA256 signature verification. |
+
+## Minimal config
+
+```ts
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+})
+```
+
+## Full config example
+
+```ts
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+  timeout: 15_000,        // 15 seconds
+  retries: 5,
+  authenticateOnInit: true,
+  logger: {
+    level: 'debug',
+    timestamp: true,
+  },
+  webhook: {
+    secret: process.env.MARZBAN_WEBHOOK_SECRET,
+  },
+})
+```
+
+## Supply an existing token
+
+If you manage JWT tokens yourself, skip the login step by providing the `token` field:
+
+```ts
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+  token: 'eyJhbGciOi...', // already-obtained JWT
+  authenticateOnInit: false,
+})
+```
+
+<Callout type="warn">
+  If the supplied `token` expires, the SDK will re-authenticate using `username` and `password` automatically. Both fields are still required.
+</Callout>
+
+## Retry behaviour
+
+When `retries > 0`, failed HTTP requests are retried with **exponential backoff**:
+
+| Attempt | Delay |
+|---------|-------|
+| 1 | 1 s |
+| 2 | 2 s |
+| 3 | 4 s |
+| … | … (capped at 30 s) |
+
+WebSocket reconnections after `403 Forbidden` also use the same `retries` limit.
+
+Set `retries: 0` to disable automatic retries.
+
+## Validation errors
+
+If you pass an invalid config (e.g. missing `baseUrl`, non-integer `timeout`), the SDK throws a `ConfigurationError` before any network call is made:
+
+```ts
+import { isConfigurationError } from 'marzban-sdk'
+
+try {
+  const sdk = await createMarzbanSDK({ baseUrl: '', username: '', password: '' })
+} catch (err) {
+  if (isConfigurationError(err)) {
+    console.error(err.message) // "Invalid SDK configuration"
+    console.error(err.details) // Zod validation issues
+  }
+}
+```

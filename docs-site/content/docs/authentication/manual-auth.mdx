@@ -3,4 +3,114 @@ title: Manual Auth & Tokens
 description: Disable auto-auth, call authorize() manually, or supply an existing JWT token.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+Sometimes you need to control exactly when authentication happens — for example in test environments, serverless cold-starts, or when you already have a valid token from another source.
+
+## Disable auto-auth
+
+Set `authenticateOnInit: false` to skip the login call during SDK construction:
+
+```ts
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+  authenticateOnInit: false,
+})
+
+// SDK is ready but NOT authenticated yet.
+// API calls will fail until you authorize().
+```
+
+## Call authorize() manually
+
+```ts
+await sdk.authorize()
+
+// Now safe to make API calls
+const users = await sdk.user.getUsers()
+```
+
+`authorize()` is idempotent with respect to concurrency — if a login is already in progress, it returns the same `Promise` instead of issuing a second request.
+
+## Supply an existing token
+
+If you already have a JWT (from a previous session, a shared auth service, etc.), pass it via `token`:
+
+```ts
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',        // still required for automatic re-auth on token expiry
+  token: 'eyJhbGciOi...',
+  authenticateOnInit: false,
+})
+```
+
+The SDK will use the provided token immediately. If the token expires and a `401` is received, it falls back to `username` + `password` to get a fresh one.
+
+## Read the current token
+
+```ts
+const token = await sdk.getAuthToken()
+```
+
+This method waits for any in-flight authentication before returning, making it safe to call from multiple places concurrently.
+
+## Patterns
+
+### Lazy authentication (serverless)
+
+```ts
+// Module-level singleton — not authenticated yet
+const sdk = await createMarzbanSDK({
+  baseUrl: process.env.MARZBAN_URL!,
+  username: process.env.MARZBAN_USER!,
+  password: process.env.MARZBAN_PASS!,
+  authenticateOnInit: false,
+})
+
+export async function handler() {
+  // First request triggers auth; subsequent requests reuse the token.
+  return sdk.user.getUsers()
+}
+```
+
+### Testing with a pre-set token
+
+```ts
+const sdk = await createMarzbanSDK({
+  baseUrl: 'http://localhost:7777',
+  username: 'test',
+  password: 'test',
+  token: 'test-jwt-token',
+  authenticateOnInit: false,
+})
+```
+
+### Re-authenticate explicitly
+
+```ts
+// Force a fresh token (e.g. after a password change)
+await sdk.authorize()
+const freshToken = await sdk.getAuthToken()
+```
+
+## Error handling
+
+```ts
+import { isAuthError, isAuthTokenError } from 'marzban-sdk'
+
+try {
+  await sdk.authorize()
+} catch (err) {
+  if (isAuthTokenError(err)) {
+    // Server returned 200 but no access_token in the body
+    console.error('Token retrieval failed:', err.code) // "AUTH_TOKEN_FAILED"
+  } else if (isAuthError(err)) {
+    // Login request failed (wrong credentials, network error, etc.)
+    console.error('Auth failed:', err.message)
+  }
+}
+```

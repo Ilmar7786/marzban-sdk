@@ -1,6 +1,113 @@
 ---
 title: Next.js
-description: Using the SDK in Next.js App Router — Server Components, Route Handlers, and Server Actions.
+description: Using MarzbanSDK in Next.js App Router — Server Components, Route Handlers, and Server Actions.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+MarzbanSDK is **server-side only** in Next.js. The SDK calls your Marzban API using credentials that must never be exposed to the browser.
+
+## Singleton on the server
+
+Create a shared singleton in a server-only module:
+
+```ts
+// lib/marzban.ts
+import 'server-only'
+import { createMarzbanSDK, MarzbanSDK } from 'marzban-sdk'
+
+let sdkPromise: Promise<MarzbanSDK> | null = null
+
+export function getSDK(): Promise<MarzbanSDK> {
+  if (!sdkPromise) {
+    sdkPromise = createMarzbanSDK({
+      baseUrl: process.env.MARZBAN_URL!,
+      username: process.env.MARZBAN_USER!,
+      password: process.env.MARZBAN_PASS!,
+    })
+  }
+  return sdkPromise
+}
+```
+
+<Callout type="warn">
+  Add `MARZBAN_URL`, `MARZBAN_USER`, and `MARZBAN_PASS` to your `.env.local`. Do **not** prefix them with `NEXT_PUBLIC_` — that would expose them to the browser.
+</Callout>
+
+## Server Components
+
+```tsx
+// app/dashboard/page.tsx
+import { getSDK } from '@/lib/marzban'
+import { formatBytes } from 'marzban-sdk'
+
+export default async function DashboardPage() {
+  const sdk = await getSDK()
+  const stats = await sdk.system.getSystemStats()
+
+  return (
+    <div>
+      <h1>Marzban Dashboard</h1>
+      <p>Active users: {stats.users_active} / {stats.total_user}</p>
+      <p>Memory: {formatBytes(stats.mem_used)} / {formatBytes(stats.mem_total)}</p>
+    </div>
+  )
+}
+```
+
+## Route Handlers
+
+```ts
+// app/api/users/route.ts
+import { NextResponse } from 'next/server'
+import { getSDK } from '@/lib/marzban'
+
+export async function GET() {
+  const sdk = await getSDK()
+  const result = await sdk.user.getUsers({ limit: 50 })
+  return NextResponse.json(result)
+}
+
+export async function POST(req: Request) {
+  const sdk = await getSDK()
+  const body = await req.json()
+  const user = await sdk.user.addUser(body)
+  return NextResponse.json(user, { status: 201 })
+}
+```
+
+## Server Actions
+
+```ts
+// app/actions/users.ts
+'use server'
+
+import { getSDK } from '@/lib/marzban'
+import { parseSize } from 'marzban-sdk'
+import { revalidatePath } from 'next/cache'
+
+export async function createUser(formData: FormData) {
+  const sdk = await getSDK()
+
+  await sdk.user.addUser({
+    username: formData.get('username') as string,
+    proxies: { vless: {} },
+    inbounds: { vless: ['VLESS TCP REALITY'] },
+    data_limit: parseSize(formData.get('limit') as string),
+    expire: 0,
+  })
+
+  revalidatePath('/dashboard/users')
+}
+```
+
+## Webhook Route Handler
+
+See [Webhooks → Next.js](/docs/webhooks/nextjs) for the full webhook integration with raw body and signature verification.
+
+## Environment variables
+
+```bash
+MARZBAN_URL=https://vpn.example.com
+MARZBAN_USER=admin
+MARZBAN_PASS=your-password
+MARZBAN_WEBHOOK_SECRET=your-webhook-secret
+```

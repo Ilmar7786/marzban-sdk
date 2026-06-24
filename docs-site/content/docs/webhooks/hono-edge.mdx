@@ -3,4 +3,121 @@ title: Hono / Edge
 description: Handling Marzban webhooks on Hono and edge runtimes (Cloudflare Workers, Vercel Edge).
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+Hono is built on the Web Fetch API and runs natively on Cloudflare Workers, Vercel Edge Functions, Deno Deploy, and Bun. Reading the raw body is a first-class operation — no middleware required.
+
+## Setup
+
+```bash
+npm install hono marzban-sdk
+```
+
+## Cloudflare Workers / Hono
+
+```ts
+import { Hono } from 'hono'
+import { createMarzbanSDK, isWebhookSignatureError, isWebhookValidationError } from 'marzban-sdk'
+
+const app = new Hono()
+
+// Initialize SDK once at module level (cold-start)
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+  webhook: {
+    secret: process.env.MARZBAN_WEBHOOK_SECRET,
+  },
+})
+
+sdk.webhook.on('user_created', payload => {
+  console.log('User created:', payload.user.username)
+})
+
+sdk.webhook.on('user_limited', payload => {
+  console.log('User limited:', payload.username)
+})
+
+app.post('/webhook', async c => {
+  const rawBody = await c.req.arrayBuffer()
+  const signature = c.req.header('x-signature')
+
+  try {
+    await sdk.webhook.handleWebhook(rawBody, signature)
+    return c.json({ ok: true })
+  } catch (err) {
+    if (isWebhookSignatureError(err)) {
+      return c.json({ error: 'Invalid signature' }, 401)
+    }
+    if (isWebhookValidationError(err)) {
+      return c.json({ error: 'Invalid payload' }, 400)
+    }
+    throw err
+  }
+})
+
+export default app
+```
+
+## Vercel Edge Function
+
+```ts
+// api/webhook/route.ts (Edge Runtime)
+import { createMarzbanSDK, isWebhookSignatureError } from 'marzban-sdk'
+
+export const runtime = 'edge'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: process.env.MARZBAN_URL!,
+  username: process.env.MARZBAN_USER!,
+  password: process.env.MARZBAN_PASS!,
+  webhook: { secret: process.env.MARZBAN_WEBHOOK_SECRET },
+})
+
+export async function POST(req: Request) {
+  const rawBody = await req.arrayBuffer()
+  const signature = req.headers.get('x-signature') ?? undefined
+
+  try {
+    await sdk.webhook.handleWebhook(rawBody, signature)
+    return new Response(JSON.stringify({ ok: true }), { status: 200 })
+  } catch (err) {
+    if (isWebhookSignatureError(err)) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+    return new Response('Bad Request', { status: 400 })
+  }
+}
+```
+
+## Deno / Bun
+
+```ts
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+  webhook: { secret: Deno.env.get('MARZBAN_WEBHOOK_SECRET') },
+})
+
+sdk.webhook.on('user_expired', payload => {
+  console.log('Expired:', payload.username)
+})
+
+Deno.serve(async (req) => {
+  if (req.method !== 'POST' || new URL(req.url).pathname !== '/webhook') {
+    return new Response('Not Found', { status: 404 })
+  }
+
+  const rawBody = await req.arrayBuffer()
+  const signature = req.headers.get('x-signature') ?? undefined
+
+  await sdk.webhook.handleWebhook(rawBody, signature)
+  return new Response('OK')
+})
+```
+
+<Callout type="info">
+  All edge runtimes support the Web Crypto API (`crypto.subtle`), so HMAC-SHA256 signature verification works out of the box without any polyfills.
+</Callout>

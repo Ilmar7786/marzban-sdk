@@ -3,4 +3,87 @@ title: Auto Authentication
 description: How the SDK authenticates on init and transparently refreshes tokens on 401.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+By default, MarzbanSDK handles authentication for you. You provide credentials once in the config, and the SDK takes care of obtaining and refreshing the JWT token automatically.
+
+## How it works
+
+1. **On init** — `createMarzbanSDK` posts your credentials to `POST /api/admin/token`. The returned JWT is stored in memory.
+2. **On every request** — the `Authorization: Bearer <token>` header is injected by an Axios request interceptor.
+3. **On 401 response** — the response interceptor catches the error, re-authenticates once, replaces the token, and retries the original request transparently.
+
+```ts
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+  // authenticateOnInit: true  ← this is the default
+})
+
+// Token is already available — no extra call needed
+const users = await sdk.user.getUsers()
+```
+
+## Concurrent-call deduplication
+
+If multiple requests trigger a 401 at exactly the same time, the SDK does **not** fire multiple login requests. The `AuthManager` stores the in-flight `Promise` and returns it to all concurrent callers, so only one `/api/admin/token` POST is made.
+
+## Retrieve the current token
+
+```ts
+const token = await sdk.getAuthToken()
+console.log(token) // "eyJhbGci..."
+```
+
+`getAuthToken()` waits for any in-progress authentication before returning, so it is safe to call at any time.
+
+## Authentication lifecycle
+
+```
+createMarzbanSDK()
+  └─► validateConfig()
+  └─► new MarzbanSDK()   ← interceptors wired up
+  └─► sdk.authorize()
+        └─► POST /api/admin/token
+        └─► token stored in memory
+  └─► returns sdk
+
+any sdk.user / sdk.node / ... call
+  └─► request interceptor attaches Bearer token
+  └─► response interceptor
+        └─► 200 → return data
+        └─► 401 → re-authenticate → retry once → return data
+```
+
+## Token storage
+
+Tokens are kept **in memory only** — never written to disk, `localStorage`, or cookies. Each `MarzbanSDK` instance has its own isolated `AuthManager`, so multiple SDK instances (e.g. connecting to different Marzban servers) never share tokens.
+
+## Configuration
+
+| Field | Default | Effect |
+|-------|---------|--------|
+| `authenticateOnInit` | `true` | Call `authorize()` before `createMarzbanSDK` returns |
+| `retries` | `3` | Max re-auth attempts on repeated 401 responses |
+
+## What if credentials are wrong?
+
+If the login endpoint returns an error, `createMarzbanSDK` (or `sdk.authorize()`) throws an `AuthError`:
+
+```ts
+import { createMarzbanSDK, isAuthError } from 'marzban-sdk'
+
+try {
+  const sdk = await createMarzbanSDK({
+    baseUrl: 'https://vpn.example.com',
+    username: 'admin',
+    password: 'wrong',
+  })
+} catch (err) {
+  if (isAuthError(err)) {
+    console.error('Login failed:', err.message) // "Authentication failed"
+    console.error('Code:', err.code)            // "AUTH_FAILED"
+  }
+}
+```
+
+See [Error Handling](/docs/advanced/error-handling) for the full error hierarchy.

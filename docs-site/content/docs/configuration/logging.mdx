@@ -1,6 +1,135 @@
 ---
 title: Logging
-description: Environment-aware logging and custom loggers.
+description: Environment-aware built-in logging and how to plug in your own logger.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+MarzbanSDK ships with a built-in colored logger and a flexible interface that lets you swap it out for any logger you prefer — Winston, Pino, NestJS Logger, or anything else.
+
+## Default behaviour
+
+When you don't set `logger` at all, the SDK picks the log level based on the environment:
+
+| `NODE_ENV` | Default level |
+|------------|--------------|
+| `development` | `info` |
+| anything else (production) | `error` |
+
+## Built-in logger options
+
+Pass a `LoggerOptions` object to configure the built-in logger:
+
+```ts
+const sdk = await createMarzbanSDK({
+  // ...
+  logger: {
+    level: 'debug',      // 'debug' | 'info' | 'warn' | 'error'
+    timestamp: true,     // prepend ISO timestamp to each line (default: true)
+  },
+})
+```
+
+### Log levels
+
+| Level | When to use |
+|-------|-------------|
+| `debug` | Verbose internal traces (HTTP calls, retry attempts, WS events) |
+| `info` | Major lifecycle events (auth success, connections opened) |
+| `warn` | Non-fatal issues (auth retry, token refresh) |
+| `error` | Failures and exceptions |
+
+Each level includes all levels above it. For example, `warn` will also log `error` messages.
+
+## Disable logging
+
+Pass `logger: false` to suppress all SDK output:
+
+```ts
+const sdk = await createMarzbanSDK({
+  // ...
+  logger: false,
+})
+```
+
+## Custom logger
+
+Provide any object that implements the `Logger` interface:
+
+```ts
+interface Logger {
+  debug(message: string, context?: string): void
+  info(message: string, context?: string): void
+  warn(message: string, context?: string): void
+  error(message: string, trace?: unknown, context?: string): void
+}
+```
+
+### Example: Winston
+
+```ts
+import winston from 'winston'
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const winstonLogger = winston.createLogger({
+  level: 'info',
+  transports: [new winston.transports.Console()],
+})
+
+const sdk = await createMarzbanSDK({
+  // ...
+  logger: {
+    debug: (msg, ctx) => winstonLogger.debug(msg, { context: ctx }),
+    info:  (msg, ctx) => winstonLogger.info(msg,  { context: ctx }),
+    warn:  (msg, ctx) => winstonLogger.warn(msg,  { context: ctx }),
+    error: (msg, trace, ctx) => winstonLogger.error(msg, { context: ctx, trace }),
+  },
+})
+```
+
+### Example: Pino
+
+```ts
+import pino from 'pino'
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const logger = pino({ level: 'debug' })
+
+const sdk = await createMarzbanSDK({
+  // ...
+  logger: {
+    debug: (msg, ctx) => logger.debug({ ctx }, msg),
+    info:  (msg, ctx) => logger.info({ ctx }, msg),
+    warn:  (msg, ctx) => logger.warn({ ctx }, msg),
+    error: (msg, trace, ctx) => logger.error({ ctx, trace }, msg),
+  },
+})
+```
+
+### Example: NestJS Logger
+
+```ts
+import { Logger as NestLogger } from '@nestjs/common'
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const nestLogger = new NestLogger('MarzbanSDK')
+
+const sdk = await createMarzbanSDK({
+  // ...
+  logger: {
+    debug: (msg, ctx) => nestLogger.debug(msg, ctx),
+    info:  (msg, ctx) => nestLogger.log(msg, ctx),
+    warn:  (msg, ctx) => nestLogger.warn(msg, ctx),
+    error: (msg, trace, ctx) => nestLogger.error(msg, trace, ctx),
+  },
+})
+```
+
+## Log output format
+
+The built-in logger outputs lines like:
+
+```
+[MarzbanSDK] 2024-01-15T10:23:05.123Z  INFO [AuthManager] Authentication successful, token stored
+[MarzbanSDK] 2024-01-15T10:23:05.200Z DEBUG [HttpClient] Configuring HTTP client: baseURL=https://..., timeout=30000ms, retries=3
+```
+
+Fields: `[MarzbanSDK]` prefix · ISO timestamp · level (padded) · `[context]` · message.

@@ -1,6 +1,126 @@
 ---
 title: WebSocket Logs
-description: Stream live logs from the Marzban core and individual nodes via WebSocket.
+description: Stream real-time logs from the Marzban core and individual nodes.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+`sdk.logs` provides live log streaming over WebSocket. It supports both the **core Xray process** and **individual node** logs, with automatic token refresh on `403 Forbidden`.
+
+## How it works
+
+Each `connect*` call:
+1. Ensures the SDK has a valid token (re-authenticates if needed).
+2. Opens a WebSocket connection to the Marzban backend.
+3. Returns a **close function** — call it to terminate the connection.
+
+Active connections are tracked internally. `sdk.destroy()` closes all of them at once.
+
+## Connect to core logs
+
+```ts
+const closeStream = await sdk.logs.connectByCore({
+  interval: 1, // polling interval in seconds (default: 1)
+  onMessage: (data) => {
+    console.log('[Core log]', data)
+  },
+  onError: (event) => {
+    console.error('WebSocket error:', event)
+  },
+})
+
+// Later, close the stream
+closeStream()
+```
+
+## Connect to node logs
+
+```ts
+const closeStream = await sdk.logs.connectByNode(nodeId, {
+  interval: 1,
+  onMessage: (data) => {
+    console.log(`[Node ${nodeId} log]`, data)
+  },
+  onError: (event) => {
+    console.error('Node log error:', event)
+  },
+})
+
+closeStream()
+```
+
+## Multiple concurrent streams
+
+```ts
+const [closeCore, closeNode1, closeNode2] = await Promise.all([
+  sdk.logs.connectByCore({ onMessage: d => process.stdout.write(d) }),
+  sdk.logs.connectByNode(1, { onMessage: d => process.stdout.write(d) }),
+  sdk.logs.connectByNode(2, { onMessage: d => process.stdout.write(d) }),
+])
+
+// Close all streams at once
+await sdk.destroy()
+```
+
+## LogOptions
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `onMessage` | `(data: any) => void` | required | Called on each incoming log line |
+| `onError` | `(event: ErrorEvent) => void` | — | Called after max retries are exhausted |
+| `interval` | `number` | `1` | Polling interval in seconds |
+
+## 403 / auth retry behaviour
+
+If the server returns `403 Forbidden` on a WebSocket connection, the SDK:
+
+1. Closes the errored socket.
+2. Re-authenticates using stored credentials.
+3. Opens a new socket with the fresh token.
+4. Repeats up to `config.retries` times (default: 3).
+5. Calls `onError` if all retries are exhausted.
+
+## Cleanup
+
+Always close streams when you no longer need them to avoid resource leaks:
+
+```ts
+// Close a single stream
+const close = await sdk.logs.connectByCore({ onMessage: handler })
+// ...
+close()
+
+// Close all active streams + release other SDK resources
+await sdk.destroy()
+```
+
+## Browser support
+
+The WebSocket client auto-detects the runtime:
+
+- **Modern environments** (browser, Deno, Bun, Node.js 21+) — uses the native `WebSocket` global.
+- **Older Node.js (18–20)** — falls back to the `ws` package (included as an optional dependency).
+
+No configuration required — the detection is fully transparent.
+
+## React / frontend example
+
+```tsx
+import { useEffect } from 'react'
+import type { MarzbanSDK } from 'marzban-sdk'
+
+function NodeLogViewer({ sdk, nodeId }: { sdk: MarzbanSDK; nodeId: number }) {
+  useEffect(() => {
+    let close: (() => void) | undefined
+
+    sdk.logs
+      .connectByNode(nodeId, {
+        onMessage: (data) => console.log(data),
+        onError: (e) => console.error('Stream error', e),
+      })
+      .then(fn => { close = fn })
+
+    return () => { close?.() }
+  }, [sdk, nodeId])
+
+  return <pre>watching node {nodeId} logs...</pre>
+}
+```

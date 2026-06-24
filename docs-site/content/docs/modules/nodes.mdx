@@ -1,6 +1,187 @@
 ---
 title: Nodes
-description: Manage Marzban nodes.
+description: Manage Marzban nodes via sdk.node.
 ---
 
-<Callout title="Coming soon">This page is a stub from the skeleton phase. Content will be migrated here.</Callout>
+`sdk.node` provides endpoints for adding, querying, and managing Marzban worker nodes.
+
+## Types
+
+### `NodeResponse`
+
+Returned by `getNode`, `addNode`, `modifyNode`, and `getNodes`.
+
+```ts
+import type { NodeResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `number` | Unique node ID |
+| `name` | `string` | Display name |
+| `address` | `string` | IP address or hostname |
+| `port` | `number` | Xray API port (default: `62050`) |
+| `api_port` | `number` | Node gRPC API port (default: `62051`) |
+| `usage_coefficient` | `number` | Traffic multiplier (default: `1`) |
+| `status` | `'connected' \| 'connecting' \| 'error' \| 'disabled'` | Current connection state |
+| `xray_version` | `string \| null` | Xray version running on the node |
+| `message` | `string \| null` | Error message when `status` is `'error'` |
+
+### `NodeCreate`
+
+Payload for `addNode`.
+
+```ts
+import type { NodeCreate } from 'marzban-sdk'
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `string` | Yes | Display name |
+| `address` | `string` | Yes | IP address or hostname |
+| `port` | `number` | No | Default: `62050` |
+| `api_port` | `number` | No | Default: `62051` |
+| `usage_coefficient` | `number` | No | Traffic multiplier, default: `1` |
+| `add_as_new_host` | `boolean` | No | Auto-create a host entry for this node, default: `true` |
+
+---
+
+## Methods
+
+### `getNodes()`
+
+List all configured nodes. Returns `NodeResponse[]`.
+
+```ts
+const nodes = await sdk.node.getNodes()
+
+for (const node of nodes) {
+  console.log(node.id, node.name, node.status)
+}
+```
+
+---
+
+### `getNode(node_id)`
+
+Get a single node by ID. Returns `NodeResponse`.
+
+```ts
+const node = await sdk.node.getNode(1)
+console.log(node.name)
+console.log(node.status)   // 'connected' | 'connecting' | 'error' | 'disabled'
+console.log(node.message)  // error details when status === 'error'
+```
+
+---
+
+### `addNode(data)`
+
+Register a new node. Accepts `NodeCreate`, returns `NodeResponse`.
+
+```ts
+const node = await sdk.node.addNode({
+  name: 'Frankfurt-01',
+  address: '203.0.113.10',
+  port: 62050,
+  api_port: 62051,
+  add_as_new_host: true,
+})
+
+console.log(node.id)
+console.log(node.status) // 'connecting' initially
+```
+
+---
+
+### `modifyNode(node_id, data)`
+
+Update a node's configuration. Returns `NodeResponse`.
+
+```ts
+await sdk.node.modifyNode(1, {
+  name: 'Frankfurt-01 (updated)',
+  address: '203.0.113.11',
+  status: 'disabled',
+})
+```
+
+---
+
+### `removeNode(node_id)`
+
+Remove a node from Marzban.
+
+```ts
+await sdk.node.removeNode(1)
+```
+
+---
+
+### `reconnectNode(node_id)`
+
+Force a node to reconnect.
+
+```ts
+await sdk.node.reconnectNode(1)
+```
+
+---
+
+### `getUsage(params?)`
+
+Get traffic usage per node, optionally filtered by time range.
+
+```ts
+const usage = await sdk.node.getUsage({
+  start: '2024-01-01T00:00:00',
+  end:   '2024-01-31T23:59:59',
+})
+
+for (const entry of usage.usages) {
+  console.log(entry.node_name, entry.uplink, entry.downlink)
+}
+```
+
+---
+
+### `getNodeSettings()`
+
+Retrieve the global node TLS certificate used for node-to-core communication.
+
+```ts
+const settings = await sdk.node.getNodeSettings()
+console.log(settings.certificate)
+```
+
+## Common patterns
+
+### Monitor node health
+
+```ts
+const nodes = await sdk.node.getNodes()
+
+const unhealthy = nodes.filter(n => n.status === 'error')
+for (const node of unhealthy) {
+  console.warn(`Node ${node.name} error: ${node.message}`)
+  await sdk.node.reconnectNode(node.id)
+}
+```
+
+### Add a node and wait for it to connect
+
+```ts
+const node = await sdk.node.addNode({
+  name: 'Singapore-01',
+  address: '10.0.0.5',
+  add_as_new_host: true,
+})
+
+let current = node
+while (current.status === 'connecting') {
+  await new Promise(r => setTimeout(r, 2000))
+  current = await sdk.node.getNode(node.id)
+}
+
+console.log('Node status:', current.status)
+```

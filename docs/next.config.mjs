@@ -19,6 +19,9 @@ const config = {
   images: { unoptimized: true },
   // Emit /docs/ instead of /docs.html so links work on static hosts.
   trailingSlash: true,
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+  },
 }
 
 export default withMDX(config)

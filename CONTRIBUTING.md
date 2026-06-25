@@ -22,14 +22,14 @@ npm install
 
 ### Available scripts
 
-| Command                 | Description                                       |
-| ----------------------- | ------------------------------------------------- |
-| `npm run build`         | Compile TypeScript → `dist/` (ESM + CJS)          |
-| `npm test`              | Run the full test suite once with Vitest          |
-| `npm run test:watch`    | Run tests in watch mode                           |
-| `npm run test:coverage` | Run tests with a coverage report                  |
-| `npm run lint`          | Run ESLint (auto-fix)                             |
-| `npm run format`        | Format the codebase with Prettier                 |
+| Command                 | Description                                        |
+| ----------------------- | -------------------------------------------------- |
+| `npm run build`         | Compile TypeScript → `dist/` (ESM + CJS)           |
+| `npm test`              | Run the full test suite once with Vitest           |
+| `npm run test:watch`    | Run tests in watch mode                            |
+| `npm run test:coverage` | Run tests with a coverage report                   |
+| `npm run lint`          | Run ESLint (auto-fix)                              |
+| `npm run format`        | Format the codebase with Prettier                  |
 | `npm run codegen`       | Regenerate the API client from `openapi/` via Kubb |
 
 ## Testing
@@ -86,7 +86,7 @@ Use `type!` or a `BREAKING CHANGE:` footer for breaking changes.
 - All code is **TypeScript** with `strict` mode enabled.
 - ESLint + Prettier enforce style — run `npm run lint` before committing.
 - Avoid `any` — prefer proper generics or `unknown`.
-- Comments explain *why*, not *what*, and only when it's non-obvious.
+- Comments explain _why_, not _what_, and only when it's non-obvious.
 
 ## Regenerating the API client
 

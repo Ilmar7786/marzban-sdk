@@ -25,7 +25,7 @@ const headingComponents = Object.fromEntries(
           </PlainCode>
         ),
       ]
-    }),
+    })
 ) as MDXComponents
 
 export function getMDXComponents(components?: MDXComponents) {

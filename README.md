@@ -74,7 +74,7 @@ try {
 - 🛡️ **Runtime validation** — [config and payloads validated with Zod](https://ilmar7786.github.io/marzban-sdk/docs/advanced/validation); misconfigured clients fail fast with readable details.
 - 📡 **Real-time logs** — [stream live core and node logs over WebSocket](https://ilmar7786.github.io/marzban-sdk/docs/realtime/websocket-logs), with auto token refresh and reconnection.
 - 📨 **Webhooks included** — [HMAC-SHA256 signature verification](https://ilmar7786.github.io/marzban-sdk/docs/webhooks/signature-verification), typed event subscriptions, wildcard handlers and batch processing.
-- 🛠️ **Batteries-included utilities** — first-class helpers for [byte conversions, datetime math and subscription template variables](https://ilmar7786.github.io/marzban-sdk/docs/utilities/bytes).
+- 🛠️ **Batteries-included utilities** — first-class helpers for [data-size conversion, datetime math and subscription template variables](https://ilmar7786.github.io/marzban-sdk/docs/utilities/data-sizes).
 
 ## API modules
 
@@ -99,7 +99,7 @@ Full guides, configuration reference and the complete typed API live at
 - [Configuration options](https://ilmar7786.github.io/marzban-sdk/docs/configuration/config-options)
 - [Error handling](https://ilmar7786.github.io/marzban-sdk/docs/advanced/error-handling) & [validation](https://ilmar7786.github.io/marzban-sdk/docs/advanced/validation)
 - [Webhooks](https://ilmar7786.github.io/marzban-sdk/docs/webhooks/event-types) & [WebSocket logs](https://ilmar7786.github.io/marzban-sdk/docs/realtime/websocket-logs)
-- [Utilities](https://ilmar7786.github.io/marzban-sdk/docs/utilities/bytes)
+- [Utilities](https://ilmar7786.github.io/marzban-sdk/docs/utilities/data-sizes)
 
 ## Contributing
 

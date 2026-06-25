@@ -45,7 +45,8 @@ export const typeGlossary: Record<string, TypeInfo> = {
     href: '/docs/modules/users#usersresponse',
   },
   UserUsagesResponse: {
-    description: 'Per-node traffic usage for a single user (username plus a usages array of node entries), returned by getUserUsage.',
+    description:
+      'Per-node traffic usage for a single user (username plus a usages array of node entries), returned by getUserUsage.',
     href: '/docs/modules/users#userusagesresponse',
   },
   UsersUsagesResponse: {
@@ -53,7 +54,8 @@ export const typeGlossary: Record<string, TypeInfo> = {
     href: '/docs/modules/users#usersusagesresponse',
   },
   UserUsageResponse: {
-    description: 'One node entry inside a usages array: node_id, node_name and used_traffic (bytes consumed on that node).',
+    description:
+      'One node entry inside a usages array: node_id, node_name and used_traffic (bytes consumed on that node).',
     href: '/docs/modules/users#userusagesresponse',
   },
 
@@ -172,15 +174,26 @@ export const typeGlossary: Record<string, TypeInfo> = {
   WebhookType: {
     description:
       'Discriminated union of every webhook event payload, keyed by action. Narrow on payload.action to access event-specific fields.',
-    href: '/docs/webhooks/event-types#typescript-types',
   },
   WebhookArrayType: {
     description: 'An array of WebhookType — what parseWebhook returns, since Marzban may deliver events in batches.',
-    href: '/docs/webhooks/event-types#typescript-types',
   },
   WebhookAction: {
-    description: 'The set of webhook action names: user_created, user_expired, reached_usage_percent, and so on.',
+    description:
+      'The union of webhook action names: user_created, user_expired, reached_usage_percent, and so on. Use it to type your own action-handling helpers.',
+  },
+  ACTIONS: {
+    description:
+      "A constant object mapping every webhook action name to itself (ACTIONS.user_created === 'user_created'). Use it with sdk.webhook.on to avoid magic strings, or Object.values(ACTIONS) to iterate all actions.",
     href: '/docs/webhooks/event-types#events-reference',
+  },
+  WebhookSchema: {
+    description:
+      'The Zod schema for a single webhook payload (a discriminated union on action). Use WebhookSchema.safeParse / .parse to validate untrusted input; parseWebhook runs it for you.',
+  },
+  WebhookActionSchema: {
+    description:
+      'A Zod enum of the 12 webhook action names. Use it to validate a standalone action string, e.g. one coming from a query param or filter.',
   },
 
   // ── Errors ─────────────────────────────────────────────────────────────

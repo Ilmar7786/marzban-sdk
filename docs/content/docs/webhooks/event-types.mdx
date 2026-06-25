@@ -1,54 +1,23 @@
 ---
 title: Event Types
-description: All 12 webhook actions emitted by Marzban with their payload shapes.
+description: The 12 webhook actions Marzban emits, their payloads, and how to consume them type-safely.
 ---
 
-Marzban emits webhooks for 12 distinct user lifecycle events. Each event is a JSON object with a common base and event-specific fields.
+Marzban emits a webhook for each of **12 user-lifecycle events**. Every payload shares a common base and adds a few event-specific fields.
 
-## Base fields
+## Payload shape
 
-Every webhook payload includes:
+Every webhook is a JSON object with these base fields:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `action` | `string` | Event type identifier (see table below) |
+| `action` | `WebhookAction` | Which event fired — one of the 12 names below |
 | `username` | `string` | Username of the affected user |
 | `enqueued_at` | `number` | Unix timestamp (float) when the event was queued |
 | `send_at` | `number` | Unix timestamp (float) when the event was sent |
 | `tries` | `number` | Number of delivery attempts |
 
-## Events reference
-
-### User lifecycle
-
-| Action | Extra fields | Description |
-|--------|-------------|-------------|
-| `user_created` | `user`, `by` | A new user was created |
-| `user_updated` | `user`, `by` | User profile was modified |
-| `user_deleted` | `by` | User was deleted |
-| `user_enabled` | `user`, `by?` | User was re-enabled (by can be null for automated re-enable) |
-| `user_disabled` | `user`, `by`, `reason?` | User was disabled |
-
-### Data & subscription
-
-| Action | Extra fields | Description |
-|--------|-------------|-------------|
-| `user_limited` | `user` | User reached their data limit |
-| `user_expired` | `user` | User's subscription expired |
-| `data_usage_reset` | `user`, `by` | User's data usage was reset manually |
-| `data_reset_by_next` | `user` | Data was reset by the "next plan" mechanism |
-| `subscription_revoked` | `user`, `by` | Subscription token was revoked and reissued |
-
-### Threshold alerts
-
-| Action | Extra fields | Description |
-|--------|-------------|-------------|
-| `reached_usage_percent` | `user`, `used_percent` | User reached a configured usage percentage threshold |
-| `reached_days_left` | `user`, `days_left` | User has a configured number of days left |
-
-## Payload examples
-
-### `user_created`
+Most events also carry the full `UserResponse` under `user`, and admin-initiated ones add the acting `Admin` under `by`. A complete `user_created` payload:
 
 ```json
 {
@@ -71,7 +40,30 @@ Every webhook payload includes:
 }
 ```
 
-### `user_disabled`
+## Events reference
+
+All 12 actions, the fields each adds on top of the base, and when they fire:
+
+| Action | Extra fields | Fires when |
+|--------|-------------|-----------|
+| `user_created` | `user`, `by` | A new user was created |
+| `user_updated` | `user`, `by` | A user's profile was modified |
+| `user_deleted` | `by` | A user was deleted (no `user` — it's gone) |
+| `user_enabled` | `user`, `by?` | A user was re-enabled (`by` is null for an automated re-enable) |
+| `user_disabled` | `user`, `by`, `reason?` | A user was disabled |
+| `user_limited` | `user` | A user hit their data limit |
+| `user_expired` | `user` | A user's subscription expired |
+| `data_usage_reset` | `user`, `by` | A user's data usage was reset manually |
+| `data_reset_by_next` | `user` | Data was reset by the "next plan" mechanism |
+| `subscription_revoked` | `user`, `by` | A subscription token was revoked and reissued |
+| `reached_usage_percent` | `user`, `used_percent` | A user crossed a configured usage-percent threshold |
+| `reached_days_left` | `user`, `days_left` | A user crossed a configured days-left threshold |
+
+## Payload examples
+
+`user_created` is shown above. Two events add fields worth seeing in full:
+
+### `user_disabled` — adds `reason`
 
 ```json
 {
@@ -86,7 +78,7 @@ Every webhook payload includes:
 }
 ```
 
-### `reached_usage_percent`
+### `reached_usage_percent` — adds a numeric threshold field
 
 ```json
 {
@@ -100,23 +92,15 @@ Every webhook payload includes:
 }
 ```
 
-### `reached_days_left`
+`reached_days_left` has the same shape, with `days_left` (a number) in place of `used_percent`.
 
-```json
-{
-  "action": "reached_days_left",
-  "username": "alice",
-  "enqueued_at": 1705313100.0,
-  "send_at": 1705313100.0,
-  "tries": 0,
-  "user": { "username": "alice", "expire": 1706004800 },
-  "days_left": 3
-}
-```
+## Working with events in TypeScript
 
-## TypeScript types
+The SDK ships three things for handling events safely: the `WebhookType` union for narrowing, the `ACTIONS` constant for action names, and the `WebhookSchema` validator for untrusted input.
 
-Every event type is part of the `WebhookType` discriminated union:
+### Narrowing the union
+
+Every payload is a member of the `WebhookType` discriminated union, keyed by `action`. Switch on it and TypeScript unlocks exactly the event-specific fields that event carries:
 
 ```ts
 import type { WebhookType } from 'marzban-sdk'
@@ -124,19 +108,66 @@ import type { WebhookType } from 'marzban-sdk'
 function handleEvent(payload: WebhookType) {
   switch (payload.action) {
     case 'user_created':
-      // payload.user and payload.by are available
+      // payload.user and payload.by are available here
       console.log('New user:', payload.user.username)
       break
 
     case 'reached_usage_percent':
-      // payload.used_percent is available
+      // payload.used_percent is available here
       console.log(`${payload.username} used ${payload.used_percent}%`)
       break
 
     case 'user_deleted':
-      // payload.user is NOT available (user is gone)
+      // payload.user is NOT available — the user is gone
       console.log('Deleted:', payload.username)
       break
   }
 }
 ```
+
+### Action constants
+
+Rather than hard-code action strings, import the `ACTIONS` constant (every name) and the `WebhookAction` type (their union):
+
+```ts
+import { ACTIONS, type WebhookAction } from 'marzban-sdk'
+
+// Subscribe without magic strings — ACTIONS is fully autocompleted
+sdk.webhook.on(ACTIONS.user_created, payload => {
+  console.log('New user:', payload.user.username)
+})
+
+// Iterate every action, e.g. to attach one handler to all of them
+for (const action of Object.values(ACTIONS)) {
+  sdk.webhook.on(action, payload => log(payload.action))
+}
+
+// Annotate your own helpers
+function describe(action: WebhookAction): string {
+  return action.replace(/_/g, ' ')
+}
+```
+
+`ACTIONS.user_created === 'user_created'`, so the constants are fully interchangeable with the raw strings — they only add autocomplete and a single source of truth.
+
+### Schema validation
+
+Need to validate an untrusted payload yourself? The matching Zod schemas are exported too. `sdk.webhook.parseWebhook` already runs `WebhookSchema` for you (and verifies the signature), so reach for these only when you parse events outside the SDK:
+
+```ts
+import { WebhookSchema, WebhookActionSchema } from 'marzban-sdk'
+
+// Validate a full payload — returns a typed WebhookType on success
+const result = WebhookSchema.safeParse(rawJson)
+if (result.success) {
+  handleEvent(result.data)
+} else {
+  console.error('Invalid webhook:', result.error.issues)
+}
+
+// Validate just an action name (e.g. from a query param or filter)
+WebhookActionSchema.parse('user_created') // ok
+WebhookActionSchema.parse('nope')         // throws ZodError
+```
+
+For batches, `WebhookArrayType` is the inferred type of an array of events — exactly what `parseWebhook` returns.

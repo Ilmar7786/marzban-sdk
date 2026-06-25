@@ -3,5 +3,5 @@
  * @type {import('lint-staged').Configuration}
  */
 export default {
-  '*.{js,ts}': 'eslint --fix .',
+  '*.{js,ts}': 'eslint --fix',
 }

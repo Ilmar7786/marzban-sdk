@@ -26,15 +26,16 @@ import { CodePreview } from '@/components/landing/code-preview'
 import { InstallSection } from '@/components/landing/install-section'
 import { appName, gitConfig } from '@/lib/shared'
 
+// Only `title`/`description` are overridden here. The Open Graph card (incl.
+// the generated image, site name, locale and canonical URL) is inherited from
+// the root layout — a partial `openGraph` here would replace it wholesale and
+// drop the `opengraph-image` social card.
 export const metadata: Metadata = {
-  title: `${appName} — The TypeScript SDK for Marzban`,
+  // `absolute` opts out of the root `%s · MarzbanSDK` template — the landing
+  // title already leads with the brand, so the suffix would duplicate it.
+  title: { absolute: `${appName} — The complete TypeScript SDK for Marzban` },
   description:
     'A complete, production-grade TypeScript SDK for Marzban. Full typed API coverage across users, nodes, subscriptions and admins, plus auto token refresh, retry logic, WebSocket log streaming, Zod validation, webhook verification, and a classified error system — isomorphic for Node.js and the browser.',
-  openGraph: {
-    title: `${appName} — The TypeScript SDK for Marzban`,
-    description:
-      'A complete, production-grade TypeScript SDK for Marzban — typed API coverage, auto token refresh, WebSocket streaming, webhooks, and more. Runs in Node.js and the browser.',
-  },
 }
 
 /** Infrastructure-level capabilities that make this an SDK, not a wrapper. */
@@ -42,7 +43,7 @@ const features = [
   {
     icon: Sparkles,
     title: 'End-to-end type safety',
-    desc: 'Every endpoint, parameter and response is fully typed. Autocomplete covers the entire Marzban API surface — generated from the official OpenAPI spec.',
+    desc: 'Every endpoint, parameter and response is fully typed. Autocomplete covers the entire Marzban API surface — typed against the official OpenAPI spec.',
   },
   {
     icon: Globe,
@@ -232,7 +233,7 @@ export default function HomePage() {
 
           {/* Trust line */}
           <p className="animate-fade-up mt-6 text-xs text-fd-muted-foreground" style={{ animationDelay: '300ms' }}>
-            MIT licensed · Generated from the official OpenAPI spec · Tree-shakeable ESM + CJS
+            MIT licensed · Full official Marzban API coverage · Tree-shakeable ESM + CJS
           </p>
         </div>
       </section>

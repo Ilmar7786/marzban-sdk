@@ -1,6 +1,6 @@
 ---
 title: Error Handling
-description: Classified errors, error codes, and type-safe guards.
+description: Handle failures with MarzbanSDK's typed error hierarchy — every error extends `SdkError` with a machine-readable `code` and a matching type guard.
 ---
 
 MarzbanSDK uses a typed error hierarchy. Every error extends `SdkError`, which extends `Error` — so standard `try/catch` works as expected. On top of that, each error class has a `code` property and a matching type guard for safe narrowing.

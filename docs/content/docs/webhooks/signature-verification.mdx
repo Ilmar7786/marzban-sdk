@@ -1,6 +1,6 @@
 ---
 title: Signature Verification
-description: HMAC-SHA256 webhook signature verification — server-side only.
+description: Verify Marzban webhook signatures with HMAC-SHA256 using the Web Crypto API — server-side only, with the x-signature header and your shared secret.
 ---
 
 When Marzban is configured with a webhook secret, it signs each request body with **HMAC-SHA256** and sends the signature in the `x-signature` header. MarzbanSDK verifies this signature automatically when you provide the same secret.

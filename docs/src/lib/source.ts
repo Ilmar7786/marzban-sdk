@@ -3,7 +3,7 @@ import { loader } from 'fumadocs-core/source'
 import { icons } from 'lucide-react'
 import { createElement } from 'react'
 
-import { docsContentRoute, docsImageRoute, docsRoute } from './shared'
+import { docsContentRoute, docsImageRoute, docsRoute, withBasePath } from './shared'
 
 // See https://fumadocs.dev/docs/headless/source-api for more info
 // NOTE: i18n is intentionally NOT wired into the loader/routing yet. See
@@ -25,6 +25,8 @@ export function getPageImage(page: (typeof source)['$inferPage']) {
 
   return {
     segments,
+    // Root-relative on purpose: this URL is consumed via Next metadata
+    // (`openGraph.images`), which applies the deployment base path itself.
     url: `${docsImageRoute}/${segments.join('/')}`,
   }
 }
@@ -34,7 +36,9 @@ export function getPageMarkdownUrl(page: (typeof source)['$inferPage']) {
 
   return {
     segments,
-    url: `${docsContentRoute}/${segments.join('/')}`,
+    // Fetched/linked as a raw string (not Next metadata, so no automatic
+    // base-path injection), so build the full path explicitly.
+    url: withBasePath(`${docsContentRoute}/${segments.join('/')}`),
   }
 }
 

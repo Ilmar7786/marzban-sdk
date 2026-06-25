@@ -1,6 +1,6 @@
 ---
 title: NestJS
-description: Registering MarzbanSDK as a NestJS provider via a custom module.
+description: Integrate MarzbanSDK into NestJS by wrapping the client in a global module that initializes it on onModuleInit and exposes it as an injectable service.
 ---
 
 The recommended pattern is to wrap the SDK in a **NestJS module** with a provider that initializes it during `onModuleInit` and exposes it as an injectable service.

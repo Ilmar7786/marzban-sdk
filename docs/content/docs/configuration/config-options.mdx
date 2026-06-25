@@ -1,6 +1,6 @@
 ---
 title: Config Options
-description: All SDK configuration fields, defaults, and validation rules.
+description: Every MarzbanSDK configuration field — `baseUrl`, auth, `timeout`, `retries`, logger and webhook secret — with defaults and Zod validation rules.
 ---
 
 The `Config` object is passed to `createMarzbanSDK` or the `MarzbanSDK` constructor. All fields are validated by Zod before the SDK boots — invalid config throws a `ConfigurationError` immediately.

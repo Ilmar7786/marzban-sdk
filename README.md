@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./docs/src/app/icon.svg" alt="MarzbanSDK" width="80">
+
 # MarzbanSDK
 
 **The complete TypeScript SDK for the [Marzban](https://github.com/Gozargah/Marzban) API.**

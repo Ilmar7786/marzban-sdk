@@ -2,8 +2,8 @@ import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { ThemeSwitch } from 'fumadocs-ui/layouts/shared/slots/theme-switch'
 import { BookOpen, Package } from 'lucide-react'
 
+import { BrandMark } from '@/components/brand-mark'
 import { HeaderGithub } from '@/components/landing/header-github'
-import { LanguageSwitcher } from '@/components/landing/language-switcher'
 import { Tooltip } from '@/components/ui/tooltip'
 
 import { appName, npmPackage } from './shared'
@@ -15,16 +15,21 @@ const navIconButton =
 /**
  * Shared layout options for both the landing (HomeLayout) and docs (DocsLayout).
  *
- * The utility controls — npm, the GitHub star pill and the language switcher —
- * live in the nav `links` so they render in the landing header. The docs
- * layout renders these itself in a single compact sidebar-footer row (see
- * `DocsSidebarFooter`), so it opts out here via `navExtras: false` to avoid
- * duplicating them as stray chips in the sidebar navigation list.
+ * The utility controls — npm and the GitHub star pill — live in the nav `links`
+ * so they render in the landing header. The docs layout renders these itself in
+ * a single compact sidebar-footer row (see `DocsSidebarFooter`), so it opts out
+ * here via `navExtras: false` to avoid duplicating them as stray chips in the
+ * sidebar navigation list.
  */
 export function baseOptions({ navExtras = true }: { navExtras?: boolean } = {}): BaseLayoutProps {
   return {
     nav: {
-      title: <span className="inline-flex items-center gap-2 font-semibold">{appName}</span>,
+      title: (
+        <span className="inline-flex items-center gap-2 font-semibold">
+          <BrandMark className="size-6" />
+          {appName}
+        </span>
+      ),
     },
     // Wrap the landing header theme toggle in a tooltip. The docs layout
     // overrides this with `{ enabled: false }` (its theme toggle lives in the
@@ -70,17 +75,8 @@ export function baseOptions({ navExtras = true }: { navExtras?: boolean } = {}):
               type: 'custom',
               secondary: true,
               children: (
-                <Tooltip label="Star on GitHub" side="bottom">
+                <Tooltip label="Star on GitHub" side="bottom" align="end">
                   <HeaderGithub />
-                </Tooltip>
-              ),
-            },
-            {
-              type: 'custom',
-              secondary: true,
-              children: (
-                <Tooltip label="More translations coming soon" side="bottom" align="end">
-                  <LanguageSwitcher />
                 </Tooltip>
               ),
             },

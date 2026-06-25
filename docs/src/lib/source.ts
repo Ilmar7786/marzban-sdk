@@ -6,8 +6,6 @@ import { createElement } from 'react'
 import { docsContentRoute, docsImageRoute, docsRoute, withBasePath } from './shared'
 
 // See https://fumadocs.dev/docs/headless/source-api for more info
-// NOTE: i18n is intentionally NOT wired into the loader/routing yet. See
-// src/lib/i18n.ts for the rationale and the steps to add a locale later.
 export const source = loader({
   baseUrl: docsRoute,
   source: docs.toFumadocsSource(),

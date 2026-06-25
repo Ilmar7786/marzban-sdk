@@ -1,13 +1,13 @@
 ---
 title: Installation
-description: Install MarzbanSDK from npm with npm, yarn, pnpm, or bun, and run it in Node.js, Bun, Deno, the browser, and edge runtimes.
+description: Install MarzbanSDK with npm, yarn, pnpm, bun, Deno, or a CDN, and run it in Node.js, Bun, Deno, the browser, and edge runtimes.
 ---
 
 MarzbanSDK is published to npm and works in **Node.js**, **Bun**, **Deno**, **browser**, and **edge runtimes** (Cloudflare Workers, Vercel Edge, etc.).
 
-## Package managers
+## Add to your project
 
-<Tabs items={['npm', 'yarn', 'pnpm', 'bun']}>
+<Tabs items={['npm', 'yarn', 'pnpm', 'bun', 'deno', 'CDN']}>
   <Tab value="npm">
     ```bash
     npm install marzban-sdk
@@ -27,6 +27,18 @@ MarzbanSDK is published to npm and works in **Node.js**, **Bun**, **Deno**, **br
     ```bash
     bun add marzban-sdk
     ```
+  </Tab>
+  <Tab value="deno">
+    ```bash
+    deno add npm:marzban-sdk
+    ```
+  </Tab>
+  <Tab value="CDN">
+    ```ts
+    import { createMarzbanSDK } from 'https://esm.sh/marzban-sdk'
+    ```
+
+    No build step — import straight from esm.sh in the browser or Deno.
   </Tab>
 </Tabs>
 

@@ -4,7 +4,6 @@ import { Package } from 'lucide-react'
 import { gitConfig, npmPackage } from '@/lib/shared'
 
 import { GithubMark } from './landing/header-github'
-import { LanguageSwitcher } from './landing/language-switcher'
 import { Tooltip } from './ui/tooltip'
 
 /** Ghost icon button matching Fumadocs' own sidebar control styling. */
@@ -13,10 +12,10 @@ const iconButton =
 
 /**
  * The docs sidebar footer rendered as a single compact control row: npm,
- * GitHub, the language switcher and the theme toggle, all inline inside one
- * `bg-fd-secondary/50` pill — the same treatment Fumadocs gives its default
- * footer. The layout disables the built-in footer controls so this is the only
- * row (see `src/app/docs/layout.tsx`).
+ * GitHub and the theme toggle, all inline inside one `bg-fd-secondary/50` pill
+ * — the same treatment Fumadocs gives its default footer. The layout disables
+ * the built-in footer controls so this is the only row (see
+ * `src/app/docs/layout.tsx`).
  */
 export function DocsSidebarFooter() {
   return (
@@ -42,9 +41,6 @@ export function DocsSidebarFooter() {
         >
           <GithubMark />
         </a>
-      </Tooltip>
-      <Tooltip label="More translations coming soon">
-        <LanguageSwitcher variant="icon" />
       </Tooltip>
       <Tooltip label="Toggle theme" align="end" className="ms-auto">
         <ThemeSwitch className="border-0 bg-transparent p-0 *:rounded-md" />

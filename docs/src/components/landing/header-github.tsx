@@ -5,8 +5,7 @@ import { gitConfig } from '@/lib/shared'
 async function fetchStars(): Promise<number | null> {
   try {
     const res = await fetch(`https://api.github.com/repos/${gitConfig.user}/${gitConfig.repo}`, {
-      // Baked into the static build; refreshed on every new deployment.
-      cache: 'force-cache',
+      next: { revalidate: 3600 },
       headers: { Accept: 'application/vnd.github+json' },
     })
     if (!res.ok) return null

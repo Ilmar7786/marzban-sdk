@@ -1,0 +1,69 @@
+---
+title: Installation
+description: Install MarzbanSDK with npm, yarn, pnpm, bun, Deno, or a CDN, and run it in Node.js, Bun, Deno, the browser, and edge runtimes.
+---
+
+MarzbanSDK is published to npm and works in **Node.js**, **Bun**, **Deno**, **browser**, and **edge runtimes** (Cloudflare Workers, Vercel Edge, etc.).
+
+## Add to your project
+
+<Tabs items={['npm', 'yarn', 'pnpm', 'bun', 'deno', 'CDN']}>
+  <Tab value="npm">
+    ```bash
+    npm install marzban-sdk
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add marzban-sdk
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add marzban-sdk
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add marzban-sdk
+    ```
+  </Tab>
+  <Tab value="deno">
+    ```bash
+    deno add npm:marzban-sdk
+    ```
+  </Tab>
+  <Tab value="CDN">
+    ```ts
+    import { createMarzbanSDK } from 'https://esm.sh/marzban-sdk'
+    ```
+
+    No build step — import straight from esm.sh in the browser or Deno.
+  </Tab>
+</Tabs>
+
+## Requirements
+
+| Runtime | Minimum version |
+|---------|----------------|
+| Node.js | 18+ |
+| Bun | 1.0+ |
+| Deno | 1.38+ |
+| Browser | Any modern browser (Chrome 90+, Firefox 90+, Safari 15+) |
+
+<Callout type="info">
+  Node.js 18+ is required because the SDK uses the **Web Crypto API** (`crypto.subtle`) for webhook signature verification. Native `WebSocket` is available from Node.js 21+; older Node versions automatically fall back to the `ws` package (bundled as an optional peer dependency).
+</Callout>
+
+## What's included
+
+The package ships with:
+
+- **ESM** and **CJS** dual-format bundles — no configuration required.
+- Full **TypeScript** declarations (`.d.ts`) generated from the OpenAPI spec.
+- **Tree-shakeable** helpers and utilities in separate export paths.
+
+## Next steps
+
+- [Quick Start](/docs/get-started/quick-start) — create your first client and make a request.
+- [Configuration](/docs/configuration/config-options) — all options and defaults.

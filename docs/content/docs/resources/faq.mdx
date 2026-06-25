@@ -1,0 +1,114 @@
+---
+title: FAQ
+description: Answers to common MarzbanSDK questions — Marzban version support, browser and runtime compatibility, authentication, token refresh, and webhooks.
+---
+
+## General
+
+### What version of Marzban does this SDK support?
+
+MarzbanSDK v3.x targets the Marzban API as documented in the bundled OpenAPI specification. The generated API client is kept in sync with the official Marzban OpenAPI spec. Check the [Changelog](/docs/resources/changelog) for version compatibility notes.
+
+### Does it work in the browser?
+
+Yes, for most features. The SDK is designed to be cross-runtime:
+
+- **API calls** — work in any environment.
+- **WebSocket log streaming** — works in browsers using the native `WebSocket` global.
+- **Webhook signature verification** — **server-side only**. Calling `handleWebhook` or `parseWebhook` with a secret in a browser throws `WebhookEnvironmentError` to prevent secret exposure.
+
+### Can I use the SDK without TypeScript?
+
+Yes. The package ships ESM and CJS bundles that work in plain JavaScript. You'll lose autocomplete and type checking, but the runtime behaviour is identical.
+
+---
+
+## Authentication
+
+### Do I need to call authorize() manually?
+
+No — `createMarzbanSDK` calls it automatically by default. Set `authenticateOnInit: false` only if you want to defer authentication.
+
+### What happens when the JWT expires?
+
+The SDK catches `401 Unauthorized` responses, re-authenticates with your stored `username` and `password`, and retries the original request transparently. You don't need to handle this in your code.
+
+### Can I use a pre-existing token?
+
+Yes. Pass it via the `token` config field. The SDK will use it until it expires, then fall back to credentials for renewal.
+
+---
+
+## Errors
+
+### How do I distinguish different error types?
+
+Use the type guard functions:
+
+```ts
+import { isAuthError, isHttpError, isConfigurationError } from 'marzban-sdk'
+
+try {
+  await sdk.user.getUser('alice')
+} catch (err) {
+  if (isAuthError(err))          { /* auth failed */ }
+  else if (isHttpError(err))     { /* HTTP 4xx/5xx */ }
+  else                           { throw err }
+}
+```
+
+See [Error Handling](/docs/advanced/error-handling) for the full list.
+
+### What does AUTH_TOKEN_FAILED mean?
+
+The server returned `200 OK` from the login endpoint, but the response body contained no `access_token`. This usually means the Marzban API returned an unexpected response format. Check your Marzban version compatibility.
+
+---
+
+## Webhooks
+
+### Do I need to verify webhook signatures?
+
+You don't have to, but you should in production. Without signature verification, any HTTP client can send arbitrary payloads to your webhook endpoint and trigger your event handlers. Set `webhook.secret` in your config to enable verification.
+
+### Why does signature verification throw WebhookEnvironmentError?
+
+Webhook signature verification uses `crypto.subtle` (Web Crypto API). While this API is available in browsers, running signature verification in a browser would require exposing your webhook secret to the client. The SDK detects the browser environment and throws `WebhookEnvironmentError` to prevent this mistake.
+
+### Can Marzban send multiple events in one request?
+
+Yes. The `handleWebhook` method processes arrays of events. Subscribe to the `'batch'` event to receive the full array in one call.
+
+---
+
+## Utilities
+
+### Is parseSize case-sensitive?
+
+No. It accepts `GB`, `gb`, `Gb`, `GiB`, etc. The value is normalised to uppercase internally.
+
+### What does humanRemaining return for expired dates?
+
+It returns the string `"expired"` when `totalMs < 0` (i.e. the date is in the past).
+
+---
+
+## Development
+
+### How do I run the tests?
+
+```bash
+npm test
+```
+
+The test suite uses **Vitest** and covers config validation, auth flow, error classes, webhook parsing, and utility functions.
+
+### How do I regenerate the API client?
+
+The generated code in `src/gen/` is produced by Kubb from the OpenAPI spec in `openapi/`:
+
+```bash
+npm run codegen
+```
+
+After regenerating, rebuild with `npm run build`.

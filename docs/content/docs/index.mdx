@@ -1,0 +1,66 @@
+---
+title: Introduction
+description: The complete TypeScript SDK for Marzban — fully typed API coverage plus auth, retries, WebSocket streaming and webhooks. Node.js, Bun, Deno, and the browser.
+icon: House
+---
+
+**MarzbanSDK** is a complete, production-grade TypeScript SDK for building [Marzban](https://github.com/Gozargah/Marzban)
+integrations. Beyond fully typed coverage of the entire API, it bundles the infrastructure a real integration
+needs — authentication with transparent token refresh, retries, WebSocket log streaming, webhook verification, and
+runtime validation — and behaves identically in **Node.js**, **Bun**, **Deno**, and the **browser**.
+
+<Cards>
+  <Card title="Installation" href="/docs/get-started/installation" description="npm, yarn, pnpm, bun, deno, or CDN" />
+  <Card title="Quick Start" href="/docs/get-started/quick-start" description="First request in under a minute" />
+  <Card title="Configuration" href="/docs/configuration/config-options" description="All options and defaults" />
+  <Card title="Error Handling" href="/docs/advanced/error-handling" description="Typed errors and guards" />
+</Cards>
+
+## Features
+
+- **First-class TypeScript** — every request, response, and error is fully typed, [generated directly from the Marzban OpenAPI specification](/docs/get-started/typescript). Matching Zod schemas are exported alongside every model.
+- **Truly cross-runtime** — the same API in [Node.js, Bun, Deno, and the browser](/docs/integrations/node-bun-deno): native `WebSocket` and the Web Crypto API where available, with a transparent `ws` fallback for older Node.js.
+- **Modern build** — a dual [ESM + CJS](/docs/get-started/typescript) bundle, side-effect free and fully tree-shakeable, so you ship only what you use.
+- **Flexible authentication** — [log in automatically on startup, pass an existing JWT, or take full manual control](/docs/authentication/auto-authentication); expired sessions [refresh transparently on `401`](/docs/authentication/manual-auth), so your code never touches a token.
+- **Built-in resilience** — [exponential-backoff retries](/docs/advanced/http-retry) with a configurable retry count, plus automatic WebSocket reconnects.
+- **Classified error system** — `AuthError`, `HttpError`, `ConfigurationError`, and webhook errors all extend `SdkError` with a machine-readable `code` and [type-guard helpers](/docs/advanced/error-handling).
+- **Runtime validation** — config and all API responses are [validated with Zod](/docs/advanced/validation). Bad data is caught immediately with structured error details.
+- **Real-time log streaming** — [`sdk.logs` streams core and node logs over WebSocket](/docs/realtime/websocket-logs) with automatic token refresh and configurable reconnection.
+- **Webhooks** — [`sdk.webhook`](/docs/webhooks/event-types) handles incoming Marzban events with [HMAC-SHA256 signature verification](/docs/webhooks/signature-verification), typed event subscriptions, wildcard listeners, and batch processing.
+- **Batteries-included utilities** — first-class helpers for [data-size formatting/parsing, datetime calculations, and template variables](/docs/utilities/data-sizes).
+
+## Module overview
+
+| Module | Access | Description |
+|--------|--------|-------------|
+| Users | `sdk.user` | Create, update, query, and manage users |
+| Admins | `sdk.admin` | Manage admin accounts |
+| Nodes | `sdk.node` | Add, configure, and monitor nodes |
+| System | `sdk.system` | Stats, inbounds, and proxy host config |
+| Core | `sdk.core` | Xray core stats, config, and restart |
+| Subscriptions | `sdk.subscription` | Public subscription endpoints |
+| User Templates | `sdk.userTemplate` | Reusable user configuration templates |
+| Webhooks | `sdk.webhook` | Incoming event handling and verification |
+| Logs | `sdk.logs` | Real-time WebSocket log streaming |
+
+## Quick example
+
+```ts
+import { createMarzbanSDK, formatBytes, humanRemaining } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+})
+
+// List active users
+const { users, total } = await sdk.user.getUsers({ status: 'active' })
+console.log(`${total} active users`)
+
+for (const user of users) {
+  const dataLeft = formatBytes((user.data_limit ?? 0) - user.used_traffic)
+  const timeLeft = user.expire ? humanRemaining(user.expire * 1000) : '∞'
+  console.log(`${user.username} — ${dataLeft} left, expires ${timeLeft}`)
+}
+```

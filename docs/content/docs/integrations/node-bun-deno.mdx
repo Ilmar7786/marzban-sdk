@@ -1,0 +1,136 @@
+---
+title: Node.js / Bun / Deno
+description: Use MarzbanSDK in plain server runtimes — Node.js 18+, Bun 1.0+, and Deno 1.38+ — with no framework and zero extra configuration.
+---
+
+MarzbanSDK works out of the box in Node.js 18+, Bun 1.0+, and Deno 1.38+ with no additional configuration.
+
+## Node.js (TypeScript)
+
+```ts
+// main.ts
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: process.env.MARZBAN_URL!,
+  username: process.env.MARZBAN_USER!,
+  password: process.env.MARZBAN_PASS!,
+})
+
+const stats = await sdk.system.getSystemStats()
+console.log('Users active:', stats.users_active)
+
+await sdk.destroy()
+```
+
+Run with `tsx`:
+
+```bash
+npx tsx main.ts
+```
+
+Or compile first:
+
+```bash
+npx tsc && node dist/main.js
+```
+
+## Bun
+
+```ts
+// main.ts — identical code, run directly
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: Bun.env.MARZBAN_URL!,
+  username: Bun.env.MARZBAN_USER!,
+  password: Bun.env.MARZBAN_PASS!,
+})
+
+const users = await sdk.user.getUsers()
+console.log(`Total users: ${users.total}`)
+
+await sdk.destroy()
+```
+
+```bash
+bun run main.ts
+```
+
+## Deno
+
+```ts
+// main.ts
+import { createMarzbanSDK } from 'npm:marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: Deno.env.get('MARZBAN_URL')!,
+  username: Deno.env.get('MARZBAN_USER')!,
+  password: Deno.env.get('MARZBAN_PASS')!,
+})
+
+const nodes = await sdk.node.getNodes()
+console.log(`Nodes: ${nodes.length}`)
+
+await sdk.destroy()
+```
+
+```bash
+deno run --allow-net --allow-env main.ts
+```
+
+## Singleton pattern for long-running services
+
+For daemons, cron jobs, or API servers, create the SDK once and reuse it:
+
+```ts
+// sdk.ts
+import { createMarzbanSDK, MarzbanSDK } from 'marzban-sdk'
+
+let _sdk: MarzbanSDK | null = null
+
+export async function getSDK(): Promise<MarzbanSDK> {
+  if (!_sdk) {
+    _sdk = await createMarzbanSDK({
+      baseUrl: process.env.MARZBAN_URL!,
+      username: process.env.MARZBAN_USER!,
+      password: process.env.MARZBAN_PASS!,
+    })
+  }
+  return _sdk
+}
+```
+
+```ts
+// service.ts
+import { getSDK } from './sdk'
+
+export async function syncUsers() {
+  const sdk = await getSDK()
+  const { users } = await sdk.user.getUsers({ status: 'active', limit: 1000 })
+  // ...
+}
+```
+
+## Graceful shutdown
+
+```ts
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({ /* ... */ })
+
+// Start log streaming
+const closeLog = await sdk.logs.connectByCore({
+  onMessage: (data) => process.stdout.write(data),
+})
+
+// Graceful shutdown on SIGTERM / SIGINT
+async function shutdown() {
+  console.log('Shutting down...')
+  await sdk.destroy() // closes WebSocket streams
+  process.exit(0)
+}
+
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
+```

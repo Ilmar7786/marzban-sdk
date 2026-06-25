@@ -1,0 +1,117 @@
+---
+title: Express
+description: Handling Marzban webhooks in Express — raw body middleware and signature verification.
+---
+
+Express buffers request bodies as parsed JSON by default, but signature verification requires the **raw bytes**. You need to configure `express.raw()` for the webhook route.
+
+## Setup
+
+```bash
+npm install express marzban-sdk
+```
+
+## Full example
+
+```ts
+import express from 'express'
+import { createMarzbanSDK, isWebhookSignatureError } from 'marzban-sdk'
+
+const app = express()
+
+const sdk = await createMarzbanSDK({
+  baseUrl: process.env.MARZBAN_URL!,
+  username: process.env.MARZBAN_USER!,
+  password: process.env.MARZBAN_PASS!,
+  webhook: {
+    secret: process.env.MARZBAN_WEBHOOK_SECRET,
+  },
+})
+
+// Subscribe to events
+sdk.webhook.on('user_created', payload => {
+  console.log('New user:', payload.user.username)
+})
+
+sdk.webhook.on('user_limited', payload => {
+  console.log('User reached limit:', payload.username)
+})
+
+sdk.webhook.on('*', payload => {
+  // Wildcard — fires for every event
+  console.log('Event:', payload.action, payload.username)
+})
+
+// Important: use express.raw() to preserve the raw body for signature verification
+app.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    try {
+      await sdk.webhook.handleWebhook(
+        req.body,                            // Buffer (raw bytes)
+        req.headers['x-signature'] as string
+      )
+      res.sendStatus(200)
+    } catch (err) {
+      if (isWebhookSignatureError(err)) {
+        res.status(401).json({ error: 'Invalid signature' })
+      } else {
+        console.error('Webhook error:', err)
+        res.status(400).json({ error: 'Bad request' })
+      }
+    }
+  }
+)
+
+app.listen(3000, () => console.log('Webhook server listening on :3000'))
+```
+
+## Without signature verification
+
+If you're in development or trust your network, skip the secret:
+
+```ts
+const sdk = await createMarzbanSDK({
+  baseUrl: 'http://localhost:7777',
+  username: 'admin',
+  password: 'secret',
+  // no webhook.secret
+})
+
+app.post('/webhook', express.json(), async (req, res) => {
+  await sdk.webhook.handleWebhook(req.body) // pre-parsed JSON, no signature check
+  res.sendStatus(200)
+})
+```
+
+## Using parseWebhook for custom logic
+
+```ts
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const payloads = await sdk.webhook.parseWebhook(
+    req.body,
+    req.headers['x-signature'] as string
+  )
+
+  for (const payload of payloads) {
+    // Handle each event your own way
+    await db.webhookEvents.insert({ action: payload.action, data: payload })
+  }
+
+  res.sendStatus(200)
+})
+```
+
+## Batch events
+
+Marzban can send multiple events in a single request. The `batch` event fires once with all payloads:
+
+```ts
+sdk.webhook.on('batch', payloads => {
+  console.log(`Received ${payloads.length} events in one request`)
+  for (const payload of payloads) {
+    console.log(payload.action, payload.username)
+  }
+})
+```

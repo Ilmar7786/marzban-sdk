@@ -1,0 +1,175 @@
+---
+title: User Templates
+description: Create and manage reusable user configuration templates via sdk.userTemplate.
+---
+
+User templates let you define reusable configurations — proxy settings, data limits, expiry, and inbounds — that can be applied when creating new users.
+
+## Types
+
+### `UserTemplateResponse`
+
+Returned by `getUserTemplates`, `getUserTemplateEndpoint`, `addUserTemplate`, and `modifyUserTemplate`.
+
+```ts
+import type { UserTemplateResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `number` | Unique template ID |
+| `name` | `string \| null` | Display name of the template |
+| `data_limit` | `number \| null` | Data limit in bytes; `0` or `null` = unlimited |
+| `expire_duration` | `number \| null` | Subscription duration in seconds; `0` or `null` = no expiry |
+| `inbounds` | `Record<string, string[]>` | Inbound tags per protocol |
+| `username_prefix` | `string \| null` | Auto-applied prefix when generating usernames |
+| `username_suffix` | `string \| null` | Auto-applied suffix when generating usernames |
+
+### `UserTemplateCreate`
+
+Payload for `addUserTemplate` — same shape as `UserTemplateResponse` without the server-assigned `id`. All fields optional.
+
+```ts
+import type { UserTemplateCreate } from 'marzban-sdk'
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `string \| null` | No | Display name of the template |
+| `data_limit` | `number \| null` | No | Data limit in bytes; `0` or `null` = unlimited |
+| `expire_duration` | `number \| null` | No | Subscription duration in seconds; `0` or `null` = no expiry |
+| `inbounds` | `Record<string, string[]>` | No | Inbound tags per protocol |
+| `username_prefix` | `string \| null` | No | Auto-applied prefix when generating usernames |
+| `username_suffix` | `string \| null` | No | Auto-applied suffix when generating usernames |
+
+### `UserTemplateModify`
+
+Payload for `modifyUserTemplate` — the same fields as `UserTemplateCreate`, all optional. Omitted fields are left unchanged.
+
+```ts
+import type { UserTemplateModify } from 'marzban-sdk'
+```
+
+---
+
+## Methods
+
+### `getUserTemplates()`
+
+List all user templates.
+
+**Returns** `UserTemplateResponse[]`
+
+```ts
+const templates = await sdk.userTemplate.getUserTemplates()
+
+for (const tpl of templates) {
+  console.log(tpl.id, tpl.name)
+  console.log(tpl.data_limit)       // bytes
+  console.log(tpl.expire_duration)  // seconds
+}
+```
+
+---
+
+### `getUserTemplateEndpoint(id)`
+
+Get a single template by ID.
+
+**Returns** `UserTemplateResponse`
+
+```ts
+const template = await sdk.userTemplate.getUserTemplateEndpoint(1)
+console.log(template.name)
+console.log(template.inbounds)
+```
+
+---
+
+### `addUserTemplate(data)`
+
+Create a new template from a `UserTemplateCreate` payload.
+
+**Returns** `UserTemplateResponse`
+
+```ts
+const template = await sdk.userTemplate.addUserTemplate({
+  name: '10GB / 30 days',
+  data_limit: 10 * 1024 ** 3,   // 10 GB in bytes
+  expire_duration: 30 * 86400,   // 30 days in seconds
+  inbounds: { vless: ['VLESS TCP REALITY'] },
+})
+
+console.log('Created template ID:', template.id)
+```
+
+---
+
+### `modifyUserTemplate(id, data)`
+
+Update an existing template from a `UserTemplateModify` payload.
+
+**Returns** `UserTemplateResponse`
+
+```ts
+await sdk.userTemplate.modifyUserTemplate(1, {
+  name: '20GB / 30 days',
+  data_limit: 20 * 1024 ** 3,
+})
+```
+
+---
+
+### `removeUserTemplate(id)`
+
+Delete a template.
+
+**Returns** `any`
+
+```ts
+await sdk.userTemplate.removeUserTemplate(1)
+```
+
+## Common patterns
+
+### Bootstrap standard templates on first run
+
+```ts
+import { parseSize } from 'marzban-sdk'
+
+const templates = await sdk.userTemplate.getUserTemplates()
+
+if (templates.length === 0) {
+  await sdk.userTemplate.addUserTemplate({
+    name: 'Basic – 5GB / 30d',
+    data_limit: parseSize('5GB'),
+    expire_duration: 30 * 86400,
+    inbounds: { vless: ['VLESS TCP REALITY'] },
+  })
+
+  await sdk.userTemplate.addUserTemplate({
+    name: 'Pro – Unlimited / 30d',
+    data_limit: 0,
+    expire_duration: 30 * 86400,
+    inbounds: {
+      vless: ['VLESS TCP REALITY'],
+      vmess: ['VMess Websocket'],
+    },
+  })
+}
+```
+
+### Create a user from a template
+
+```ts
+const template = await sdk.userTemplate.getUserTemplateEndpoint(1)
+
+const user = await sdk.user.addUser({
+  username: 'new_user',
+  inbounds: template.inbounds ?? {},
+  data_limit: template.data_limit ?? 0,
+  expire: template.expire_duration
+    ? Math.floor(Date.now() / 1000) + template.expire_duration
+    : 0,
+})
+```

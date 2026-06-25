@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "index",
+    "get-started",
+    "configuration",
+    "authentication",
+    "modules",
+    "realtime",
+    "webhooks",
+    "integrations",
+    "advanced",
+    "utilities",
+    "resources"
+  ]
+}

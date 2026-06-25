@@ -1,0 +1,5 @@
+{
+  "title": "Modules",
+  "icon": "Boxes",
+  "pages": ["users", "admins", "nodes", "system", "core", "subscriptions", "user-templates"]
+}

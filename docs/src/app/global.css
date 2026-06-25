@@ -1,0 +1,321 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+/* ── Brand accent ────────────────────────────────────────────────────────
+   The Marzban mark is neutral, so we pair it with a modern indigo/violet
+   accent. Change the hue (275) in one place to re-skin the whole site. */
+/* ── Design system tokens ─────────────────────────────────────────────────
+   One accent family shared by the landing AND the docs: a warm violet that
+   matches the heading/CTA gradient instead of the old "cold blue". The
+   foreground flips per theme so solid accent surfaces always have contrast. */
+:root {
+  --color-fd-primary: oklch(0.52 0.23 292);
+  --color-fd-primary-foreground: oklch(0.99 0.01 292);
+  --brand-from: oklch(0.55 0.24 288);
+  --brand-to: oklch(0.58 0.22 332);
+
+  /* Amber accent for loose/dynamic type references. */
+  --type-loose: oklch(0.56 0.13 65);
+
+  /* CTA gradient — mid-dark stops in BOTH themes so white button text always
+     clears AA contrast. Same gradient is reused for accents in the docs. */
+  --cta-from: oklch(0.53 0.24 288);
+  --cta-to: oklch(0.55 0.21 332);
+
+  /* Surface used behind the landing code preview so it harmonises with the
+     page in both themes regardless of the Shiki token theme. */
+  --code-surface-from: oklch(0.99 0.004 288);
+  --code-surface-to: oklch(0.965 0.014 292);
+  --code-glow: oklch(0.62 0.21 305 / 0.16);
+}
+
+.dark {
+  --color-fd-primary: oklch(0.72 0.17 292);
+  --color-fd-primary-foreground: oklch(0.18 0.03 292);
+  --brand-from: oklch(0.74 0.18 290);
+  --brand-to: oklch(0.76 0.16 332);
+
+  --type-loose: oklch(0.8 0.12 75);
+
+  --code-surface-from: oklch(0.205 0.025 288);
+  --code-surface-to: oklch(0.17 0.03 292);
+  --code-glow: oklch(0.62 0.21 305 / 0.26);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* Inline SDK-type reference inside docs tables/prose. Looks like part of the
+   surrounding code, but a dotted underline + accent hover signal it opens a
+   description popover on click. */
+.type-ref-trigger {
+  font: inherit;
+  color: var(--color-fd-primary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in oklch, var(--color-fd-primary), transparent 55%);
+  transition: text-decoration-color 0.15s ease;
+}
+
+.type-ref-trigger:hover {
+  text-decoration-color: var(--color-fd-primary);
+}
+
+/* Loose / dynamic value (`object`, `any`, `ProxySettings`). A warm amber +
+   dashed underline sets it apart from concrete accent-coloured types and
+   signals "this isn't a structured type — open me to see why". */
+.type-ref-trigger--loose {
+  color: var(--type-loose);
+  text-decoration-style: dashed;
+  text-decoration-color: color-mix(in oklch, var(--type-loose), transparent 50%);
+}
+
+.type-ref-trigger--loose:hover {
+  text-decoration-color: var(--type-loose);
+}
+
+/* ── Reusable helpers for the landing page ─────────────────────────────── */
+.brand-gradient-text {
+  background-image: linear-gradient(120deg, var(--brand-from), var(--brand-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Primary call-to-action button — brand gradient + guaranteed-white text and
+   a soft coloured glow. Replaces the flat `bg-fd-primary` whose foreground was
+   low-contrast in light mode and read as a "cold blue" out of step with the
+   warm heading gradient. */
+.cta-primary {
+  color: #fff;
+  background-image: linear-gradient(120deg, var(--cta-from), var(--cta-to));
+  box-shadow: 0 10px 30px -12px color-mix(in oklch, var(--cta-to), transparent 30%);
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.cta-primary:hover {
+  filter: brightness(1.08) saturate(1.05);
+  box-shadow: 0 14px 36px -12px color-mix(in oklch, var(--cta-to), transparent 20%);
+}
+
+/* Ambient, blurred brand-colour glow that sits behind the whole landing —
+   soft "aurora" lighting that the frosted cards and frames blend into. */
+.landing-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.landing-ambient::before,
+.landing-ambient::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(100px);
+  will-change: transform;
+}
+
+.landing-ambient::before {
+  top: -14%;
+  left: 50%;
+  width: 64rem;
+  height: 38rem;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, var(--brand-from), transparent 70%);
+  opacity: 0.3;
+  animation: aurora-a 18s ease-in-out infinite alternate;
+}
+
+.landing-ambient::after {
+  top: 26%;
+  right: -12%;
+  width: 46rem;
+  height: 46rem;
+  background: radial-gradient(closest-side, var(--brand-to), transparent 70%);
+  opacity: 0.22;
+  animation: aurora-b 22s ease-in-out infinite alternate;
+}
+
+.dark .landing-ambient::before {
+  opacity: 0.55;
+}
+
+.dark .landing-ambient::after {
+  opacity: 0.45;
+}
+
+@keyframes aurora-a {
+  from {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  to {
+    transform: translateX(-42%) translateY(40px) scale(1.12);
+  }
+}
+
+@keyframes aurora-b {
+  from {
+    transform: translateY(0) scale(1);
+  }
+  to {
+    transform: translateY(-50px) scale(1.15);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes float-grid {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 40px 40px;
+  }
+}
+
+/* ── Landing code preview ──────────────────────────────────────────────────
+   A branded, theme-aware frame around the hero code sample. The Shiki theme
+   supplies the token colours; we override the block background so the code
+   sits on a soft brand-tinted surface that blends into the page. */
+.code-frame {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklch, var(--color-fd-border), transparent 20%);
+  background: linear-gradient(160deg, var(--code-surface-from), var(--code-surface-to));
+  box-shadow:
+    0 1px 0 0 color-mix(in oklch, white, transparent 92%) inset,
+    0 24px 60px -28px var(--code-glow);
+  overflow: hidden;
+}
+
+/* Soft top sheen — confined to the header area so it never overlays (and
+   washes out) the code below it. */
+.code-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 140px;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 100% at 50% -40%, var(--code-glow), transparent 70%);
+}
+
+/* Keep all real content above the decorative sheen. */
+.code-frame > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Window chrome bar */
+.code-frame-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid color-mix(in oklch, var(--color-fd-border), transparent 35%);
+}
+
+.code-frame-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 9999px;
+}
+
+/* Make the embedded Fumadocs/Shiki code block transparent so the frame
+   surface shows through — token colours come from the Shiki theme. */
+.code-frame figure,
+.code-frame pre,
+.code-frame [data-rehype-pretty-code-figure],
+.code-frame .shiki {
+  background-color: transparent !important;
+  background: transparent !important;
+  margin: 0 !important;
+  border: 0 !important;
+}
+
+.code-frame figure {
+  border-radius: 0 !important;
+}
+
+/* Shiki dual-theme bakes the light token colour inline and relies on a
+   `.dark` rule to swap to the dark palette. That swap must beat the inline
+   style, so override it explicitly for the landing code frame. */
+.dark .code-frame .shiki,
+.dark .code-frame .shiki span {
+  color: var(--shiki-dark) !important;
+}
+
+.code-frame pre {
+  padding: 1.1rem 1.25rem !important;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+.code-figure > div[role='region'] {
+  max-height: none;
+}
+
+/* ── Docs ↔ landing unity ──────────────────────────────────────────────────
+   Carry the landing's design language into the docs: the page title uses the
+   brand gradient, and content cards pick up the brand accent on hover — so a
+   reader moving between the marketing page and the docs sees one product. */
+#nd-page > h1 {
+  width: fit-content;
+  background-image: linear-gradient(120deg, var(--brand-from), var(--brand-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+#nd-page a.rounded-xl.border:hover {
+  border-color: color-mix(in oklch, var(--color-fd-primary), transparent 30%);
+  background-color: color-mix(in oklch, var(--color-fd-primary), transparent 94%);
+}
+
+/* Animated conic gradient ring for the hero badge / accents */
+@keyframes spin-slow {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-spin-slow,
+  .landing-ambient::before,
+  .landing-ambient::after {
+    animation: none;
+  }
+}

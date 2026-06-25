@@ -1,244 +1,115 @@
 <div align="center">
-  <img src="./docs/logo.png" alt="MarzbanSDK" width="320px" height="320px" />
+
+# MarzbanSDK
+
+**The complete TypeScript SDK for the [Marzban](https://github.com/Gozargah/Marzban) API.**
+
+Typed endpoints, auto token refresh, retries, WebSocket log streaming, webhooks
+and runtime validation — isomorphic for Node.js and the browser.
+
+[![npm version](https://img.shields.io/npm/v/marzban-sdk?color=8b5cf6&label=npm)](https://www.npmjs.com/package/marzban-sdk)
+[![npm downloads](https://img.shields.io/npm/dm/marzban-sdk?color=8b5cf6)](https://www.npmjs.com/package/marzban-sdk)
+[![total downloads](https://img.shields.io/npm/dt/marzban-sdk?color=8b5cf6)](https://www.npmjs.com/package/marzban-sdk)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/marzban-sdk?color=8b5cf6&label=size)](https://bundlephobia.com/package/marzban-sdk)
+[![types](https://img.shields.io/npm/types/marzban-sdk?color=8b5cf6)](https://www.npmjs.com/package/marzban-sdk)
+[![license](https://img.shields.io/npm/l/marzban-sdk?color=8b5cf6)](./LICENSE)
+
+[**Documentation**](https://ilmar7786.github.io/marzban-sdk) · [**Quick Start**](https://ilmar7786.github.io/marzban-sdk/docs/get-started/quick-start) · [**API Reference**](https://ilmar7786.github.io/marzban-sdk/docs)
+
 </div>
 
-# 🚀 MarzbanSDK
+---
 
-<div align="center">
+`marzban-sdk` is far more than an API client. It bundles the entire
+infrastructure layer a serious Marzban integration needs — so you ship features,
+not plumbing. Every endpoint, parameter and response is generated from the
+official OpenAPI spec and fully typed, with autocomplete across the whole API.
 
-[![npm version](https://img.shields.io/npm/v/marzban-sdk)](https://www.npmjs.com/package/marzban-sdk/v/latest)
-[![npm downloads](https://img.shields.io/npm/dm/marzban-sdk)](https://www.npmjs.com/package/marzban-sdk)
-[![total downloads](https://img.shields.io/npm/dt/marzban-sdk)](https://www.npmjs.com/package/marzban-sdk)
-[![license](https://img.shields.io/npm/l/marzban-sdk)](https://github.com/Ilmar7786/marzban-sdk/blob/main/LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/Ilmar7786/marzban-sdk)](https://github.com/Ilmar7786/marzban-sdk)
-
-</div>
-
-**MarzbanSDK** is a fully typed, auto-generated client library for interacting with the [Marzban](https://github.com/Gozargah/Marzban) API.
-
-It works seamlessly in both **Node.js** and **browser environments**, giving developers a clean, strongly-typed interface to Marzban’s full feature set — including real-time WebSocket support, token refresh handling, and robust retry mechanisms.
-
-👉 [View on GitHub](https://github.com/Ilmar7786/marzban-sdk)
-
-## 📖 Table of Contents
-
-- [✨ Features](#-features)
-- [📦 Installation](#-installation)
-- [🚀 Quick Start](#-quick-start)
-- [📑 Configuration Options](#-configuration-options)
-- [📝 Logging](#-logging)
-- [🔐 Authorization Control](#-authorization-control)
-- [🔍 How It Works](#-how-it-works)
-- [📚 API Documentation](#-api-documentation)
-- [🎯 Error Handling](#-error-handling)
-- [🔒 Data Validation](#-data-validation)
-- [📨 Webhook Support](#-webhook-support)
-- [🛠️ Utilities](#-utilities)
-- [📡 WebSocket Support](#-websocket-support)
-- [🤝 Contributing](#-contributing)
-- [📜 License](#-license)
-- [⭐ Support the Project](#-support-the-project)
-
-## ✨ Features
-
-- ✅ **First-class TypeScript Support** – Autocomplete and type safety for all inputs and responses.
-- 🔐 **Manual or Automatic Authorization** – Choose between explicit login with full error handling, or backward-compatible automatic login.
-- 🔄 **Auto Token Refresh** – Seamless handling of session expiration.
-- 🔁 **Built-in Retry Logic** – Robust handling of network errors and downtime.
-- 🎯 **[Classified Error System](./docs/ERRORS.md)** – Type-safe error handling with detailed error codes and guards.
-- 🔒 **[Zod Validation](./docs/VALIDATION.md)** – Runtime type validation for configuration and API payloads.
-- 📨 **[Webhook Support](./docs/WEBHOOK.md)** – Real-time event handling with signature verification and payload validation.
-- 🛠️ **[Utility Functions](./docs/UTILITIES.md)** – Helpers for bytes conversion, datetime calculations, and template variables.
-- 📡 **[Real-time WebSocket Logging](./docs/WEBSOCKET.md)** – Stream logs from the core and nodes with ease.
-- 📘 **Generated from OpenAPI** – Always up-to-date with the official Marzban API.
-
-## 📦 Installation
-
-Install MarzbanSDK via npm:
+## Install
 
 ```sh
 npm install marzban-sdk
 ```
 
-Or using yarn:
+<sub>Also works with `pnpm add`, `yarn add`, or `bun add`.</sub>
 
-```sh
-yarn add marzban-sdk
-```
+## Quick start
 
-## 📑 Configuration Options
-
-The `Config` object is used to initialize the MarzbanSDK instance. Below are all available options:
-
-| Name                 | Type                             | Required | Default | Description                                                                                        |
-| -------------------- | -------------------------------- | -------- | ------- | -------------------------------------------------------------------------------------------------- |
-| `baseUrl`            | string                           | Yes      | —       | The base URL of the Marzban API instance. Example: `https://api.example.com`                       |
-| `username`           | string                           | Yes      | —       | The username for authentication (non-empty).                                                       |
-| `password`           | string                           | Yes      | —       | The password for authentication (non-empty).                                                       |
-| `token`              | string                           | No       | —       | Optional JWT token for direct authorization. If provided, SDK uses this token for requests.        |
-| `timeout`            | number                           | No       | 30000   | Request timeout in milliseconds. Set `0` to disable the timeout (wait forever).                    |
-| `retries`            | number                           | No       | 3       | Number of automatic retries for failed HTTP requests and WebSocket reconnections.                  |
-| `authenticateOnInit` | boolean                          | No       | true    | If true (default), SDK authenticates automatically on init. If false, call `authorize()` manually. |
-| `logger`             | false \| LoggerOptions \| Logger | No       | env     | Logging config or a custom logger. Default level: `info` in dev, `error` in production.            |
-| `webhook`            | { secret?: string }              | No       | —       | Webhook handling options. Set `secret` to enable HMAC-SHA256 signature verification.               |
-
-## 📝 Logging
-
-MarzbanSDK supports flexible logger configuration via the `logger` option.
-
-- **Environment-aware default** – with no `level` set, the SDK logs at `info` in development and `error` in production (detected from `process.env.NODE_ENV`)
-- Disable SDK logs with `logger: false`
-- Use built-in logger settings with `logger: { level, timestamp }`
-- Provide a custom logger object with `debug`, `info`, `warn`, and `error` methods
-
-→ See [Logging Guide](./docs/LOGGING.md)
-
-## 🔐 Authorization Control
-
-MarzbanSDK gives you full control over authentication:
-
-- **Automatic authentication** (default): The SDK logs in as soon as you create an instance.
-- **Manual authentication**: Set `authenticateOnInit: false` to delay login and handle errors yourself.
-
-```typescript
+```ts
 import { createMarzbanSDK, isAuthError } from 'marzban-sdk'
 
+// One call authenticates and wires up every API module.
+// Token refresh and retries are handled for you.
 const sdk = await createMarzbanSDK({
-  baseUrl: 'https://api.example.com',
+  baseUrl: 'https://panel.example.com',
   username: 'admin',
   password: 'secret',
-  authenticateOnInit: false, // Manual mode
 })
 
+// Fully typed API surface: users · nodes · system · subscriptions · …
+const { users } = await sdk.user.getUsers({ status: 'active', limit: 10 })
+const stats = await sdk.system.getSystemStats()
+
+// Stream real-time logs from the core over WebSocket
+const close = await sdk.logs.connectByCore({
+  onMessage: data => console.log(data),
+})
+
+// Typed, narrowable error handling
 try {
-  await sdk.authorize() // Explicit login
-  // Now you can make authenticated requests
-} catch (e) {
-  if (isAuthError(e)) {
-    // Handle authentication failure
-    console.error('Invalid credentials')
-  }
+  await sdk.user.getUser('does-not-exist')
+} catch (err) {
+  if (isAuthError(err)) await sdk.authorize()
 }
 ```
 
-You can re-authenticate at any time by calling `authorize()` again. Concurrent
-calls are de-duplicated — if a login is already in progress, the same promise is
-returned:
+## Features
 
-```typescript
-await sdk.authorize() // Performs a fresh login using the stored credentials
-```
+- 🔠 **End-to-end type safety** — every endpoint, parameter and response is fully typed, [generated straight from the official OpenAPI spec](https://ilmar7786.github.io/marzban-sdk/docs/get-started/typescript). Matching Zod schemas ship alongside every model.
+- 🌐 **Truly cross-runtime** — one package, one identical API across [Node.js, Bun, Deno and the browser](https://ilmar7786.github.io/marzban-sdk/docs/integrations/node-bun-deno). Native `WebSocket` and the Web Crypto API where available, with a transparent `ws` fallback for older Node.js.
+- 📦 **Modern build** — dual ESM + CJS bundle, side-effect free and [fully tree-shakeable](https://ilmar7786.github.io/marzban-sdk/docs/get-started/typescript), so you ship only what you use.
+- 🔑 **Flexible authentication** — [log in on init, hand the SDK an existing JWT, or take full manual control](https://ilmar7786.github.io/marzban-sdk/docs/authentication/auto-authentication); expired sessions [refresh transparently on `401`](https://ilmar7786.github.io/marzban-sdk/docs/authentication/manual-auth), so your code never touches a token.
+- 🔁 **Built-in resilience** — [configurable exponential back-off](https://ilmar7786.github.io/marzban-sdk/docs/advanced/http-retry) for transient network failures, plus automatic WebSocket reconnects.
+- 🎯 **Classified errors** — `AuthError`, `HttpError`, `ConfigurationError` and webhook errors all extend `SdkError` with a machine-readable code and [type-guard helpers](https://ilmar7786.github.io/marzban-sdk/docs/advanced/error-handling) for precise handling.
+- 🛡️ **Runtime validation** — [config and payloads validated with Zod](https://ilmar7786.github.io/marzban-sdk/docs/advanced/validation); misconfigured clients fail fast with readable details.
+- 📡 **Real-time logs** — [stream live core and node logs over WebSocket](https://ilmar7786.github.io/marzban-sdk/docs/realtime/websocket-logs), with auto token refresh and reconnection.
+- 📨 **Webhooks included** — [HMAC-SHA256 signature verification](https://ilmar7786.github.io/marzban-sdk/docs/webhooks/signature-verification), typed event subscriptions, wildcard handlers and batch processing.
+- 🛠️ **Batteries-included utilities** — first-class helpers for [data-size conversion, datetime math and subscription template variables](https://ilmar7786.github.io/marzban-sdk/docs/utilities/data-sizes).
 
-See [Error Handling Guide](./docs/ERRORS.md) for comprehensive error handling patterns.
+## API modules
 
-## 🚀 Quick Start
+| Module         | Access             | What it does                                              |
+| -------------- | ------------------ | --------------------------------------------------------- |
+| Users          | `sdk.user`         | Create, update, reset and inspect users and their traffic |
+| Nodes          | `sdk.node`         | Add, configure and monitor connected nodes                |
+| System         | `sdk.system`       | Live stats, inbounds and proxy host config                |
+| Core           | `sdk.core`         | Read config, restart and control the Xray core            |
+| Subscriptions  | `sdk.subscription` | Resolve subscription links and per-client configs         |
+| User templates | `sdk.userTemplate` | Reusable templates for provisioning users                 |
+| Admins         | `sdk.admin`        | Manage admin accounts and permissions                     |
+| Logs           | `sdk.logs`         | WebSocket log streams from the core and nodes             |
+| Webhooks       | `sdk.webhook`      | Verify and handle inbound Marzban events                  |
 
-```typescript
-import { createMarzbanSDK } from 'marzban-sdk'
+## Documentation
 
-// Create SDK instance with automatic authentication
-const sdk = await createMarzbanSDK({
-  baseUrl: 'https://api.example.com',
-  username: 'your-username',
-  password: 'your-password',
-})
+Full guides, configuration reference and the complete typed API live at
+**[ilmar7786.github.io/marzban-sdk](https://ilmar7786.github.io/marzban-sdk)**:
 
-// Or with manual authentication
-const sdkManual = await createMarzbanSDK({
-  baseUrl: 'https://api.example.com',
-  username: 'your-username',
-  password: 'your-password',
-  authenticateOnInit: false,
-})
-await sdkManual.authorize()
+- [Installation](https://ilmar7786.github.io/marzban-sdk/docs/get-started/installation) & [Quick Start](https://ilmar7786.github.io/marzban-sdk/docs/get-started/quick-start)
+- [Configuration options](https://ilmar7786.github.io/marzban-sdk/docs/configuration/config-options)
+- [Error handling](https://ilmar7786.github.io/marzban-sdk/docs/advanced/error-handling) & [validation](https://ilmar7786.github.io/marzban-sdk/docs/advanced/validation)
+- [Webhooks](https://ilmar7786.github.io/marzban-sdk/docs/webhooks/event-types) & [WebSocket logs](https://ilmar7786.github.io/marzban-sdk/docs/realtime/websocket-logs)
+- [Utilities](https://ilmar7786.github.io/marzban-sdk/docs/utilities/data-sizes)
 
-// Fetch user details
-const user = await sdk.user.getUser('username')
-console.log(user)
+## Contributing
 
-// Get an authorization token
-const token = await sdk.getAuthToken()
-console.log(token)
-```
+Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md). Found a bug
+or have an idea? [Open an issue](https://github.com/Ilmar7786/marzban-sdk/issues).
 
-## 🔍 How It Works
+## License
 
-### **1️⃣ Full Typing and Schema**
+[MIT](./LICENSE) © [ilmar7786](https://github.com/Ilmar7786)
 
-MarzbanSDK provides full TypeScript typing and schema definitions for all API methods, parameters, and responses.
-
-### **2️⃣ Generated Sources**
-
-The SDK is **auto-generated from the OpenAPI specification**, ensuring it stays up-to-date with API changes.
-
-- The entry point for the SDK is the **`MarzbanSDK`** class.
-- All API methods are dynamically generated based on the OpenAPI schema.
-
-## 📚 API Documentation
-
-For detailed API reference, visit the [API Documentation](./docs/API_DOCUMENTATION.md).
-
-## 🎯 Error Handling
-
-MarzbanSDK provides a comprehensive error handling system with classified errors, type-safe guards, and detailed error information.
-
-Learn how to handle:
-
-- **Authentication errors** – Login and token failures
-- **Configuration errors** – Invalid SDK setup
-- **HTTP errors** – Network failures
-- **Webhook errors** – Invalid signatures and payloads
-
-→ See [Error Handling Guide](./docs/ERRORS.md)
-
-## 🔒 Data Validation
-
-All SDK configuration and API payloads are validated using **Zod** at runtime, ensuring type safety both at compile-time and runtime.
-
-→ See [Validation Guide](./docs/VALIDATION.md)
-
-## 📨 Webhook Support
-
-Handle real-time events from Marzban with full webhook support:
-
-- **Signature verification** – HMAC-SHA256 validation
-- **Payload validation** – Zod-powered type-safe schemas
-- **Event subscriptions** – Typed listeners with wildcards
-- **Batch processing** – Handle multiple webhooks at once
-
-→ See [Webhook Guide](./docs/WEBHOOK.md)
-
-## 🛠️ Utilities
-
-Helper utilities for common operations:
-
-- **Bytes conversion** – Parse and format data sizes (GB, MB, etc.)
-- **Datetime** – Date calculations and remaining time
-- **Template variables** – Work with Marzban host-settings variables
-
-→ See [Utilities Guide](./docs/UTILITIES.md)
-
-## 📡 WebSocket Support
-
-MarzbanSDK supports WebSocket for **real-time log streaming**.  
-You can receive logs from both the **core server** and individual **nodes**.
-
-For more details, check the [WebSocket Guide](./docs/WEBSOCKET.md).
-
-## 🤝 Contributing
-
-We welcome contributions! If you'd like to improve MarzbanSDK, please:
-
-1. Fork the repository 🚀
-2. Create a new branch 🔧
-3. Submit a pull request 🎉
-
-For details, check our [Contribution Guidelines](./docs/CONTRIBUTING.md).
-
-## 📜 License
-
-This project is licensed under the MIT License.
-
-## ⭐ Support the Project
-
-If you find marzban-sdk useful, please give it a star on [GitHub](https://github.com/Ilmar7786/marzban-sdk)! It helps us stay motivated and grow the project.
+<div align="center">
+<sub>If <code>marzban-sdk</code> saves you time, consider giving it a ⭐ on <a href="https://github.com/Ilmar7786/marzban-sdk">GitHub</a>.</sub>
+</div>

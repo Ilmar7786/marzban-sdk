@@ -1,0 +1,136 @@
+---
+title: NestJS
+description: Handling Marzban webhooks in NestJS with RawBodyRequest and signature verification.
+---
+
+NestJS parses JSON bodies globally by default. To verify webhook signatures you need to enable `rawBody: true` in the app factory and use `RawBodyRequest` in your controller.
+
+## Setup
+
+```bash
+npm install @nestjs/core @nestjs/common @nestjs/platform-express marzban-sdk
+```
+
+## Enable raw body
+
+```ts
+// main.ts
+import { NestFactory } from '@nestjs/core'
+import { AppModule } from './app.module'
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true, // required for webhook signature verification
+  })
+  await app.listen(3000)
+}
+bootstrap()
+```
+
+## SDK module (singleton)
+
+```ts
+// marzban/marzban.module.ts
+import { Module, Global } from '@nestjs/common'
+import { MarzbanService } from './marzban.service'
+
+@Global()
+@Module({
+  providers: [MarzbanService],
+  exports: [MarzbanService],
+})
+export class MarzbanModule {}
+```
+
+```ts
+// marzban/marzban.service.ts
+import { Injectable, OnModuleInit } from '@nestjs/common'
+import { createMarzbanSDK, MarzbanSDK } from 'marzban-sdk'
+
+@Injectable()
+export class MarzbanService implements OnModuleInit {
+  sdk!: MarzbanSDK
+
+  async onModuleInit() {
+    this.sdk = await createMarzbanSDK({
+      baseUrl: process.env.MARZBAN_URL!,
+      username: process.env.MARZBAN_USER!,
+      password: process.env.MARZBAN_PASS!,
+      webhook: {
+        secret: process.env.MARZBAN_WEBHOOK_SECRET,
+      },
+    })
+
+    this.sdk.webhook.on('user_created', payload => {
+      console.log('User created:', payload.user.username)
+    })
+
+    this.sdk.webhook.on('user_limited', payload => {
+      console.log('User limited:', payload.username)
+    })
+  }
+}
+```
+
+## Webhook controller
+
+```ts
+// webhook/webhook.controller.ts
+import {
+  Controller,
+  Post,
+  Req,
+  Res,
+  HttpCode,
+  Headers,
+} from '@nestjs/common'
+import type { RawBodyRequest } from '@nestjs/common'
+import type { Request, Response } from 'express'
+import { MarzbanService } from '../marzban/marzban.service'
+import { isWebhookSignatureError, isWebhookValidationError } from 'marzban-sdk'
+
+@Controller('webhook')
+export class WebhookController {
+  constructor(private readonly marzban: MarzbanService) {}
+
+  @Post()
+  @HttpCode(200)
+  async handleWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Res() res: Response,
+    @Headers('x-signature') signature: string,
+  ) {
+    try {
+      await this.marzban.sdk.webhook.handleWebhook(req.rawBody!, signature)
+      res.json({ ok: true })
+    } catch (err) {
+      if (isWebhookSignatureError(err)) {
+        res.status(401).json({ error: 'Invalid signature' })
+      } else if (isWebhookValidationError(err)) {
+        res.status(400).json({ error: 'Invalid payload' })
+      } else {
+        throw err
+      }
+    }
+  }
+}
+```
+
+## Wire everything up
+
+```ts
+// app.module.ts
+import { Module } from '@nestjs/common'
+import { MarzbanModule } from './marzban/marzban.module'
+import { WebhookController } from './webhook/webhook.controller'
+
+@Module({
+  imports: [MarzbanModule],
+  controllers: [WebhookController],
+})
+export class AppModule {}
+```
+
+<Callout type="info">
+  `req.rawBody` is a `Buffer` when `rawBody: true` is set in `NestFactory.create`. It is `undefined` if you forget to enable that option.
+</Callout>

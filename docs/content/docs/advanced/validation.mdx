@@ -1,0 +1,127 @@
+---
+title: Data Validation
+description: Runtime validation with Zod — config schemas, API response schemas, and webhook payloads.
+---
+
+MarzbanSDK uses **Zod 4** for runtime validation at every boundary: SDK configuration, API responses, and webhook payloads. This means you get structured errors instead of silent corruption or confusing `undefined` values at runtime.
+
+## Where validation happens
+
+| Location | What's validated | Schema |
+|----------|-----------------|--------|
+| `createMarzbanSDK(config)` | Config object fields and types | `configSchema` |
+| Every API response | Response payload structure | Auto-generated per-endpoint schemas |
+| `sdk.webhook.parseWebhook(body)` | Webhook payload structure | `WebhookSchema` / `WebhookArraySchema` |
+| `sdk.webhook.handleWebhook(body)` | Same as `parseWebhook` + signature | — |
+
+## Config validation
+
+Validation runs synchronously when the SDK is constructed. Invalid config throws `ConfigurationError` before any network call:
+
+```ts
+import { createMarzbanSDK, isConfigurationError } from 'marzban-sdk'
+
+try {
+  const sdk = await createMarzbanSDK({
+    baseUrl: 'not-a-url',   // invalid URL
+    username: '',            // must be non-empty
+    password: 'secret',
+  })
+} catch (err) {
+  if (isConfigurationError(err)) {
+    console.error(err.message)  // "Invalid SDK configuration"
+    console.error(err.details)  // Zod's ZodError with issue paths
+  }
+}
+```
+
+## API response validation
+
+Every API method validates the server response through its Zod schema before returning. This protects you from API contract drift — if Marzban's response deviates from the schema, you get a structured error instead of broken data:
+
+```ts
+// Under the hood, every method does something like:
+const raw = await httpClient.get('/api/user/alice')
+return getUserQueryResponseSchema.parse(raw.data) // throws ZodError if shape is wrong
+```
+
+## Use schemas in your own code
+
+All generated schemas are exported from the package:
+
+```ts
+import {
+  userResponseSchema,
+  adminSchema,
+  nodeResponseSchema,
+  userCreateSchema,
+} from 'marzban-sdk'
+
+// Safe-parse external data
+const result = userResponseSchema.safeParse(unknownData)
+if (result.success) {
+  console.log(result.data.username)
+} else {
+  console.error(result.error.issues)
+}
+```
+
+## Webhook payload validation
+
+Webhook bodies are validated against a **discriminated union** schema keyed on the `action` field:
+
+```ts
+import { sdk } from './sdk'
+
+// parseWebhook validates structure and returns typed WebhookType[]
+const payloads = await sdk.webhook.parseWebhook(rawBody)
+
+for (const payload of payloads) {
+  if (payload.action === 'user_created') {
+    // payload is narrowed to UserCreatedSchema type
+    console.log(payload.user.username)
+    console.log(payload.by.username) // admin who created the user
+  }
+}
+```
+
+Invalid payloads throw `WebhookValidationError`:
+
+```ts
+import { isWebhookValidationError } from 'marzban-sdk'
+
+try {
+  await sdk.webhook.parseWebhook('{"action":"unknown_event"}')
+} catch (err) {
+  if (isWebhookValidationError(err)) {
+    console.error('Invalid webhook payload:', err.details)
+  }
+}
+```
+
+## Types
+
+The SDK exports TypeScript types for all models directly — you don't need to derive them from schemas:
+
+```ts
+import type { UserResponse, UserCreate, NodeResponse, AdminCreate } from 'marzban-sdk'
+```
+
+Use `z.infer` from schemas only when you need a type that doesn't exist as a named export, or when extending a schema for custom validation.
+
+## Custom validation
+
+Combine SDK schemas with your own validators:
+
+```ts
+import { z } from 'zod/v4'
+import { userCreateSchema } from 'marzban-sdk'
+
+// Extend the generated schema with your business rules
+const myUserCreateSchema = userCreateSchema.extend({
+  note: z.string().max(500).optional(),
+})
+
+const payload = myUserCreateSchema.parse(formData)
+await sdk.user.addUser(payload)
+```

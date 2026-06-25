@@ -1,0 +1,182 @@
+---
+title: System
+description: Server stats, inbound listing, and proxy host management via sdk.system.
+---
+
+`sdk.system` provides access to server-level information: resource usage, protocol inbounds, and proxy host configuration.
+
+## Types
+
+### `SystemStats`
+
+Returned by `getSystemStats`.
+
+```ts
+import type { SystemStats } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `version` | `string` | Marzban version string |
+| `mem_total` | `number` | Total RAM in bytes |
+| `mem_used` | `number` | Used RAM in bytes |
+| `cpu_cores` | `number` | Number of CPU cores |
+| `cpu_usage` | `number` | CPU usage percentage (0–100) |
+| `total_user` | `number` | Total number of users |
+| `users_active` | `number` | Users with `active` status |
+| `users_disabled` | `number` | Users with `disabled` status |
+| `users_limited` | `number` | Users who hit their data limit |
+| `users_expired` | `number` | Users whose subscription expired |
+| `users_on_hold` | `number` | Users with `on_hold` status |
+| `online_users` | `number` | Currently connected users |
+| `incoming_bandwidth` | `number` | Total inbound traffic in bytes |
+| `outgoing_bandwidth` | `number` | Total outbound traffic in bytes |
+| `incoming_bandwidth_speed` | `number` | Current inbound speed in bytes/s |
+| `outgoing_bandwidth_speed` | `number` | Current outbound speed in bytes/s |
+
+---
+
+### `ProxyInbound`
+
+A single inbound configured in the Xray core. `getInbounds` returns these grouped by protocol.
+
+```ts
+import type { ProxyInbound } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tag` | `string` | Inbound tag — the identifier you pass in a user's `inbounds`. |
+| `protocol` | `'vmess' \| 'vless' \| 'trojan' \| 'shadowsocks'` | Proxy protocol. |
+| `network` | `string` | Transport network, e.g. `tcp`, `ws`, `grpc`. |
+| `tls` | `string` | TLS mode, e.g. `none`, `tls`, `reality`. |
+| `port` | `number \| string` | Listening port. |
+
+---
+
+### `ProxyHost`
+
+A proxy host entry attached to an inbound tag. `getHosts` returns these grouped by inbound tag.
+
+```ts
+import type { ProxyHost } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `remark` | `string` | Display label for the host. Supports template variables like `{SERVER_IP}`. |
+| `address` | `string` | Host address (domain or IP). Also supports template variables. |
+| `port` | `number \| null` | Override port; `null` uses the inbound's own port. |
+| `sni` | `string \| null` | Server Name Indication. |
+| `host` | `string \| null` | HTTP `Host` header. |
+| `path` | `string \| null` | Request path for `ws` / `grpc` / `http` transports. |
+| `security` | `'inbound_default' \| 'none' \| 'tls'` | TLS security mode. Default: `inbound_default`. |
+| `alpn` | `'' \| 'h2' \| 'h3' \| 'http/1.1' \| …` | ALPN value. Default: `''`. |
+| `fingerprint` | `'' \| 'chrome' \| 'firefox' \| 'safari' \| …` | TLS fingerprint to mimic. Default: `''`. |
+| `allowinsecure` | `boolean \| null` | Allow insecure (unverified) TLS certificates. |
+| `is_disabled` | `boolean \| null` | Disable this host entry. |
+| `mux_enable` | `boolean \| null` | Enable connection multiplexing. |
+| `fragment_setting` | `string \| null` | TLS fragmentation settings. |
+| `noise_setting` | `string \| null` | Noise (obfuscation) settings. |
+| `random_user_agent` | `boolean \| null` | Send a randomised User-Agent per request. |
+| `use_sni_as_host` | `boolean \| null` | Use the SNI value as the `Host` header. |
+
+---
+
+## Methods
+
+### `getSystemStats()`
+
+Get overall system resource and traffic statistics.
+
+**Returns** `SystemStats`
+
+```ts
+const stats = await sdk.system.getSystemStats()
+
+console.log(stats.version)
+console.log(stats.users_active, '/', stats.total_user)
+console.log(`CPU: ${stats.cpu_usage.toFixed(1)}%`)
+console.log(`RAM: ${stats.mem_used} / ${stats.mem_total} bytes`)
+```
+
+---
+
+### `getInbounds()`
+
+List all available inbounds configured in Xray core — inbound tags grouped by protocol.
+
+**Returns** `Record<string, ProxyInbound[]>`
+
+```ts
+const inbounds = await sdk.system.getInbounds()
+
+// Returns Record<protocol, ProxyInbound[]>
+// e.g. { vless: [...], vmess: [...], trojan: [...] }
+for (const [protocol, tags] of Object.entries(inbounds)) {
+  console.log(protocol, tags)
+}
+```
+
+Use this to discover which inbound tags to pass when creating users.
+
+---
+
+### `getHosts()`
+
+Get the current proxy host configuration for all inbound tags — proxy hosts grouped by inbound tag.
+
+**Returns** `Record<string, ProxyHost[]>`
+
+```ts
+const hosts = await sdk.system.getHosts()
+
+// Returns Record<inboundTag, ProxyHost[]>
+for (const [tag, hostList] of Object.entries(hosts)) {
+  for (const host of hostList) {
+    console.log(tag, host.remark, host.address, host.port)
+  }
+}
+```
+
+---
+
+### `modifyHosts(data)`
+
+Replace the proxy host configuration. The full host map must be provided (replaces existing config).
+
+**Returns** `Record<string, ProxyHost[]>` — the updated host map
+
+```ts
+await sdk.system.modifyHosts({
+  'VLESS TCP REALITY': [
+    {
+      remark: 'Main Server',
+      address: '203.0.113.10',
+      port: 443,
+      sni: 'example.com',
+      host: 'example.com',
+      security: 'reality',
+      fingerprint: 'chrome',
+    },
+  ],
+})
+```
+
+## Common patterns
+
+### Dashboard stats widget
+
+```ts
+import { formatBytes } from 'marzban-sdk'
+
+const stats = await sdk.system.getSystemStats()
+
+console.log(`
+  Marzban ${stats.version}
+  CPU:     ${stats.cpu_usage.toFixed(1)}% (${stats.cpu_cores} cores)
+  Memory:  ${formatBytes(stats.mem_used)} / ${formatBytes(stats.mem_total)}
+  Users:   ${stats.users_active} active / ${stats.total_user} total
+  Online:  ${stats.online_users}
+`)
+```

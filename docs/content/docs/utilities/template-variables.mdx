@@ -1,0 +1,155 @@
+---
+title: Template Variables
+description: Work with Marzban host-settings template variables — extract, validate, and interpolate.
+---
+
+Marzban allows using template variables (like `{USERNAME}`, `{DATA_LEFT}`) in host-settings remark and address fields. The SDK provides typed utilities to work with these variables safely.
+
+## Import
+
+```ts
+import {
+  Variable,
+  VariableBraced,
+  varAs,
+  varExtract,
+  varValidate,
+  interpolateTemplateVariables,
+} from 'marzban-sdk'
+```
+
+## `Variable` enum
+
+All supported variable names:
+
+| Constant | Token | Description |
+|----------|-------|-------------|
+| `Variable.SERVER_IP` | `{SERVER_IP}` | Master server IPv4 address |
+| `Variable.USERNAME` | `{USERNAME}` | User's username |
+| `Variable.DATA_USAGE` | `{DATA_USAGE}` | Data consumed by the user |
+| `Variable.DATA_LEFT` | `{DATA_LEFT}` | Remaining data |
+| `Variable.DATA_LIMIT` | `{DATA_LIMIT}` | Total data limit |
+| `Variable.DAYS_LEFT` | `{DAYS_LEFT}` | Remaining days (integer) |
+| `Variable.TIME_LEFT` | `{TIME_LEFT}` | Human-friendly remaining time |
+| `Variable.EXPIRE_DATE` | `{EXPIRE_DATE}` | Expiry in Gregorian calendar |
+| `Variable.JALALI_EXPIRE_DATE` | `{JALALI_EXPIRE_DATE}` | Expiry in Jalali calendar |
+| `Variable.STATUS_EMOJI` | `{STATUS_EMOJI}` | Status as emoji (✅ ⌛️ 🪫 ❌ 🔌) |
+| `Variable.PROTOCOL` | `{PROTOCOL}` | Protocol name (vless, vmess, …) |
+| `Variable.TRANSPORT` | `{TRANSPORT}` | Transport type (tcp, ws, grpc, …) |
+
+---
+
+## `varAs(variable)`
+
+Convert a `Variable` enum member to its braced string token. The return type is a precise literal, e.g. `"{USERNAME}"` — not plain `string`.
+
+```ts
+varAs(Variable.USERNAME)   // "{USERNAME}"
+varAs(Variable.DATA_LEFT)  // "{DATA_LEFT}"
+```
+
+---
+
+## `VariableBraced`
+
+A frozen map of all pre-braced tokens, keyed by variable name. Useful for building template strings with autocomplete:
+
+```ts
+const remark = `User: ${VariableBraced.USERNAME} | Left: ${VariableBraced.DATA_LEFT}`
+// "User: {USERNAME} | Left: {DATA_LEFT}"
+```
+
+---
+
+## `varExtract(template)`
+
+Extract all variable names from a template string (without braces, preserving order and duplicates):
+
+```ts
+varExtract('Hello {USERNAME}, you have {DATA_LEFT} left')
+// ["USERNAME", "DATA_LEFT"]
+
+varExtract('{USERNAME} - {USERNAME}')
+// ["USERNAME", "USERNAME"]  (duplicates preserved)
+
+varExtract('')         // []
+varExtract('no vars')  // []
+```
+
+---
+
+## `varValidate(template)`
+
+Validate that a template contains only known Marzban variables:
+
+```ts
+const result = varValidate('Hi {USERNAME}, ip: {SERVER_IP}')
+// { isValid: true, unknownVariables: [] }
+
+const bad = varValidate('Hi {USERNAME} and {UNKNOWN_VAR}')
+// { isValid: false, unknownVariables: ["UNKNOWN_VAR"] }
+```
+
+---
+
+## `interpolateTemplateVariables(template, values)`
+
+Substitute variable tokens with actual values. Unknown or unmapped tokens are left intact:
+
+```ts
+import { interpolateTemplateVariables, Variable } from 'marzban-sdk'
+
+const remark = 'Hello {USERNAME}, {DATA_LEFT} remaining until {EXPIRE_DATE}'
+
+const filled = interpolateTemplateVariables(remark, {
+  [Variable.USERNAME]: 'alice',
+  [Variable.DATA_LEFT]: '4.50 GB',
+  [Variable.EXPIRE_DATE]: '2024-02-15',
+})
+
+// "Hello alice, 4.50 GB remaining until 2024-02-15"
+```
+
+Tokens not present in `values` are left as-is:
+
+```ts
+interpolateTemplateVariables('{USERNAME} — {STATUS_EMOJI}', {
+  [Variable.USERNAME]: 'alice',
+  // STATUS_EMOJI not provided
+})
+// "alice — {STATUS_EMOJI}"
+```
+
+## Common usage patterns
+
+### Build a host remark template
+
+```ts
+import { VariableBraced } from 'marzban-sdk'
+
+const remark = `${VariableBraced.USERNAME} | ${VariableBraced.DATA_LEFT} | ${VariableBraced.TIME_LEFT}`
+// "{USERNAME} | {DATA_LEFT} | {TIME_LEFT}"
+
+// Pass to Marzban host settings
+await sdk.system.modifyHosts({
+  'VLESS TCP REALITY': [{
+    remark,
+    address: '203.0.113.10',
+    port: 443,
+  }],
+})
+```
+
+### Validate a user-submitted template
+
+```ts
+function validateHostRemark(remark: string) {
+  const { isValid, unknownVariables } = varValidate(remark)
+  if (!isValid) {
+    throw new Error(`Unknown template variables: ${unknownVariables.join(', ')}`)
+  }
+}
+
+validateHostRemark('{USERNAME} - {DATA_LIMIT}') // OK
+validateHostRemark('{USERNAME} - {TYPO}')        // throws
+```

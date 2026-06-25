@@ -1,0 +1,152 @@
+---
+title: Error Handling
+description: Handle failures with MarzbanSDK's typed error hierarchy — every error extends `SdkError` with a machine-readable `code` and a matching type guard.
+---
+
+MarzbanSDK uses a typed error hierarchy. Every error extends `SdkError`, which extends `Error` — so standard `try/catch` works as expected. On top of that, each error class has a `code` property and a matching type guard for safe narrowing.
+
+## Error hierarchy
+
+```
+Error
+└── SdkError
+    ├── AuthError            (code: AUTH_FAILED)
+    │   └── AuthTokenError   (code: AUTH_TOKEN_FAILED)
+    ├── ConfigurationError   (code: CONFIG_INVALID)
+    ├── HttpError            (code: NETWORK_HTTP_ERROR)
+    └── WebhookError
+        ├── WebhookSignatureError     (code: WEBHOOK_SIGNATURE_ERROR)
+        ├── WebhookValidationError    (code: WEBHOOK_VALIDATION_ERROR)
+        └── WebhookEnvironmentError  (code: WEBHOOK_ENVIRONMENT_ERROR)
+```
+
+## SdkError base class
+
+All SDK errors have these properties:
+
+```ts
+class SdkError extends Error {
+  code: string      // machine-readable error code
+  details?: unknown // extra context (Zod issues, original error, etc.)
+
+  toJSON(): {
+    name: string
+    code: string
+    message: string
+    details: unknown
+  }
+}
+```
+
+## Error codes reference
+
+| Code | Class | When thrown |
+|------|-------|-------------|
+| `AUTH_FAILED` | `AuthError` | Login request failed (wrong credentials, network error) |
+| `AUTH_TOKEN_FAILED` | `AuthTokenError` | Server responded but returned no `access_token` |
+| `CONFIG_INVALID` | `ConfigurationError` | Config fails Zod schema validation |
+| `NETWORK_HTTP_ERROR` | `HttpError` | HTTP request failed (4xx, 5xx, network timeout) |
+| `WEBHOOK_SIGNATURE_ERROR` | `WebhookSignatureError` | Missing signature or HMAC mismatch |
+| `WEBHOOK_VALIDATION_ERROR` | `WebhookValidationError` | Webhook payload doesn't match expected schema |
+| `WEBHOOK_ENVIRONMENT_ERROR` | `WebhookEnvironmentError` | Signature verification called in a browser context |
+
+## Type guards
+
+Import the guards to narrow errors without `instanceof`:
+
+```ts
+import {
+  isAuthError,
+  isAuthTokenError,
+  isConfigurationError,
+  isHttpError,
+  isWebhookSignatureError,
+  isWebhookValidationError,
+  isWebhookEnvironmentError,
+} from 'marzban-sdk'
+```
+
+## Usage examples
+
+### Handling auth errors
+
+```ts
+import { createMarzbanSDK, isAuthError, isAuthTokenError } from 'marzban-sdk'
+
+try {
+  const sdk = await createMarzbanSDK({
+    baseUrl: 'https://vpn.example.com',
+    username: 'admin',
+    password: 'wrong-password',
+  })
+} catch (err) {
+  if (isAuthTokenError(err)) {
+    // Server returned 200 but body had no token
+    console.error('Token not found in response')
+  } else if (isAuthError(err)) {
+    // Covers AuthTokenError too — check specific first
+    console.error('Authentication failed:', err.message)
+  }
+}
+```
+
+### Handling HTTP errors
+
+```ts
+import { isHttpError } from 'marzban-sdk'
+
+try {
+  const user = await sdk.user.getUser('non-existent')
+} catch (err) {
+  if (isHttpError(err)) {
+    console.error('HTTP error code:', err.code)
+    console.error('Details:', err.details) // may contain Axios error info
+  }
+}
+```
+
+### Handling config errors
+
+```ts
+import { createMarzbanSDK, isConfigurationError } from 'marzban-sdk'
+
+try {
+  const sdk = await createMarzbanSDK({
+    baseUrl: 'not-a-valid-url',
+    username: '',
+    password: 'secret',
+  })
+} catch (err) {
+  if (isConfigurationError(err)) {
+    console.error('Bad config:', err.message)
+    console.error('Zod issues:', err.details)
+  }
+}
+```
+
+### Catch-all with toJSON
+
+```ts
+import { SdkError } from 'marzban-sdk'
+
+try {
+  await sdk.user.getUsers()
+} catch (err) {
+  if (err instanceof SdkError) {
+    console.error(JSON.stringify(err.toJSON(), null, 2))
+    // {
+    //   "name": "HttpError",
+    //   "code": "NETWORK_HTTP_ERROR",
+    //   "message": "HTTP request failed",
+    //   "details": { ... }
+    // }
+  }
+}
+```
+
+## Best practices
+
+- **Check specific subtypes before the parent** — `isAuthTokenError` before `isAuthError`, since `AuthTokenError` extends `AuthError`.
+- **Always re-throw unknown errors** — only catch what you can handle; let the rest propagate.
+- **Use `toJSON()`** when logging errors to structured log systems — it serializes the full error context.
+- **Webhook errors are server-side only** — `WebhookEnvironmentError` is thrown if signature verification is called in a browser. Move webhook handling to a server route.

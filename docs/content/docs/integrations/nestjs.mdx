@@ -1,0 +1,145 @@
+---
+title: NestJS
+description: Integrate MarzbanSDK into NestJS by wrapping the client in a global module that initializes it on onModuleInit and exposes it as an injectable service.
+---
+
+The recommended pattern is to wrap the SDK in a **NestJS module** with a provider that initializes it during `onModuleInit` and exposes it as an injectable service.
+
+## Setup
+
+```bash
+npm install @nestjs/core @nestjs/common marzban-sdk
+```
+
+## MarzbanModule
+
+```ts
+// marzban/marzban.module.ts
+import { Global, Module } from '@nestjs/common'
+import { MarzbanService } from './marzban.service'
+
+@Global()
+@Module({
+  providers: [MarzbanService],
+  exports: [MarzbanService],
+})
+export class MarzbanModule {}
+```
+
+## MarzbanService
+
+```ts
+// marzban/marzban.service.ts
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
+import { createMarzbanSDK, MarzbanSDK } from 'marzban-sdk'
+import { ConfigService } from '@nestjs/config'
+
+@Injectable()
+export class MarzbanService implements OnModuleInit, OnModuleDestroy {
+  private _sdk!: MarzbanSDK
+
+  constructor(private config: ConfigService) {}
+
+  async onModuleInit() {
+    this._sdk = await createMarzbanSDK({
+      baseUrl: this.config.getOrThrow('MARZBAN_URL'),
+      username: this.config.getOrThrow('MARZBAN_USER'),
+      password: this.config.getOrThrow('MARZBAN_PASS'),
+      logger: {
+        level: this.config.get('NODE_ENV') === 'production' ? 'error' : 'info',
+      },
+      webhook: {
+        secret: this.config.get('MARZBAN_WEBHOOK_SECRET'),
+      },
+    })
+  }
+
+  async onModuleDestroy() {
+    await this._sdk?.destroy()
+  }
+
+  get sdk(): MarzbanSDK {
+    return this._sdk
+  }
+}
+```
+
+## Using in a service
+
+```ts
+// users/users.service.ts
+import { Injectable } from '@nestjs/common'
+import { MarzbanService } from '../marzban/marzban.service'
+import { parseSize, formatBytes } from 'marzban-sdk'
+
+@Injectable()
+export class UsersService {
+  constructor(private marzban: MarzbanService) {}
+
+  async getAllUsers() {
+    const result = await this.marzban.sdk.user.getUsers({ limit: 1000 })
+    return result.users.map(u => ({
+      username: u.username,
+      status: u.status,
+      dataUsed: formatBytes(u.used_traffic),
+      dataLimit: u.data_limit ? formatBytes(u.data_limit) : 'Unlimited',
+    }))
+  }
+
+  async createUser(username: string, limitGb: number, days: number) {
+    const expire = Math.floor(Date.now() / 1000) + days * 86400
+
+    return this.marzban.sdk.user.addUser({
+      username,
+      proxies: { vless: {} },
+      inbounds: { vless: ['VLESS TCP REALITY'] },
+      data_limit: parseSize(`${limitGb}GB`),
+      expire,
+    })
+  }
+}
+```
+
+## Using in a controller
+
+```ts
+// users/users.controller.ts
+import { Controller, Get, Post, Body, Param } from '@nestjs/common'
+import { UsersService } from './users.service'
+
+@Controller('users')
+export class UsersController {
+  constructor(private users: UsersService) {}
+
+  @Get()
+  getAll() {
+    return this.users.getAllUsers()
+  }
+
+  @Post()
+  create(@Body() body: { username: string; limitGb: number; days: number }) {
+    return this.users.createUser(body.username, body.limitGb, body.days)
+  }
+}
+```
+
+## AppModule
+
+```ts
+// app.module.ts
+import { Module } from '@nestjs/common'
+import { ConfigModule } from '@nestjs/config'
+import { MarzbanModule } from './marzban/marzban.module'
+import { UsersModule } from './users/users.module'
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    MarzbanModule,
+    UsersModule,
+  ],
+})
+export class AppModule {}
+```
+
+For webhook handling in NestJS, see the [Webhooks → NestJS](/docs/webhooks/nestjs) guide.

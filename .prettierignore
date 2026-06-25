@@ -1,0 +1,15 @@
+dist
+coverage
+package-lock.json
+
+# the docs app shares the root Prettier rules; only its build artifacts are ignored
+docs/.next
+docs/out
+docs/.source
+docs/next-env.d.ts
+
+# Prettier's MDX printer collapses fenced code blocks nested inside JSX (e.g.
+# <Tab>```bash ... ```</Tab>) onto a single line, which breaks Fumadocs
+# rendering. There is no option to disable this. MDX content is hand-authored,
+# so keep it out of Prettier entirely.
+docs/content/**/*.mdx

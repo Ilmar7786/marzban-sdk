@@ -1,0 +1,100 @@
+---
+title: Signature Verification
+description: Verify Marzban webhook signatures with HMAC-SHA256 using the Web Crypto API — server-side only, with the x-signature header and your shared secret.
+---
+
+When Marzban is configured with a webhook secret, it signs each request body with **HMAC-SHA256** and sends the signature in the `x-signature` header. MarzbanSDK verifies this signature automatically when you provide the same secret.
+
+<Callout type="warn">
+  Signature verification uses the **Web Crypto API** (`crypto.subtle`). It is available in Node.js 18+, Bun, Deno, and all modern browsers — but the SDK **blocks** verification from the browser main thread to prevent secret exposure. Always handle webhooks in a server-side runtime.
+</Callout>
+
+## Configure the secret
+
+Pass the secret to the SDK at init time:
+
+```ts
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+  webhook: {
+    secret: process.env.MARZBAN_WEBHOOK_SECRET,
+  },
+})
+```
+
+## How verification works
+
+When a `secret` is configured, `handleWebhook` and `parseWebhook` enforce two checks:
+
+1. A **signature must be present** — missing `x-signature` throws `WebhookSignatureError`.
+2. **Raw bytes are required** — you must pass `string`, `Uint8Array`, or `ArrayBuffer` (not a pre-parsed object), so the HMAC can be computed over the exact original bytes.
+
+```ts
+// ✅ Correct — raw body passed
+await sdk.webhook.parseWebhook(req.rawBody, req.headers['x-signature'])
+
+// ❌ Wrong — pre-parsed JSON cannot be verified
+await sdk.webhook.parseWebhook(req.body, req.headers['x-signature'])
+```
+
+## Algorithm
+
+```
+HMAC-SHA256(key=secret, data=rawRequestBody)
+```
+
+The resulting 32-byte digest is hex-encoded and compared against the value in `x-signature` using a constant-time comparison.
+
+## Standalone verification utility
+
+You can call `verifyWebhookSignature` directly if you need the raw boolean result:
+
+```ts
+import { verifyWebhookSignature } from 'marzban-sdk'
+
+const isValid = await verifyWebhookSignature(
+  signature,          // hex string from x-signature header
+  secret,             // your webhook secret
+  rawBodyBytes        // Uint8Array of the request body
+)
+```
+
+## Error handling
+
+```ts
+import { isWebhookSignatureError, isWebhookEnvironmentError } from 'marzban-sdk'
+
+try {
+  await sdk.webhook.handleWebhook(rawBody, signature)
+} catch (err) {
+  if (isWebhookSignatureError(err)) {
+    // Missing signature, wrong format, or HMAC mismatch
+    res.status(401).send('Invalid signature')
+  } else if (isWebhookEnvironmentError(err)) {
+    // Called from a browser context — move webhook handling to a server
+    console.error('Webhook verification is server-side only')
+  }
+}
+```
+
+## Skip verification
+
+Omit the `secret` from config to process webhooks without signature checking (useful in development):
+
+```ts
+const sdk = await createMarzbanSDK({
+  // webhook: { secret: ... }  ← not set → verification skipped
+  baseUrl: 'https://vpn.example.com',
+  username: 'admin',
+  password: 'secret',
+})
+
+// No signature check — any body is accepted
+await sdk.webhook.handleWebhook(req.body)
+```
+
+<Callout type="info">
+  In production, always configure a secret. Unauthenticated webhook endpoints can be abused to trigger your listeners with arbitrary payloads.
+</Callout>

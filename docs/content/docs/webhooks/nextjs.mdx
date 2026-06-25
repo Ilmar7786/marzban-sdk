@@ -1,0 +1,108 @@
+---
+title: Next.js
+description: Receive and verify Marzban webhooks in Next.js App Router Route Handlers — read the raw request body and validate the HMAC-SHA256 signature.
+---
+
+Next.js App Router Route Handlers expose the raw `Request` object from the Web Fetch API, which makes reading the raw body straightforward — no extra middleware needed.
+
+## Setup
+
+```bash
+npm install marzban-sdk
+```
+
+## Singleton SDK instance
+
+Create the SDK once outside the handler so it's reused across invocations:
+
+```ts
+// lib/marzban.ts
+import { createMarzbanSDK } from 'marzban-sdk'
+
+let sdkPromise: ReturnType<typeof createMarzbanSDK> | null = null
+
+export function getSDK() {
+  if (!sdkPromise) {
+    sdkPromise = createMarzbanSDK({
+      baseUrl: process.env.MARZBAN_URL!,
+      username: process.env.MARZBAN_USER!,
+      password: process.env.MARZBAN_PASS!,
+      webhook: {
+        secret: process.env.MARZBAN_WEBHOOK_SECRET,
+      },
+    })
+  }
+  return sdkPromise
+}
+```
+
+## Route handler
+
+```ts
+// app/api/webhook/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { isWebhookSignatureError, isWebhookValidationError } from 'marzban-sdk'
+import { getSDK } from '@/lib/marzban'
+
+export async function POST(req: NextRequest) {
+  const sdk = await getSDK()
+
+  // Subscribe to events (idempotent — safe to call on every invocation)
+  sdk.webhook.on('user_created', payload => {
+    console.log('User created:', payload.user.username)
+  })
+
+  try {
+    // Read the raw body as ArrayBuffer for signature verification
+    const rawBody = await req.arrayBuffer()
+    const signature = req.headers.get('x-signature') ?? undefined
+
+    await sdk.webhook.handleWebhook(rawBody, signature)
+
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    if (isWebhookSignatureError(err)) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    }
+    if (isWebhookValidationError(err)) {
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
+    }
+    throw err
+  }
+}
+```
+
+<Callout type="warn">
+  Next.js Route Handlers are stateless by design — each invocation may run in a fresh context. For production workloads, move event handler registration to a shared module (as shown with `getSDK()` above) and prefer persisting events to a database inside the handler rather than relying on in-memory listeners.
+</Callout>
+
+## Pages Router (API Routes)
+
+If you're using the Pages Router, disable the default body parser and read the raw body manually:
+
+```ts
+// pages/api/webhook.ts
+import type { NextApiRequest, NextApiResponse } from 'next'
+import getRawBody from 'raw-body'
+import { getSDK, isWebhookSignatureError } from 'marzban-sdk'
+
+export const config = { api: { bodyParser: false } }
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).end()
+
+  const sdk = await getSDK()
+  const rawBody = await getRawBody(req)
+
+  try {
+    await sdk.webhook.handleWebhook(rawBody, req.headers['x-signature'] as string)
+    res.status(200).json({ ok: true })
+  } catch (err) {
+    if (isWebhookSignatureError(err)) {
+      res.status(401).json({ error: 'Invalid signature' })
+    } else {
+      res.status(400).json({ error: 'Bad request' })
+    }
+  }
+}
+```

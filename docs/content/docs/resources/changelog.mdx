@@ -1,0 +1,88 @@
+---
+title: Changelog
+description: MarzbanSDK release history, version compatibility, breaking changes, and migration notes — including the v3.0.0 async webhook and Web Crypto updates.
+---
+
+## v3.0.0
+
+**Breaking changes:**
+
+- **Webhook verification is now async.** `parseWebhook` and `verifyWebhookSignature` return `Promise` instead of being synchronous. Update all call sites to `await`.
+
+  ```ts
+  // Before (v2.x)
+  const payloads = sdk.webhook.parseWebhook(body, sig)
+
+  // After (v3.0)
+  const payloads = await sdk.webhook.parseWebhook(body, sig)
+  ```
+
+- **Webhook verification is server-side only.** Calling `handleWebhook` or `parseWebhook` with a secret configured in a browser context now throws `WebhookEnvironmentError` (code: `WEBHOOK_ENVIRONMENT_ERROR`).
+
+**New features:**
+
+- **Web Crypto API** — webhook signature verification now uses `crypto.subtle` instead of Node.js `crypto`. This means zero Node-specific imports in browser bundles and native support on Cloudflare Workers, Vercel Edge, Deno, and Bun.
+- **Native WebSocket** — the WebSocket log streaming client auto-detects the runtime. Modern runtimes (browser, Node.js 21+, Bun, Deno) use the native `WebSocket` global; older Node versions fall back to the `ws` package.
+- `sdk.destroy()` now correctly closes all active WebSocket connections.
+
+---
+
+## v2.0.0
+
+**Breaking changes:**
+
+- SDK configuration is now validated with **Zod** on construction. Invalid configs throw `ConfigurationError` immediately instead of failing silently later.
+- Error classes restructured: `AuthError`, `AuthTokenError`, `HttpError`, `ConfigurationError`, and Webhook errors all extend the new `SdkError` base class.
+
+**New features:**
+
+- **Classified error system** — typed error hierarchy with `code` property and type guard helpers (`isAuthError`, `isHttpError`, etc.).
+- **Webhook support** — `sdk.webhook` with `on/once/off`, `handleWebhook`, `parseWebhook`, and `dispatch`.
+- **Webhook signature verification** — HMAC-SHA256 via Node.js `crypto`.
+- **Utility helpers** — `parseSize`, `formatBytes`, `gbToBytes`, `bytesToGb`, `addDays`, `remainingTime`, `humanRemaining`, `toIso`, `Variable`, `varAs`, `varExtract`, `varValidate`, `interpolateTemplateVariables`.
+
+---
+
+## v1.x
+
+Initial release — typed Marzban API client with automatic authentication and JWT refresh, built from the official OpenAPI specification.
+
+---
+
+## Migration guide: v2 → v3
+
+### 1. Await parseWebhook
+
+```ts
+// v2
+const events = sdk.webhook.parseWebhook(rawBody, sig)
+
+// v3
+const events = await sdk.webhook.parseWebhook(rawBody, sig)
+```
+
+### 2. Await handleWebhook
+
+```ts
+// v2
+sdk.webhook.handleWebhook(rawBody, sig)
+
+// v3
+await sdk.webhook.handleWebhook(rawBody, sig)
+```
+
+### 3. Await verifyWebhookSignature (if called directly)
+
+```ts
+import { verifyWebhookSignature } from 'marzban-sdk'
+
+// v2
+const ok = verifyWebhookSignature(sig, secret, bytes)
+
+// v3
+const ok = await verifyWebhookSignature(sig, secret, bytes)
+```
+
+### 4. Catch WebhookEnvironmentError in browser code
+
+If you were calling signature verification from the browser (not recommended), you'll now receive `WebhookEnvironmentError`. Move webhook handling to a server route.

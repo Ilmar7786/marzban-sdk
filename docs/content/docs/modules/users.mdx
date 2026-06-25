@@ -1,0 +1,358 @@
+---
+title: Users
+description: Create, list, update, reset, enable, disable, and delete Marzban users — manage data limits, expiry, status, and traffic, fully typed via `sdk.user`.
+---
+
+`sdk.user` provides access to all user-related endpoints. Every method returns a fully typed Promise.
+
+## Types
+
+### `UserResponse`
+
+Returned by `getUser`, `addUser`, `modifyUser`, and most other user methods.
+
+```ts
+import type { UserResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `username` | `string` | Unique username |
+| `status` | `'active' \| 'disabled' \| 'limited' \| 'expired' \| 'on_hold'` | Current account state |
+| `proxies` | `Record<string, ProxySettings>` | Protocol-specific proxy settings |
+| `inbounds` | `Record<string, string[]>` | Inbound tags per protocol |
+| `data_limit` | `number \| null` | Max data in bytes; `null` or `0` = unlimited |
+| `data_limit_reset_strategy` | `'no_reset' \| 'day' \| 'week' \| 'month' \| 'year'` | When the data counter resets |
+| `used_traffic` | `number` | Bytes consumed in the current period |
+| `lifetime_used_traffic` | `number` | Total bytes consumed since account creation |
+| `expire` | `number \| null` | Unix timestamp expiry; `null` or `0` = no expiry |
+| `created_at` | `string` | ISO 8601 creation timestamp |
+| `links` | `string[]` | Ready-to-use proxy connection strings |
+| `subscription_url` | `string` | Full subscription URL for the user's VPN client |
+| `note` | `string \| null` | Optional admin note |
+| `on_hold_expire_duration` | `number \| null` | Seconds the account stays in `on_hold` |
+| `on_hold_timeout` | `string \| null` | ISO timestamp when `on_hold` starts/ends |
+| `admin` | `Admin \| null` | Owner admin object |
+
+### `UsersResponse`
+
+Returned by `getUsers` — a single page of users plus the total count.
+
+```ts
+import type { UsersResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `users` | `UserResponse[]` | The page of users for the current `offset` / `limit` |
+| `total` | `number` | Total number of users across all pages |
+
+### `UserCreate`
+
+Payload for `addUser`.
+
+```ts
+import type { UserCreate } from 'marzban-sdk'
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `username` | `string` | Yes | 3–32 chars, `[a-z0-9_]` |
+| `proxies` | `Record<string, ProxySettings>` | No | Protocol-specific config |
+| `inbounds` | `Record<string, string[]>` | No | Inbound tags per protocol |
+| `data_limit` | `number \| null` | No | Max bytes; `0` = unlimited |
+| `data_limit_reset_strategy` | `'no_reset' \| 'day' \| 'week' \| 'month' \| 'year'` | No | Default: `'no_reset'` |
+| `expire` | `number \| null` | No | Unix timestamp; `0` = no expiry |
+| `status` | `'active' \| 'on_hold'` | No | Default: `'active'` |
+| `note` | `string \| null` | No | Optional admin note |
+| `on_hold_expire_duration` | `number \| null` | No | Seconds in `on_hold` |
+| `on_hold_timeout` | `string \| null` | No | ISO timestamp for `on_hold` |
+
+### `UserModify`
+
+Payload for `modifyUser` — the same fields as `UserCreate` minus `username` (which can't change), all optional. Omitted fields are left unchanged.
+
+```ts
+import type { UserModify } from 'marzban-sdk'
+```
+
+It also accepts a few modify-only fields: `sub_updated_at`, `sub_last_user_agent`, `online_at`, `auto_delete_in_days`, and `next_plan`.
+
+### `UserUsagesResponse`
+
+Returned by `getUserUsage` — per-node traffic for a single user.
+
+```ts
+import type { UserUsagesResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `username` | `string` | The user these usages belong to |
+| `usages` | `UserUsageResponse[]` | Per-node traffic entries |
+
+Each `UserUsageResponse` entry:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `node_id` | `number \| null` | Node ID; `null` for aggregated or unassigned traffic |
+| `node_name` | `string` | Node display name |
+| `used_traffic` | `number` | Bytes consumed on this node |
+
+### `UsersUsagesResponse`
+
+Returned by `getUsersUsage` — aggregated per-node traffic across all users.
+
+```ts
+import type { UsersUsagesResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `usages` | `UserUsageResponse[]` | Per-node traffic entries (same shape as in `UserUsagesResponse`) |
+
+---
+
+## Methods
+
+### `addUser(data)`
+
+Create a new user from a `UserCreate` payload.
+
+**Returns** `UserResponse`
+
+```ts
+const user = await sdk.user.addUser({
+  username: 'alice',
+  proxies: { vless: {} },
+  inbounds: { vless: ['VLESS TCP REALITY'] },
+  data_limit: 10 * 1024 ** 3, // 10 GB
+  expire: Math.floor(Date.now() / 1000) + 30 * 86400,
+})
+
+console.log(user.subscription_url)
+console.log(user.links)
+```
+
+---
+
+### `getUser(username)`
+
+Fetch a single user by username.
+
+**Returns** `UserResponse`
+
+```ts
+const user = await sdk.user.getUser('alice')
+console.log(user.status)        // 'active' | 'disabled' | ...
+console.log(user.used_traffic)  // bytes consumed
+console.log(user.subscription_url)
+```
+
+---
+
+### `getUsers(params?)`
+
+List users with optional filtering and pagination.
+
+**Returns** `UsersResponse`
+
+```ts
+const result = await sdk.user.getUsers({
+  offset: 0,
+  limit: 50,
+  status: 'active',
+  sort: 'created_at',
+})
+
+console.log(result.users)  // UserResponse[]
+console.log(result.total)  // number
+```
+
+---
+
+### `modifyUser(username, data)`
+
+Update an existing user from a `UserModify` payload. Fields not provided are left unchanged.
+
+**Returns** `UserResponse`
+
+```ts
+const updated = await sdk.user.modifyUser('alice', {
+  data_limit: 20 * 1024 ** 3,
+  expire: 0,
+  status: 'disabled',
+})
+```
+
+<Callout type="info">
+  `username` cannot be changed — it identifies the user, not an updatable field.
+</Callout>
+
+---
+
+### `removeUser(username)`
+
+Permanently delete a user.
+
+**Returns** `any`
+
+```ts
+await sdk.user.removeUser('alice')
+```
+
+---
+
+### `resetUserDataUsage(username)`
+
+Reset a single user's `used_traffic` counter to zero.
+
+**Returns** `UserResponse`
+
+```ts
+const user = await sdk.user.resetUserDataUsage('alice')
+console.log(user.used_traffic) // 0
+```
+
+---
+
+### `resetUsersDataUsage()`
+
+Reset data usage for **all** users at once.
+
+**Returns** `any`
+
+```ts
+await sdk.user.resetUsersDataUsage()
+```
+
+---
+
+### `revokeUserSubscription(username)`
+
+Revoke a user's subscription token, generating a new one.
+
+**Returns** `UserResponse`
+
+```ts
+const user = await sdk.user.revokeUserSubscription('alice')
+console.log(user.subscription_url) // new URL
+```
+
+---
+
+### `getUserUsage(username, params?)`
+
+Get per-node usage stats for one user, optionally filtered by time range.
+
+**Returns** `UserUsagesResponse`
+
+```ts
+const usage = await sdk.user.getUserUsage('alice', {
+  start: '2024-01-01T00:00:00',
+  end:   '2024-01-31T23:59:59',
+})
+```
+
+---
+
+### `getUsersUsage(params?)`
+
+Get aggregated usage stats across all users.
+
+**Returns** `UsersUsagesResponse`
+
+```ts
+const usage = await sdk.user.getUsersUsage({ start: '2024-01-01T00:00:00' })
+```
+
+---
+
+### `setOwner(username, params)`
+
+Assign an admin as the owner of a user.
+
+**Returns** `UserResponse`
+
+```ts
+await sdk.user.setOwner('alice', { admin_username: 'bob' })
+```
+
+---
+
+### `getExpiredUsers(params?)`
+
+List users whose accounts have expired, optionally filtered by expiry range.
+
+**Returns** `string[]` — the expired usernames
+
+```ts
+const expired = await sdk.user.getExpiredUsers({
+  expired_after:  '2024-01-01T00:00:00',
+  expired_before: '2024-06-01T00:00:00',
+})
+```
+
+---
+
+### `deleteExpiredUsers(params?)`
+
+Delete all expired users, optionally filtered by expiry range.
+
+**Returns** `string[]` — the deleted usernames
+
+```ts
+await sdk.user.deleteExpiredUsers({ expired_before: '2024-01-01T00:00:00' })
+```
+
+---
+
+### `activeNextPlan(username)`
+
+Activate the next plan for a user (one-time use, resets after activation).
+
+**Returns** `UserResponse`
+
+```ts
+await sdk.user.activeNextPlan('alice')
+```
+
+## Common patterns
+
+### Create a user with a 30-day trial
+
+```ts
+import { createMarzbanSDK, parseSize } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({ /* ... */ })
+
+const user = await sdk.user.addUser({
+  username: 'trial_user',
+  proxies: { vless: {}, vmess: {} },
+  inbounds: {
+    vless: ['VLESS TCP REALITY'],
+    vmess: ['VMess Websocket'],
+  },
+  data_limit: parseSize('5GB'),
+  expire: Math.floor(Date.now() / 1000) + 30 * 86400,
+})
+
+console.log('Subscription:', user.subscription_url)
+```
+
+### Paginate through all users
+
+```ts
+const PAGE = 100
+let offset = 0
+let total = Infinity
+
+while (offset < total) {
+  const page = await sdk.user.getUsers({ offset, limit: PAGE })
+  total = page.total
+  for (const user of page.users) {
+    console.log(user.username, user.status)
+  }
+  offset += PAGE
+}
+```

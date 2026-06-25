@@ -1,0 +1,105 @@
+---
+title: HTTP & Retry
+description: Timeouts, automatic retries with exponential backoff, and network resilience.
+---
+
+MarzbanSDK is built on top of Axios and uses `axios-retry` to handle transient network failures automatically, without any extra code in your application.
+
+## Timeout
+
+The default timeout is **30 000 ms (30 seconds)** per request. Override it in the config:
+
+```ts
+const sdk = await createMarzbanSDK({
+  // ...
+  timeout: 10_000, // 10 seconds
+})
+```
+
+Pass `timeout: 0` to disable the timeout entirely (wait forever). This is not recommended for production.
+
+## Automatic retries
+
+When a request fails, the SDK retries it automatically using **exponential backoff**:
+
+| Attempt | Delay |
+|---------|-------|
+| 1st retry | 1 s |
+| 2nd retry | 2 s |
+| 3rd retry | 4 s |
+| 4th retry | 8 s |
+| … | … (capped at 30 s) |
+
+The default is **3 retries** (4 total attempts). Change it:
+
+```ts
+const sdk = await createMarzbanSDK({
+  // ...
+  retries: 5,  // 5 retries, 6 total attempts
+})
+```
+
+Set `retries: 0` to disable retries:
+
+```ts
+const sdk = await createMarzbanSDK({
+  // ...
+  retries: 0,
+})
+```
+
+## What gets retried
+
+`axios-retry` retries requests that fail due to:
+
+- **Network errors** (connection refused, DNS failure, etc.)
+- **Idempotent 5xx responses** (500, 502, 503, 504) for safe HTTP methods (GET, HEAD, OPTIONS)
+
+It does **not** retry:
+
+- `4xx` client errors (except 429 if configured separately)
+- Non-idempotent methods (POST, PUT, PATCH, DELETE) on 5xx — to avoid duplicate writes
+
+## 401 re-auth retry
+
+The SDK has a separate, built-in mechanism for 401 responses:
+
+1. A `401 Unauthorized` response triggers `sdk.authorize()`.
+2. After a fresh token is obtained, the **original request is retried once** with the new token.
+3. If re-auth fails, the error is propagated to the caller.
+
+This happens transparently — your code never sees the 401.
+
+## WebSocket retries
+
+WebSocket connections use the same `retries` value for **403 Forbidden** reconnections:
+
+```ts
+const closeStream = await sdk.logs.connectByCore({
+  onMessage: (data) => console.log(data),
+  onError: (event) => console.error('Max retries reached', event),
+})
+```
+
+If the server returns `403` on a WebSocket connection, the SDK re-authenticates and retries up to `retries` times. After exhausting retries, the `onError` callback is invoked.
+
+## Multiple SDK instances
+
+Each `MarzbanSDK` instance has its own **isolated** Axios instance. Retry counters, tokens, and connections from one instance never affect another.
+
+```ts
+const sdkA = await createMarzbanSDK({ baseUrl: 'https://server-a.com', ... })
+const sdkB = await createMarzbanSDK({ baseUrl: 'https://server-b.com', ... })
+
+// Independent connections, tokens, and retry state
+```
+
+## Cleanup
+
+Call `sdk.destroy()` to close all active WebSocket connections and release resources:
+
+```ts
+await sdk.destroy()
+```
+
+This is particularly important in long-running processes or tests where you create multiple SDK instances.

@@ -1,0 +1,98 @@
+---
+title: TypeScript & Modules
+description: First-class types, ESM and CJS support, and how to use SDK types in your own code.
+---
+
+## TypeScript support
+
+MarzbanSDK is written in TypeScript and ships with **complete type declarations** generated directly from the Marzban OpenAPI specification. Every request parameter, response object, error type, and configuration field is fully typed.
+
+No `@types/marzban-sdk` package is needed — types are included in the main package.
+
+## Import types
+
+All public types are re-exported from the root entry point:
+
+```ts
+import type {
+  Config,
+  UserResponse,
+  UserCreate,
+  UserModify,
+  NodeResponse,
+  AdminCreate,
+  WebhookType,
+} from 'marzban-sdk'
+```
+
+### Common types
+
+| Type | Description |
+|------|-------------|
+| `Config` | SDK configuration object (input type with defaults optional) |
+| `ValidatedConfig` | Config after Zod validation (all defaults resolved) |
+| `UserResponse` | Marzban user as returned by the API |
+| `UserCreate` | Payload for creating a new user |
+| `UserModify` | Payload for updating a user |
+| `NodeResponse` | A Marzban node object |
+| `AdminCreate` | Payload for creating an admin |
+| `WebhookType` | Discriminated union of all 12 webhook event types |
+| `LogOptions` | Options for WebSocket log stream connections |
+
+## ESM and CJS
+
+The package ships a **dual bundle**:
+
+| Format | Entry point | When used |
+|--------|------------|-----------|
+| ESM | `dist/index.mjs` | `import` statements, bundlers (Vite, Webpack 5, Rollup) |
+| CJS | `dist/index.cjs` | `require()`, older Node.js toolchains |
+
+Node.js and all modern bundlers resolve the correct format automatically via the `exports` field in `package.json`.
+
+```ts
+// ESM (recommended)
+import { createMarzbanSDK } from 'marzban-sdk'
+
+// CJS
+const { createMarzbanSDK } = require('marzban-sdk')
+```
+
+## Zod schema exports
+
+Every model's Zod schema is exported alongside the TypeScript types. Use them when you need to validate external data:
+
+```ts
+import { userResponseSchema } from 'marzban-sdk'
+
+const result = userResponseSchema.safeParse(unknownData)
+if (result.success) {
+  console.log(result.data.username)
+}
+```
+
+## Infer types from schemas
+
+```ts
+import { z } from 'zod/v4'
+import { userResponseSchema } from 'marzban-sdk'
+
+type User = z.infer<typeof userResponseSchema>
+```
+
+## tsconfig recommendations
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022"
+  }
+}
+```
+
+<Callout type="info">
+  The SDK uses `zod/v4` (Zod 4 scoped import). If your project also uses Zod, make sure you're on **Zod 4** or later to avoid version conflicts.
+</Callout>

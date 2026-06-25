@@ -44,13 +44,66 @@ import type { NodeCreate } from 'marzban-sdk'
 | `usage_coefficient` | `number` | No | Traffic multiplier, default: `1` |
 | `add_as_new_host` | `boolean` | No | Auto-create a host entry for this node, default: `true` |
 
+### `NodeModify`
+
+Payload for `modifyNode` — all fields optional. Omitted fields are left unchanged. Unlike `NodeCreate`, there is no `add_as_new_host`, and `status` can be set directly.
+
+```ts
+import type { NodeModify } from 'marzban-sdk'
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `string \| null` | No | Display name |
+| `address` | `string \| null` | No | IP address or hostname |
+| `port` | `number \| null` | No | Xray API port |
+| `api_port` | `number \| null` | No | Node gRPC API port |
+| `usage_coefficient` | `number \| null` | No | Traffic multiplier |
+| `status` | `'connected' \| 'connecting' \| 'error' \| 'disabled' \| null` | No | Force a connection state, e.g. `'disabled'` |
+
+### `NodeSettings`
+
+Returned by `getNodeSettings` — the global TLS settings used for node-to-core communication.
+
+```ts
+import type { NodeSettings } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `certificate` | `string` | TLS certificate that nodes use to authenticate with the core |
+| `min_node_version` | `string` | Minimum supported node version. Default: `"v0.2.0"` |
+
+### `NodesUsageResponse`
+
+Returned by `getUsage` — traffic totals per node over the requested range.
+
+```ts
+import type { NodesUsageResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `usages` | `NodeUsageResponse[]` | Per-node traffic entries |
+
+Each `NodeUsageResponse` entry:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `node_id` | `number \| null` | Node ID; `null` for aggregated or unassigned traffic |
+| `node_name` | `string` | Node display name |
+| `uplink` | `number` | Bytes sent (upload) |
+| `downlink` | `number` | Bytes received (download) |
+
 ---
 
 ## Methods
 
 ### `getNodes()`
 
-List all configured nodes. Returns `NodeResponse[]`.
+List all configured nodes.
+
+**Returns** `NodeResponse[]`
 
 ```ts
 const nodes = await sdk.node.getNodes()
@@ -64,7 +117,9 @@ for (const node of nodes) {
 
 ### `getNode(node_id)`
 
-Get a single node by ID. Returns `NodeResponse`.
+Get a single node by ID.
+
+**Returns** `NodeResponse`
 
 ```ts
 const node = await sdk.node.getNode(1)
@@ -77,7 +132,9 @@ console.log(node.message)  // error details when status === 'error'
 
 ### `addNode(data)`
 
-Register a new node. Accepts `NodeCreate`, returns `NodeResponse`.
+Register a new node from a `NodeCreate` payload.
+
+**Returns** `NodeResponse`
 
 ```ts
 const node = await sdk.node.addNode({
@@ -96,7 +153,9 @@ console.log(node.status) // 'connecting' initially
 
 ### `modifyNode(node_id, data)`
 
-Update a node's configuration. Accepts `NodeModify`, returns `NodeResponse`.
+Update a node's configuration from a `NodeModify` payload.
+
+**Returns** `NodeResponse`
 
 ```ts
 await sdk.node.modifyNode(1, {
@@ -112,6 +171,8 @@ await sdk.node.modifyNode(1, {
 
 Remove a node from Marzban.
 
+**Returns** `any`
+
 ```ts
 await sdk.node.removeNode(1)
 ```
@@ -122,6 +183,8 @@ await sdk.node.removeNode(1)
 
 Force a node to reconnect.
 
+**Returns** `any`
+
 ```ts
 await sdk.node.reconnectNode(1)
 ```
@@ -131,6 +194,8 @@ await sdk.node.reconnectNode(1)
 ### `getUsage(params?)`
 
 Get traffic usage per node, optionally filtered by time range.
+
+**Returns** `NodesUsageResponse`
 
 ```ts
 const usage = await sdk.node.getUsage({
@@ -148,6 +213,8 @@ for (const entry of usage.usages) {
 ### `getNodeSettings()`
 
 Retrieve the global node TLS certificate used for node-to-core communication.
+
+**Returns** `NodeSettings`
 
 ```ts
 const settings = await sdk.node.getNodeSettings()

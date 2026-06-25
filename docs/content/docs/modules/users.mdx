@@ -34,6 +34,19 @@ import type { UserResponse } from 'marzban-sdk'
 | `on_hold_timeout` | `string \| null` | ISO timestamp when `on_hold` starts/ends |
 | `admin` | `Admin \| null` | Owner admin object |
 
+### `UsersResponse`
+
+Returned by `getUsers` — a single page of users plus the total count.
+
+```ts
+import type { UsersResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `users` | `UserResponse[]` | The page of users for the current `offset` / `limit` |
+| `total` | `number` | Total number of users across all pages |
+
 ### `UserCreate`
 
 Payload for `addUser`.
@@ -55,13 +68,58 @@ import type { UserCreate } from 'marzban-sdk'
 | `on_hold_expire_duration` | `number \| null` | No | Seconds in `on_hold` |
 | `on_hold_timeout` | `string \| null` | No | ISO timestamp for `on_hold` |
 
+### `UserModify`
+
+Payload for `modifyUser` — the same fields as `UserCreate` minus `username` (which can't change), all optional. Omitted fields are left unchanged.
+
+```ts
+import type { UserModify } from 'marzban-sdk'
+```
+
+It also accepts a few modify-only fields: `sub_updated_at`, `sub_last_user_agent`, `online_at`, `auto_delete_in_days`, and `next_plan`.
+
+### `UserUsagesResponse`
+
+Returned by `getUserUsage` — per-node traffic for a single user.
+
+```ts
+import type { UserUsagesResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `username` | `string` | The user these usages belong to |
+| `usages` | `UserUsageResponse[]` | Per-node traffic entries |
+
+Each `UserUsageResponse` entry:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `node_id` | `number \| null` | Node ID; `null` for aggregated or unassigned traffic |
+| `node_name` | `string` | Node display name |
+| `used_traffic` | `number` | Bytes consumed on this node |
+
+### `UsersUsagesResponse`
+
+Returned by `getUsersUsage` — aggregated per-node traffic across all users.
+
+```ts
+import type { UsersUsagesResponse } from 'marzban-sdk'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `usages` | `UserUsageResponse[]` | Per-node traffic entries (same shape as in `UserUsagesResponse`) |
+
 ---
 
 ## Methods
 
 ### `addUser(data)`
 
-Create a new user. Accepts `UserCreate`, returns `UserResponse`.
+Create a new user from a `UserCreate` payload.
+
+**Returns** `UserResponse`
 
 ```ts
 const user = await sdk.user.addUser({
@@ -80,7 +138,9 @@ console.log(user.links)
 
 ### `getUser(username)`
 
-Fetch a single user by username. Returns `UserResponse`.
+Fetch a single user by username.
+
+**Returns** `UserResponse`
 
 ```ts
 const user = await sdk.user.getUser('alice')
@@ -95,6 +155,8 @@ console.log(user.subscription_url)
 
 List users with optional filtering and pagination.
 
+**Returns** `UsersResponse`
+
 ```ts
 const result = await sdk.user.getUsers({
   offset: 0,
@@ -103,18 +165,17 @@ const result = await sdk.user.getUsers({
   sort: 'created_at',
 })
 
-// result: UsersResponse
 console.log(result.users)  // UserResponse[]
 console.log(result.total)  // number
 ```
-
-**`UsersResponse`** fields: `users: UserResponse[]`, `total: number`.
 
 ---
 
 ### `modifyUser(username, data)`
 
-Update an existing user. Accepts `UserModify`; fields not provided are left unchanged. Returns `UserResponse`.
+Update an existing user from a `UserModify` payload. Fields not provided are left unchanged.
+
+**Returns** `UserResponse`
 
 ```ts
 const updated = await sdk.user.modifyUser('alice', {
@@ -134,6 +195,8 @@ const updated = await sdk.user.modifyUser('alice', {
 
 Permanently delete a user.
 
+**Returns** `any`
+
 ```ts
 await sdk.user.removeUser('alice')
 ```
@@ -142,7 +205,9 @@ await sdk.user.removeUser('alice')
 
 ### `resetUserDataUsage(username)`
 
-Reset a single user's `used_traffic` counter to zero. Returns `UserResponse`.
+Reset a single user's `used_traffic` counter to zero.
+
+**Returns** `UserResponse`
 
 ```ts
 const user = await sdk.user.resetUserDataUsage('alice')
@@ -155,6 +220,8 @@ console.log(user.used_traffic) // 0
 
 Reset data usage for **all** users at once.
 
+**Returns** `any`
+
 ```ts
 await sdk.user.resetUsersDataUsage()
 ```
@@ -163,7 +230,9 @@ await sdk.user.resetUsersDataUsage()
 
 ### `revokeUserSubscription(username)`
 
-Revoke a user's subscription token, generating a new one. Returns `UserResponse`.
+Revoke a user's subscription token, generating a new one.
+
+**Returns** `UserResponse`
 
 ```ts
 const user = await sdk.user.revokeUserSubscription('alice')
@@ -175,6 +244,8 @@ console.log(user.subscription_url) // new URL
 ### `getUserUsage(username, params?)`
 
 Get per-node usage stats for one user, optionally filtered by time range.
+
+**Returns** `UserUsagesResponse`
 
 ```ts
 const usage = await sdk.user.getUserUsage('alice', {
@@ -189,6 +260,8 @@ const usage = await sdk.user.getUserUsage('alice', {
 
 Get aggregated usage stats across all users.
 
+**Returns** `UsersUsagesResponse`
+
 ```ts
 const usage = await sdk.user.getUsersUsage({ start: '2024-01-01T00:00:00' })
 ```
@@ -199,6 +272,8 @@ const usage = await sdk.user.getUsersUsage({ start: '2024-01-01T00:00:00' })
 
 Assign an admin as the owner of a user.
 
+**Returns** `UserResponse`
+
 ```ts
 await sdk.user.setOwner('alice', { admin_username: 'bob' })
 ```
@@ -208,6 +283,8 @@ await sdk.user.setOwner('alice', { admin_username: 'bob' })
 ### `getExpiredUsers(params?)`
 
 List users whose accounts have expired, optionally filtered by expiry range.
+
+**Returns** `string[]` — the expired usernames
 
 ```ts
 const expired = await sdk.user.getExpiredUsers({
@@ -222,6 +299,8 @@ const expired = await sdk.user.getExpiredUsers({
 
 Delete all expired users, optionally filtered by expiry range.
 
+**Returns** `string[]` — the deleted usernames
+
 ```ts
 await sdk.user.deleteExpiredUsers({ expired_before: '2024-01-01T00:00:00' })
 ```
@@ -231,6 +310,8 @@ await sdk.user.deleteExpiredUsers({ expired_before: '2024-01-01T00:00:00' })
 ### `activeNextPlan(username)`
 
 Activate the next plan for a user (one-time use, resets after activation).
+
+**Returns** `UserResponse`
 
 ```ts
 await sdk.user.activeNextPlan('alice')

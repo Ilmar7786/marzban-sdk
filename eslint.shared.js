@@ -7,7 +7,7 @@ import unusedImports from 'eslint-plugin-unused-imports'
  * Shared house style: import sorting, unused-import pruning, and Prettier-as-lint.
  *
  * Single source of truth — imported by the library root config (`eslint.config.js`)
- * and by `docs-site/eslint.config.mjs`, which extends it with Next.js/React rules.
+ * and by `docs/eslint.config.mjs`, which extends it with Next.js/React rules.
  * Plugins resolve from the root `node_modules`, so consumers don't re-install them.
  */
 export const sharedStyle = [

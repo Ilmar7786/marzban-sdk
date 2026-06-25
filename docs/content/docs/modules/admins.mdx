@@ -39,13 +39,30 @@ import type { AdminCreate } from 'marzban-sdk'
 | `telegram_id` | `number \| null` | No | Linked Telegram account |
 | `discord_webhook` | `string \| null` | No | Discord notification webhook |
 
+### `AdminModify`
+
+Payload for `modifyAdmin`. Note that `username` cannot be changed and `is_sudo` must always be sent (it is not optional, unlike the other fields).
+
+```ts
+import type { AdminModify } from 'marzban-sdk'
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `is_sudo` | `boolean` | Yes | Superadmin flag — must be provided on every update |
+| `password` | `string \| null` | No | New password; omit or `null` to keep the current one |
+| `telegram_id` | `number \| null` | No | Linked Telegram account |
+| `discord_webhook` | `string \| null` | No | Discord notification webhook |
+
 ---
 
 ## Methods
 
 ### `getCurrentAdmin()`
 
-Get the profile of the currently authenticated admin. Returns `Admin`.
+Get the profile of the currently authenticated admin.
+
+**Returns** `Admin`
 
 ```ts
 const me = await sdk.admin.getCurrentAdmin()
@@ -58,7 +75,9 @@ console.log(me.telegram_id)
 
 ### `getAdmins(params?)`
 
-List all admins. Requires superadmin privileges. Returns `Admin[]`.
+List all admins. Requires superadmin privileges.
+
+**Returns** `Admin[]`
 
 ```ts
 const admins = await sdk.admin.getAdmins({
@@ -76,7 +95,9 @@ for (const admin of admins) {
 
 ### `createAdmin(data)`
 
-Create a new admin account. Accepts `AdminCreate`, returns `Admin`. Requires superadmin.
+Create a new admin account from an `AdminCreate` payload. Requires superadmin.
+
+**Returns** `Admin`
 
 ```ts
 const admin = await sdk.admin.createAdmin({
@@ -94,7 +115,9 @@ console.log(admin.username)
 
 ### `modifyAdmin(username, data)`
 
-Update an admin's profile or permissions. Accepts `AdminModify`, returns `Admin`.
+Update an admin's profile or permissions from an `AdminModify` payload.
+
+**Returns** `Admin`
 
 ```ts
 await sdk.admin.modifyAdmin('operator', {
@@ -109,6 +132,8 @@ await sdk.admin.modifyAdmin('operator', {
 
 Delete an admin account. Requires superadmin.
 
+**Returns** `any`
+
 ```ts
 await sdk.admin.removeAdmin('operator')
 ```
@@ -118,6 +143,8 @@ await sdk.admin.removeAdmin('operator')
 ### `getAdminUsage(username, params?)`
 
 Get traffic usage attributed to a specific admin's users.
+
+**Returns** `number` — total bytes used
 
 ```ts
 const usage = await sdk.admin.getAdminUsage('operator', {
@@ -132,6 +159,8 @@ const usage = await sdk.admin.getAdminUsage('operator', {
 
 Reset the traffic usage counter for an admin.
 
+**Returns** `Admin`
+
 ```ts
 await sdk.admin.resetAdminUsage('operator')
 ```
@@ -142,6 +171,8 @@ await sdk.admin.resetAdminUsage('operator')
 
 Disable all active users owned by a specific admin.
 
+**Returns** `any`
+
 ```ts
 await sdk.admin.disableAllActiveUsers('operator')
 ```
@@ -151,6 +182,8 @@ await sdk.admin.disableAllActiveUsers('operator')
 ### `activateAllDisabledUsers(username)`
 
 Re-activate all disabled users owned by a specific admin.
+
+**Returns** `any`
 
 ```ts
 await sdk.admin.activateAllDisabledUsers('operator')

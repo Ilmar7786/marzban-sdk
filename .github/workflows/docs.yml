@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'docs-site/**'
+      - 'docs/**'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -24,14 +24,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: docs-site
+        working-directory: docs
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'npm'
-          cache-dependency-path: docs-site/package-lock.json
+          cache-dependency-path: docs/package-lock.json
       - run: npm ci
       - run: npm run build
       # GitHub Pages serves with Jekyll, which ignores files/dirs starting with
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: docs-site/out
+          path: docs/out
 
   deploy:
     needs: build

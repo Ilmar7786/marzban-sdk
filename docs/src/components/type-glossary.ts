@@ -6,8 +6,11 @@
  * reader can see what a referenced type is without leaving the page.
  *
  * Two kinds of entry:
- *   - `named` (default): a concrete SDK type with its own definition section.
- *     Gets an accent style and a "view full definition" link.
+ *   - `named` (default): a concrete type. Gets an accent style. If it has its
+ *     own definition section, set `href` to add a "view full definition" link;
+ *     omit `href` for types without a dedicated section (e.g. usage-response
+ *     shapes or platform globals like `ErrorEvent`) — the popover then shows
+ *     just the description.
  *   - `loose`: a deliberately untyped value (`object`, `any`, or a type the
  *     OpenAPI spec leaves open, like `ProxySettings`). Gets a distinct dashed
  *     style and an explanation of *why* it's untyped — no link, because there
@@ -34,12 +37,24 @@ export const typeGlossary: Record<string, TypeInfo> = {
   },
   UserModify: {
     description:
-      'Payload for modifyUser — the same fields as UserCreate, all optional. Omitted fields are left unchanged.',
-    href: '/docs/modules/users#usercreate',
+      'Payload for modifyUser — the same fields as UserCreate (minus username), all optional. Omitted fields are left unchanged.',
+    href: '/docs/modules/users#usermodify',
   },
   UsersResponse: {
     description: 'Paginated list of users with a total count, returned by getUsers.',
-    href: '/docs/modules/users#userresponse',
+    href: '/docs/modules/users#usersresponse',
+  },
+  UserUsagesResponse: {
+    description: 'Per-node traffic usage for a single user (username plus a usages array of node entries), returned by getUserUsage.',
+    href: '/docs/modules/users#userusagesresponse',
+  },
+  UsersUsagesResponse: {
+    description: 'Aggregated per-node traffic usage across all users, returned by getUsersUsage.',
+    href: '/docs/modules/users#usersusagesresponse',
+  },
+  UserUsageResponse: {
+    description: 'One node entry inside a usages array: node_id, node_name and used_traffic (bytes consumed on that node).',
+    href: '/docs/modules/users#userusagesresponse',
   },
 
   // ── Nodes ──────────────────────────────────────────────────────────────
@@ -53,7 +68,20 @@ export const typeGlossary: Record<string, TypeInfo> = {
   },
   NodeModify: {
     description: 'Payload for modifyNode — node fields to update, all optional. Omitted fields are left unchanged.',
-    href: '/docs/modules/nodes#nodecreate',
+    href: '/docs/modules/nodes#nodemodify',
+  },
+  NodesUsageResponse: {
+    description: 'Per-node traffic totals (uplink/downlink per node), returned by the node getUsage method.',
+    href: '/docs/modules/nodes#nodesusageresponse',
+  },
+  NodeUsageResponse: {
+    description: 'One node entry inside NodesUsageResponse.usages: node_id, node_name, uplink and downlink.',
+    href: '/docs/modules/nodes#nodesusageresponse',
+  },
+  NodeSettings: {
+    description:
+      'Global node settings — the TLS certificate (and minimum node version) used for node-to-core communication, returned by getNodeSettings.',
+    href: '/docs/modules/nodes#nodesettings',
   },
 
   // ── Admins ─────────────────────────────────────────────────────────────
@@ -67,8 +95,8 @@ export const typeGlossary: Record<string, TypeInfo> = {
   },
   AdminModify: {
     description:
-      'Payload for modifyAdmin — admin fields to update (password, sudo flag, Telegram, webhook), all optional.',
-    href: '/docs/modules/admins#admincreate',
+      'Payload for modifyAdmin — password, Telegram and webhook are optional, but is_sudo must always be sent. username cannot be changed.',
+    href: '/docs/modules/admins#adminmodify',
   },
 
   // ── User templates ─────────────────────────────────────────────────────
@@ -77,12 +105,12 @@ export const typeGlossary: Record<string, TypeInfo> = {
     href: '/docs/modules/user-templates#usertemplateresponse',
   },
   UserTemplateCreate: {
-    description: 'Payload for addUserTemplate — the fields of a new provisioning template.',
-    href: '/docs/modules/user-templates#usertemplateresponse',
+    description: 'Payload for addUserTemplate — the fields of a new provisioning template, all optional.',
+    href: '/docs/modules/user-templates#usertemplatecreate',
   },
   UserTemplateModify: {
-    description: 'Payload for modifyUserTemplate — template fields to update, all optional.',
-    href: '/docs/modules/user-templates#usertemplateresponse',
+    description: 'Payload for modifyUserTemplate — the same fields as UserTemplateCreate, all optional.',
+    href: '/docs/modules/user-templates#usertemplatemodify',
   },
 
   // ── System & core ──────────────────────────────────────────────────────
@@ -134,6 +162,10 @@ export const typeGlossary: Record<string, TypeInfo> = {
   LogOptions: {
     description: 'Options for a WebSocket log stream: onMessage, an optional onError, and a polling interval.',
     href: '/docs/realtime/websocket-logs#logoptions',
+  },
+  ErrorEvent: {
+    description:
+      "The runtime's global WebSocket error event, passed to a log stream's onError after retries are exhausted. A standard platform type (browser / Node `ws`), not an SDK type — so there's no SDK definition to link to.",
   },
 
   // ── Webhooks ───────────────────────────────────────────────────────────

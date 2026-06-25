@@ -27,7 +27,9 @@ import type { CoreStats } from 'marzban-sdk'
 
 ### `getCoreStats()`
 
-Get runtime statistics for the Xray core process. Returns `CoreStats`.
+Get runtime statistics for the Xray core process.
+
+**Returns** `CoreStats`
 
 ```ts
 const stats = await sdk.core.getCoreStats()
@@ -41,7 +43,9 @@ console.log(stats.logs_websocket)  // "/api/core/logs"
 
 ### `getCoreConfig()`
 
-Retrieve the full current Xray JSON configuration. Returns a dynamic `object` — the raw Xray config tree, passed through untyped.
+Retrieve the full current Xray JSON configuration — the raw Xray config tree, passed through untyped.
+
+**Returns** `object`
 
 ```ts
 const config = await sdk.core.getCoreConfig()
@@ -53,7 +57,9 @@ console.log(JSON.stringify(config, null, 2))
 
 ### `modifyCoreConfig(data)`
 
-Replace the Xray configuration with a new, dynamic `object` (the full Xray config tree). Triggers a core restart.
+Replace the Xray configuration with a new `object` (the full Xray config tree). Triggers a core restart.
+
+**Returns** `object` — the applied config
 
 ```ts
 const config = await sdk.core.getCoreConfig()
@@ -76,6 +82,8 @@ await sdk.core.modifyCoreConfig({
 ### `restartCore()`
 
 Restart the Xray core without changing its configuration.
+
+**Returns** `any`
 
 ```ts
 await sdk.core.restartCore()

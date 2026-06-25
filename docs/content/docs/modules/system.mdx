@@ -87,7 +87,9 @@ import type { ProxyHost } from 'marzban-sdk'
 
 ### `getSystemStats()`
 
-Get overall system resource and traffic statistics. Returns `SystemStats`.
+Get overall system resource and traffic statistics.
+
+**Returns** `SystemStats`
 
 ```ts
 const stats = await sdk.system.getSystemStats()
@@ -102,7 +104,9 @@ console.log(`RAM: ${stats.mem_used} / ${stats.mem_total} bytes`)
 
 ### `getInbounds()`
 
-List all available inbounds configured in Xray core. Returns `Record<string, ProxyInbound[]>` — inbound tags grouped by protocol.
+List all available inbounds configured in Xray core — inbound tags grouped by protocol.
+
+**Returns** `Record<string, ProxyInbound[]>`
 
 ```ts
 const inbounds = await sdk.system.getInbounds()
@@ -120,7 +124,9 @@ Use this to discover which inbound tags to pass when creating users.
 
 ### `getHosts()`
 
-Get the current proxy host configuration for all inbound tags. Returns `Record<string, ProxyHost[]>` — proxy hosts grouped by inbound tag.
+Get the current proxy host configuration for all inbound tags — proxy hosts grouped by inbound tag.
+
+**Returns** `Record<string, ProxyHost[]>`
 
 ```ts
 const hosts = await sdk.system.getHosts()
@@ -138,6 +144,8 @@ for (const [tag, hostList] of Object.entries(hosts)) {
 ### `modifyHosts(data)`
 
 Replace the proxy host configuration. The full host map must be provided (replaces existing config).
+
+**Returns** `Record<string, ProxyHost[]>` — the updated host map
 
 ```ts
 await sdk.system.modifyHosts({

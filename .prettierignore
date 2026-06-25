@@ -2,8 +2,8 @@ dist
 coverage
 package-lock.json
 
-# docs-site shares the root Prettier rules; only its build artifacts are ignored
-docs-site/.next
-docs-site/out
-docs-site/.source
-docs-site/next-env.d.ts
+# the docs app shares the root Prettier rules; only its build artifacts are ignored
+docs/.next
+docs/out
+docs/.source
+docs/next-env.d.ts

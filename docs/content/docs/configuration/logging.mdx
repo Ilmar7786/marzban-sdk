@@ -50,7 +50,18 @@ import type { LoggerOptions } from 'marzban-sdk'
 | `warn` | Non-fatal issues (auth retry, token refresh) |
 | `error` | Failures and exceptions |
 
-Each level includes all levels above it. For example, `warn` will also log `error` messages.
+Each level also emits every more severe level. For example, `warn` also logs `error` messages.
+
+## Log output format
+
+The built-in logger outputs lines like:
+
+```
+[MarzbanSDK] 2024-01-15T10:23:05.123Z  INFO [AuthManager] Authentication successful, token stored
+[MarzbanSDK] 2024-01-15T10:23:05.200Z DEBUG [HttpClient] Configuring HTTP client: baseURL=https://..., timeout=30000ms, retries=3
+```
+
+Fields: `[MarzbanSDK]` prefix · ISO timestamp · level (padded) · `[context]` · message.
 
 ## Disable logging
 
@@ -135,14 +146,3 @@ const sdk = await createMarzbanSDK({
   },
 })
 ```
-
-## Log output format
-
-The built-in logger outputs lines like:
-
-```
-[MarzbanSDK] 2024-01-15T10:23:05.123Z  INFO [AuthManager] Authentication successful, token stored
-[MarzbanSDK] 2024-01-15T10:23:05.200Z DEBUG [HttpClient] Configuring HTTP client: baseURL=https://..., timeout=30000ms, retries=3
-```
-
-Fields: `[MarzbanSDK]` prefix · ISO timestamp · level (padded) · `[context]` · message.

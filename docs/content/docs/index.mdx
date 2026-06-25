@@ -17,15 +17,16 @@ strongly-typed interface to Marzban's full feature set.
 
 ## Features
 
-- **First-class TypeScript** — every request, response, and error is fully typed, generated directly from the Marzban OpenAPI specification.
-- **Auto authentication** — the SDK logs in on startup and transparently refreshes the JWT on `401` responses. No boilerplate needed.
-- **Automatic retries** — exponential backoff on network failures, configurable retry count.
-- **Classified error system** — `AuthError`, `HttpError`, `ConfigurationError`, and Webhook errors all extend `SdkError` with a machine-readable `code` property and type guard helpers.
-- **Zod validation** — config and all API responses are validated at runtime. Bad data is caught immediately with structured error details.
-- **Webhook support** — `sdk.webhook` handles incoming Marzban events with HMAC-SHA256 signature verification, typed event subscriptions, wildcard listeners, and batch processing.
-- **Real-time log streaming** — `sdk.logs` streams core and node logs via WebSocket with automatic token refresh and configurable reconnection.
-- **Utility helpers** — byte formatting/parsing, datetime calculations, and Marzban template variable utilities.
-- **Cross-runtime** — native `WebSocket` in browsers and modern runtimes; `ws` fallback for older Node.js. Web Crypto API for webhook signatures.
+- **First-class TypeScript** — every request, response, and error is fully typed, [generated directly from the Marzban OpenAPI specification](/docs/get-started/typescript). Matching Zod schemas are exported alongside every model.
+- **Truly cross-runtime** — the same API in [Node.js, Bun, Deno, and the browser](/docs/integrations/node-bun-deno): native `WebSocket` and the Web Crypto API where available, with a transparent `ws` fallback for older Node.js.
+- **Modern build** — a dual [ESM + CJS](/docs/get-started/typescript) bundle, side-effect free and fully tree-shakeable, so you ship only what you use.
+- **Flexible authentication** — [log in automatically on startup, pass an existing JWT, or take full manual control](/docs/authentication/auto-authentication); expired sessions [refresh transparently on `401`](/docs/authentication/manual-auth), so your code never touches a token.
+- **Built-in resilience** — [exponential-backoff retries](/docs/advanced/http-retry) with a configurable retry count, plus automatic WebSocket reconnects.
+- **Classified error system** — `AuthError`, `HttpError`, `ConfigurationError`, and webhook errors all extend `SdkError` with a machine-readable `code` and [type-guard helpers](/docs/advanced/error-handling).
+- **Runtime validation** — config and all API responses are [validated with Zod](/docs/advanced/validation). Bad data is caught immediately with structured error details.
+- **Real-time log streaming** — [`sdk.logs` streams core and node logs over WebSocket](/docs/realtime/websocket-logs) with automatic token refresh and configurable reconnection.
+- **Webhooks** — [`sdk.webhook`](/docs/webhooks/event-types) handles incoming Marzban events with [HMAC-SHA256 signature verification](/docs/webhooks/signature-verification), typed event subscriptions, wildcard listeners, and batch processing.
+- **Batteries-included utilities** — first-class helpers for [byte formatting/parsing, datetime calculations, and template variables](/docs/utilities/bytes).
 
 ## Module overview
 

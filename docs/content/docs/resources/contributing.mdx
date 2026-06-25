@@ -27,15 +27,31 @@ npm install
 | Command | Description |
 |---------|-------------|
 | `npm run build` | Compile TypeScript → `dist/` (ESM + CJS) |
-| `npm test` | Run the full test suite with Vitest |
+| `npm test` | Run the full test suite once with Vitest |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with a coverage report |
 | `npm run lint` | Run ESLint |
 | `npm run codegen` | Regenerate the API client from `openapi/` using Kubb |
+
+## Testing
+
+The SDK is covered by [Vitest](https://vitest.dev). Tests live next to the code they cover as `src/**/*.test.ts`.
+
+```bash
+npm test              # run once
+npm run test:watch    # watch mode while developing
+npm run test:coverage # run with a coverage report
+```
+
+Hand-written code is held at **100% coverage** — statements, branches, functions, and lines. Generated code (`src/gen/`, produced from the OpenAPI spec) and type-only files are excluded from coverage on purpose.
+
+Every feature and bug fix must come with tests, and `npm run test:coverage` must stay green.
 
 ### Build & verify
 
 ```bash
 npm run build
-npm test
+npm run test:coverage
 ```
 
 Both must pass before submitting a PR.
@@ -48,7 +64,7 @@ Both must pass before submitting a PR.
    ```
 2. Make your changes.
 3. Add or update tests in `src/**/*.test.ts`.
-4. Run `npm test` and `npm run build`.
+4. Run `npm run test:coverage` and `npm run build`.
 5. Commit using [Conventional Commits](https://www.conventionalcommits.org/) (enforced by commitlint):
    ```
    feat: add pagination to getUsers

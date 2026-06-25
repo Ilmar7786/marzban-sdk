@@ -25,13 +25,40 @@ import type { UserTemplateResponse } from 'marzban-sdk'
 | `username_prefix` | `string \| null` | Auto-applied prefix when generating usernames |
 | `username_suffix` | `string \| null` | Auto-applied suffix when generating usernames |
 
+### `UserTemplateCreate`
+
+Payload for `addUserTemplate` — same shape as `UserTemplateResponse` without the server-assigned `id`. All fields optional.
+
+```ts
+import type { UserTemplateCreate } from 'marzban-sdk'
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `string \| null` | No | Display name of the template |
+| `data_limit` | `number \| null` | No | Data limit in bytes; `0` or `null` = unlimited |
+| `expire_duration` | `number \| null` | No | Subscription duration in seconds; `0` or `null` = no expiry |
+| `inbounds` | `Record<string, string[]>` | No | Inbound tags per protocol |
+| `username_prefix` | `string \| null` | No | Auto-applied prefix when generating usernames |
+| `username_suffix` | `string \| null` | No | Auto-applied suffix when generating usernames |
+
+### `UserTemplateModify`
+
+Payload for `modifyUserTemplate` — the same fields as `UserTemplateCreate`, all optional. Omitted fields are left unchanged.
+
+```ts
+import type { UserTemplateModify } from 'marzban-sdk'
+```
+
 ---
 
 ## Methods
 
 ### `getUserTemplates()`
 
-List all user templates. Returns `UserTemplateResponse[]`.
+List all user templates.
+
+**Returns** `UserTemplateResponse[]`
 
 ```ts
 const templates = await sdk.userTemplate.getUserTemplates()
@@ -47,7 +74,9 @@ for (const tpl of templates) {
 
 ### `getUserTemplateEndpoint(id)`
 
-Get a single template by ID. Returns `UserTemplateResponse`.
+Get a single template by ID.
+
+**Returns** `UserTemplateResponse`
 
 ```ts
 const template = await sdk.userTemplate.getUserTemplateEndpoint(1)
@@ -59,7 +88,9 @@ console.log(template.inbounds)
 
 ### `addUserTemplate(data)`
 
-Create a new template. Accepts `UserTemplateCreate`, returns `UserTemplateResponse`.
+Create a new template from a `UserTemplateCreate` payload.
+
+**Returns** `UserTemplateResponse`
 
 ```ts
 const template = await sdk.userTemplate.addUserTemplate({
@@ -76,7 +107,9 @@ console.log('Created template ID:', template.id)
 
 ### `modifyUserTemplate(id, data)`
 
-Update an existing template. Accepts `UserTemplateModify`, returns `UserTemplateResponse`.
+Update an existing template from a `UserTemplateModify` payload.
+
+**Returns** `UserTemplateResponse`
 
 ```ts
 await sdk.userTemplate.modifyUserTemplate(1, {
@@ -90,6 +123,8 @@ await sdk.userTemplate.modifyUserTemplate(1, {
 ### `removeUserTemplate(id)`
 
 Delete a template.
+
+**Returns** `any`
 
 ```ts
 await sdk.userTemplate.removeUserTemplate(1)

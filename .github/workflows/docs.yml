@@ -34,6 +34,8 @@ jobs:
           cache-dependency-path: docs/package-lock.json
       - run: npm ci
       - run: npm run build
+        env:
+          NEXT_PUBLIC_YANDEX_METRICA_ID: ${{ vars.NEXT_PUBLIC_YANDEX_METRICA_ID }}
       # GitHub Pages serves with Jekyll, which ignores files/dirs starting with
       # an underscore (e.g. Next.js `_next`). Disable it.
       - run: touch out/.nojekyll

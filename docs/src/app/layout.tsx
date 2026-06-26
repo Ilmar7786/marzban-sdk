@@ -1,6 +1,7 @@
 import './global.css'
 
 import { standardYMInitParameters, YandexMetricaProvider } from '@artginzburg/next-ym'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 
@@ -65,6 +66,10 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         <YandexMetricaProvider initParameters={standardYMInitParameters}>
           <Provider>{children}</Provider>
         </YandexMetricaProvider>
+
+        {process.env.NEXT_PUBLIC_GOOGLE_ANALYTIC_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTIC_ID} />
+        )}
       </body>
     </html>
   )

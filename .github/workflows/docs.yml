@@ -36,6 +36,7 @@ jobs:
       - run: npm run build
         env:
           NEXT_PUBLIC_YANDEX_METRICA_ID: ${{ vars.NEXT_PUBLIC_YANDEX_METRICA_ID }}
+          NEXT_PUBLIC_GOOGLE_ANALYTIC_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_ANALYTIC_ID }}
       # GitHub Pages serves with Jekyll, which ignores files/dirs starting with
       # an underscore (e.g. Next.js `_next`). Disable it.
       - run: touch out/.nojekyll

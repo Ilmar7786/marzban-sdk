@@ -36,6 +36,7 @@ export const metadata: Metadata = {
     'Node.js',
     'webhooks',
     'WebSocket',
+    'marzban sdk',
   ],
   alternates: { canonical: '/' },
   openGraph: {

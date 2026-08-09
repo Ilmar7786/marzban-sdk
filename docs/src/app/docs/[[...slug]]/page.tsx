@@ -11,7 +11,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isValidElement, type ReactNode } from 'react'
 
-import { getMDXComponents } from '@/components/mdx'
+import { getMDXComponents } from '@/components/docs/mdx'
 import { appName, gitConfig } from '@/lib/shared'
 import { getPageImage, getPageMarkdownUrl, source } from '@/lib/source'
 

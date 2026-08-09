@@ -2,8 +2,8 @@ import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { ThemeSwitch } from 'fumadocs-ui/layouts/shared/slots/theme-switch'
 import { BookOpen, Package } from 'lucide-react'
 
-import { BrandMark } from '@/components/brand-mark'
 import { HeaderGithub } from '@/components/landing/header-github'
+import { BrandMark } from '@/components/ui/brand-mark'
 import { Tooltip } from '@/components/ui/tooltip'
 
 import { appName, npmPackage } from './shared'

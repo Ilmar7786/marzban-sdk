@@ -1,6 +1,6 @@
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 
-import { DocsSidebarFooter } from '@/components/docs-sidebar-footer'
+import { DocsSidebarFooter } from '@/components/docs/docs-sidebar-footer'
 import { baseOptions } from '@/lib/layout.shared'
 import { source } from '@/lib/source'
 

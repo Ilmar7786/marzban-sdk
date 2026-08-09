@@ -3,8 +3,8 @@ import { Package } from 'lucide-react'
 
 import { gitConfig, npmPackage } from '@/lib/shared'
 
-import { GithubMark } from './landing/header-github'
-import { Tooltip } from './ui/tooltip'
+import { GithubMark } from '../landing/header-github'
+import { Tooltip } from '../ui/tooltip'
 
 /** Ghost icon button matching Fumadocs' own sidebar control styling. */
 const iconButton =

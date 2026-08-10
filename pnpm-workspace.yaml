@@ -1,0 +1,28 @@
+packages:
+  - 'packages/*'
+  - 'apps/*'
+
+# pnpm 10+ stores dependency overrides here instead of package.json.
+overrides:
+  esbuild: 0.28.1
+
+# pnpm 10+ blocks postinstall scripts by default — without this, native
+# deps used by the build toolchain (esbuild via tsup, Next.js native addons)
+# never get built and builds fail with cryptic errors.
+onlyBuiltDependencies:
+  - es5-ext
+  - esbuild
+  - git-cliff
+  - '@tailwindcss/oxide'
+  - sharp
+  - unrs-resolver
+
+minimumReleaseAgeExclude:
+  - lucide-react@1.31.0
+
+# es5-ext: transitive dep of kubb (via oas/memoizee) needed at build time.
+# esbuild / unrs-resolver: native binaries used by tsup and Next.js respectively.
+allowBuilds:
+  es5-ext: true
+  esbuild: true
+  unrs-resolver: true

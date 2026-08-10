@@ -1,5 +1,4 @@
 'use client'
-import { create } from '@orama/orama'
 import { useDocsSearch } from 'fumadocs-core/search/client'
 import { oramaStaticClient } from 'fumadocs-core/search/client/orama-static'
 import {
@@ -13,6 +12,7 @@ import {
   SearchDialogOverlay,
   type SharedProps,
 } from 'fumadocs-ui/components/dialog/search'
+import { create } from 'zbsearch'
 
 function initOrama() {
   return create({

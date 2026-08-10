@@ -11,9 +11,6 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? (process.env.NODE_ENV === 
 const config = {
   output: 'export',
   reactStrictMode: true,
-  // This is a nested project; pin the workspace root to avoid Turbopack picking
-  // up the parent library's lockfile.
-  turbopack: { root: import.meta.dirname },
   basePath,
   // Static export cannot use the Next.js image optimizer.
   images: { unoptimized: true },

@@ -1,0 +1,39 @@
+{
+  "name": "marzban-mcp",
+  "version": "0.0.0",
+  "description": "MCP server for the Marzban API, built on marzban-sdk.",
+  "author": "ilmar7786",
+  "license": "MIT",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "bin": {
+    "marzban-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix ."
+  },
+  "dependencies": {
+    "marzban-sdk": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsup": "^8.5.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ilmar7786/marzban-sdk.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/Ilmar7786/marzban-sdk/issues"
+  },
+  "homepage": "https://ilmar7786.github.io/marzban-sdk/"
+}

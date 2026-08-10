@@ -19,7 +19,7 @@ export default defineConfig(() => {
         defaultBanner: false,
       },
       hooks: {
-        done: ['npx eslint --fix ./src/gen -c eslint.config.js'],
+        done: ['npx eslint --fix ./src/gen -c ../../eslint.config.js'],
       },
       plugins: [
         pluginOas({

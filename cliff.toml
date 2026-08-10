@@ -82,6 +82,10 @@ commit_preprocessors = [
 # Assigns commits to groups.
 # Optionally sets the commit's scope and can decide to exclude commits from further processing.
 commit_parsers = [
+    # Docs-scoped commits are noise in a package's changelog regardless of type
+    # (e.g. `fix(docs): ...`) — must come before the type-based matchers below,
+    # otherwise `^fix` etc. would claim them first.
+    { message = "^\\w+\\(docs\\)", skip = true },
     { message = "^feat", group = "<!-- 0 -->🚀 Features" },
     { message = "^fix", group = "<!-- 1 -->🐛 Bug Fixes" },
     { message = "^docs", skip = true },
@@ -93,6 +97,8 @@ commit_parsers = [
     { message = "^chore\\(deps.*\\)", skip = true },
     { message = "^chore\\(pr\\)", skip = true },
     { message = "^chore\\(pull\\)", skip = true },
+    # The bot commit that lands each release's generated changelog (see publish.yml).
+    { message = "^chore\\(changelog\\)", skip = true },
     { message = "^chore|^ci", group = "<!-- 7 -->⚙️ Miscellaneous Tasks" },
     { body = ".*security", group = "<!-- 8 -->🛡️ Security" },
     { message = "^revert", group = "<!-- 9 -->◀️ Revert" },

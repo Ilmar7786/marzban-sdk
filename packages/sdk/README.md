@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./apps/docs/src/app/icon.svg" alt="MarzbanSDK" width="80">
+<img src="./docs/src/app/icon.svg" alt="MarzbanSDK" width="80">
 
 # MarzbanSDK
 
@@ -102,20 +102,6 @@ Full guides, configuration reference and the complete typed API live at
 - [Error handling](https://ilmar7786.github.io/marzban-sdk/docs/advanced/error-handling) & [validation](https://ilmar7786.github.io/marzban-sdk/docs/advanced/validation)
 - [Webhooks](https://ilmar7786.github.io/marzban-sdk/docs/webhooks/event-types) & [WebSocket logs](https://ilmar7786.github.io/marzban-sdk/docs/realtime/websocket-logs)
 - [Utilities](https://ilmar7786.github.io/marzban-sdk/docs/utilities/data-sizes)
-
-## Repository layout
-
-This repository is a monorepo (pnpm workspaces + Turborepo):
-
-| Package                          | What it is                                                      |
-| -------------------------------- | --------------------------------------------------------------- |
-| [`packages/sdk`](./packages/sdk) | `marzban-sdk` — this package                                    |
-| [`packages/cli`](./packages/cli) | `marzban-cli` — CLI on top of the SDK (WIP, unpublished)        |
-| [`packages/mcp`](./packages/mcp) | `marzban-mcp` — MCP server on top of the SDK (WIP, unpublished) |
-| [`apps/docs`](./apps/docs)       | The documentation site                                          |
-
-Each publishable package has its own version, changelog and release tags
-(`sdk-v*`, `cli-v*`, `mcp-v*`).
 
 ## Contributing
 

@@ -139,3 +139,6 @@ dist
 
 .openapi-generator
 .DS_Store
+
+# Turborepo cache
+.turbo

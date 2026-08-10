@@ -8,6 +8,14 @@ on:
     branches: [main]
     types:
       - completed
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: >-
+          Dry run — npm publish stays --dry-run and the GitHub Release is
+          created as a draft (no real tag).
+        type: boolean
+        default: true
 
 permissions:
   id-token: write # Required for OIDC
@@ -16,7 +24,9 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
       - uses: actions/checkout@v6
         with:
@@ -30,6 +40,7 @@ jobs:
         id: npm-publish
         with:
           provenance: true
+          dry-run: ${{ inputs.dry_run || false }}
       - uses: orhun/git-cliff-action@v4
         id: cliff
         with:
@@ -39,6 +50,9 @@ jobs:
           OUTPUT: CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
 
+      # A draft release is not tied to a real tag in the repo — GitHub only
+      # creates the tag when the draft is published — so this is safe to
+      # inspect and delete afterwards without leaving anything behind.
       - name: Create GitHub Release
         if: steps.npm-publish.outputs.type != ''
         uses: softprops/action-gh-release@v2
@@ -46,3 +60,4 @@ jobs:
           tag_name: v${{ steps.npm-publish.outputs.version }}
           name: v${{ steps.npm-publish.outputs.version }}
           body: ${{ steps.cliff.outputs.content }}
+          draft: ${{ inputs.dry_run || false }}

@@ -350,4 +350,115 @@ describe('DefaultLogger', () => {
       expect(typeof logger.error).toBe('function')
     })
   })
+
+  describe('stream: "stderr"', () => {
+    let stderrSpy: ReturnType<typeof vi.spyOn>
+
+    beforeEach(() => {
+      stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    })
+
+    afterEach(() => {
+      stderrSpy.mockRestore()
+    })
+
+    it('never writes to console.* (stdout is reserved for stdio wire protocols)', () => {
+      const logger = new DefaultLogger({ level: 'debug', stream: 'stderr' })
+      logger.debug('d')
+      logger.info('i')
+      logger.warn('w')
+      logger.error('e')
+      expect(debugSpy).not.toHaveBeenCalled()
+      expect(infoSpy).not.toHaveBeenCalled()
+      expect(warnSpy).not.toHaveBeenCalled()
+      expect(errorSpy).not.toHaveBeenCalled()
+    })
+
+    it('writes formatted lines to process.stderr', () => {
+      const logger = new DefaultLogger({ level: 'info', timestamp: false, stream: 'stderr' })
+      logger.info('hello')
+      expect(stderrSpy).toHaveBeenCalledTimes(1)
+      expect(stderrSpy.mock.calls[0][0]).toContain('hello')
+      expect(stderrSpy.mock.calls[0][0]).toContain('MarzbanSDK')
+    })
+
+    it('appends the error stack/message after the formatted line', () => {
+      const logger = new DefaultLogger({ level: 'error', stream: 'stderr' })
+      const err = new Error('boom')
+      logger.error('failed', err)
+      const written: string = stderrSpy.mock.calls[0][0]
+      expect(written).toContain('failed')
+      expect(written).toContain(err.stack ?? err.message)
+    })
+
+    it('respects level filtering same as stdout mode', () => {
+      const logger = new DefaultLogger({ level: 'warn', stream: 'stderr' })
+      logger.debug('d')
+      logger.info('i')
+      logger.warn('w')
+      expect(stderrSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('emits plain text without ANSI escapes when stderr is not a TTY', () => {
+      const logger = new DefaultLogger({ level: 'info', stream: 'stderr' })
+      logger.info('plain')
+      const written: string = stderrSpy.mock.calls[0][0]
+      // eslint-disable-next-line no-control-regex
+      expect(written).not.toMatch(/\x1b\[[0-9;]*m/)
+    })
+
+    it('renders the context marker uncolored when stderr is not a TTY', () => {
+      const logger = new DefaultLogger({ level: 'info', timestamp: false, stream: 'stderr' })
+      logger.info('msg', 'MyContext')
+      const written: string = stderrSpy.mock.calls[0][0]
+      expect(written).toContain('[MyContext]')
+      // eslint-disable-next-line no-control-regex
+      expect(written).not.toMatch(/\x1b\[[0-9;]*m/)
+    })
+
+    it('stringifies a non-Error trace value', () => {
+      const logger = new DefaultLogger({ level: 'error', stream: 'stderr' })
+      logger.error('failed', 'plain trace string')
+      const written: string = stderrSpy.mock.calls[0][0]
+      expect(written).toContain('plain trace string')
+    })
+
+    it('falls back to the Error message when .stack is unavailable', () => {
+      const logger = new DefaultLogger({ level: 'error', stream: 'stderr' })
+      const err = new Error('no stack here')
+      err.stack = undefined
+      logger.error('failed', err)
+      const written: string = stderrSpy.mock.calls[0][0]
+      expect(written).toContain('no stack here')
+    })
+
+    it('falls back to console.error when process.stderr is unavailable (e.g. browser bundles)', () => {
+      const originalStderr = process.stderr
+      // @ts-expect-error simulating a runtime without process.stderr
+      delete process.stderr
+      try {
+        const logger = new DefaultLogger({ level: 'debug', stream: 'stderr' })
+        logger.debug('no trace here')
+        logger.error('failed', new Error('boom'))
+        expect(errorSpy).toHaveBeenCalledTimes(2)
+        expect(errorSpy.mock.calls[0]).toEqual([expect.any(String), ''])
+        expect(stderrSpy).not.toHaveBeenCalled()
+      } finally {
+        process.stderr = originalStderr
+      }
+    })
+  })
+
+  describe('stream: "stdout" (default)', () => {
+    it('does not write to process.stderr', () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+      const logger = new DefaultLogger({ level: 'debug' })
+      logger.debug('d')
+      logger.info('i')
+      logger.warn('w')
+      logger.error('e')
+      expect(stderrSpy).not.toHaveBeenCalled()
+      stderrSpy.mockRestore()
+    })
+  })
 })

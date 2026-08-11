@@ -5,6 +5,7 @@ const logLevelSchema = z.enum(['debug', 'info', 'warn', 'error'])
 const loggerOptionsSchema = z.object({
   level: logLevelSchema.optional(),
   timestamp: z.boolean().optional(),
+  stream: z.enum(['stdout', 'stderr']).optional(),
 })
 
 const loggerMethodSchema = z.custom<(message: string, context?: string) => void>(v => typeof v === 'function')

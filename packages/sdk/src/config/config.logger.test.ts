@@ -13,6 +13,14 @@ describe('loggerConfigSchema', () => {
     expect(loggerConfigSchema.safeParse({ level: 'info', timestamp: true }).success).toBe(true)
   })
 
+  it('accepts options object with stream', () => {
+    expect(loggerConfigSchema.safeParse({ stream: 'stderr' }).success).toBe(true)
+  })
+
+  it('rejects an invalid stream value', () => {
+    expect(loggerConfigSchema.safeParse({ stream: 'file' }).success).toBe(false)
+  })
+
   it('accepts full logger object with function methods', () => {
     const parsed = loggerConfigSchema.safeParse({
       debug: noop,

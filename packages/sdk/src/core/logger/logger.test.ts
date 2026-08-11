@@ -311,11 +311,23 @@ describe('DefaultLogger', () => {
   })
 
   describe('error method', () => {
-    it('passes trace as second argument to console.error', () => {
+    it('passes a redacted trace as second argument to console.error', () => {
       const logger = new DefaultLogger({ level: 'error' })
       const err = new Error('oops')
       logger.error('failed', err, 'Ctx')
-      expect(errorSpy).toHaveBeenCalledWith(expect.any(String), err)
+      // The raw Error reference isn't passed through as-is — trace goes
+      // through redactSecrets() first, so consumers never see an unredacted
+      // error object (e.g. one wrapping HTTP request headers/credentials).
+      expect(errorSpy).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ message: 'oops' }))
+    })
+
+    it('redacts secret-bearing fields on the trace before logging', () => {
+      const logger = new DefaultLogger({ level: 'error' })
+      logger.error('request failed', { config: { headers: { Authorization: 'Bearer secret' } } })
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ config: { headers: { Authorization: '[REDACTED]' } } })
+      )
     })
 
     it('passes empty string when trace is undefined', () => {

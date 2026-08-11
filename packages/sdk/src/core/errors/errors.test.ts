@@ -42,6 +42,18 @@ describe('SdkError', () => {
       expect(err.details).toBeUndefined()
     })
 
+    it('redacts secret-bearing keys in details (e.g. a raw HTTP client error)', () => {
+      const details = {
+        message: 'Request failed with status code 401',
+        config: { url: '/api/admin/token', headers: { Authorization: 'Bearer secret-token' } },
+      }
+      const err = new SdkError(ERROR_CODES.NETWORK_HTTP_ERROR, details)
+      expect(err.details).toEqual({
+        message: 'Request failed with status code 401',
+        config: { url: '/api/admin/token', headers: { Authorization: '[REDACTED]' } },
+      })
+    })
+
     it('is an instance of Error', () => {
       expect(new SdkError(ERROR_CODES.AUTH_FAILED)).toBeInstanceOf(Error)
     })
@@ -124,8 +136,13 @@ describe('AuthError', () => {
   })
 
   it('passes details through', () => {
-    const err = new AuthError({ token: 'x' })
-    expect(err.details).toEqual({ token: 'x' })
+    const err = new AuthError({ userId: 42 })
+    expect(err.details).toEqual({ userId: 42 })
+  })
+
+  it('redacts secret-bearing keys in details', () => {
+    const err = new AuthError({ token: 'x', userId: 42 })
+    expect(err.details).toEqual({ token: '[REDACTED]', userId: 42 })
   })
 })
 

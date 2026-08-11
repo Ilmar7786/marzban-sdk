@@ -33,9 +33,13 @@ export const setupAuthInterceptors = (
       return requestConfig
     },
     error => {
-      logger.error('Request interceptor error', error, 'AuthInterceptor')
-      if (error instanceof SdkError) return Promise.reject(error)
-      return Promise.reject(new HttpError(error))
+      // Wrap before logging, not after: HttpError redacts secret-bearing
+      // fields (Authorization headers, request-body passwords) in `.details`
+      // at construction, so the logger — which may be a caller-supplied
+      // implementation, not just the SDK's own — never sees the raw error.
+      const wrapped = error instanceof SdkError ? error : new HttpError(error)
+      logger.error('Request interceptor error', wrapped, 'AuthInterceptor')
+      return Promise.reject(wrapped)
     }
   )
 
@@ -62,14 +66,14 @@ export const setupAuthInterceptors = (
           logger.error('Re-authentication failed: No access token received', null, 'AuthInterceptor')
           return Promise.reject(new HttpError('No access token after re-authentication'))
         } catch (err) {
-          logger.error('Re-authentication failed', err, 'AuthInterceptor')
-          if (err instanceof SdkError) return Promise.reject(err)
-          return Promise.reject(new HttpError(err))
+          const wrapped = err instanceof SdkError ? err : new HttpError(err)
+          logger.error('Re-authentication failed', wrapped, 'AuthInterceptor')
+          return Promise.reject(wrapped)
         }
       }
 
-      if (error instanceof SdkError) return Promise.reject(error)
-      return Promise.reject(new HttpError(error))
+      const wrapped = error instanceof SdkError ? error : new HttpError(error)
+      return Promise.reject(wrapped)
     }
   )
 }

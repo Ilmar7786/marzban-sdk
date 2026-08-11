@@ -1,3 +1,5 @@
+import { redactSecrets } from '@/common'
+
 import { ERROR_CODES, ErrorCode, FormatCode } from './codes'
 
 export class SdkError<T = unknown> extends Error {
@@ -8,7 +10,11 @@ export class SdkError<T = unknown> extends Error {
     super(options.message)
     this.name = new.target.name
     this.code = options.code as ErrorCode
-    this.details = details
+    // `details` commonly wraps a raw HTTP client error (request config,
+    // headers, response body). Redact secret-bearing fields up front so
+    // every consumer — toJSON(), a caught error inspected by app code, a
+    // logger printing the trace — sees the same safe value.
+    this.details = details === undefined ? undefined : (redactSecrets(details) as T)
     Object.setPrototypeOf(this, new.target.prototype)
 
     /* istanbul ignore next */

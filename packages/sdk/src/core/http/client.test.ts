@@ -67,6 +67,17 @@ describe('configureHttpClient', () => {
     expect(created[1].request).toHaveBeenCalledWith({ url: '/login' })
   })
 
+  it('forwards an AbortSignal passed in the request config through to axios unchanged', async () => {
+    const result = configureHttpClient('https://x', authService, makeConfig(), logger)
+    const controller = new AbortController()
+
+    await result.client({ url: '/foo', method: 'GET', signal: controller.signal } as AnyType)
+
+    expect(created[0].request).toHaveBeenCalledWith(
+      expect.objectContaining({ url: '/foo', method: 'GET', signal: controller.signal })
+    )
+  })
+
   it('configures retry on both instances with capped exponential backoff', () => {
     configureHttpClient('https://x', authService, makeConfig({ retries: 3 }), logger)
 

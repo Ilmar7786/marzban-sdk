@@ -131,9 +131,15 @@ describe('setupAuthInterceptors', () => {
       await ax.reqErr(err).catch(() => {})
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('Request interceptor error'),
-        err,
+        expect.any(HttpError),
         'AuthInterceptor'
       )
+    })
+
+    it('logs and rejects with the same wrapped instance (not the raw error)', async () => {
+      const err = new Error('oops')
+      const rejection = await ax.reqErr(err).catch((e: unknown) => e)
+      expect(logger.error).toHaveBeenCalledWith(expect.any(String), rejection, 'AuthInterceptor')
     })
   })
 

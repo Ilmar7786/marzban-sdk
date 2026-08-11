@@ -1,5 +1,7 @@
 import chalk, { type ChalkInstance } from 'chalk'
 
+import { errorText, redactSecrets } from '@/common'
+
 import { Logger, LoggerOptions, LogLevel } from './logger.types'
 import { getDefaultLogLevel } from './logger.utils'
 
@@ -70,8 +72,8 @@ export class DefaultLogger implements Logger {
       console.error(line, trace ?? '')
       return
     }
-    const traceText = trace instanceof Error ? (trace.stack ?? trace.message) : trace ? String(trace) : ''
-    process.stderr.write(traceText ? `${line} ${traceText}\n` : `${line}\n`)
+    const text = errorText(trace)
+    process.stderr.write(text ? `${line} ${text}\n` : `${line}\n`)
   }
 
   debug(message: string, context?: string) {
@@ -98,7 +100,12 @@ export class DefaultLogger implements Logger {
   error(message: string, trace?: unknown, context?: string) {
     if (!this.shouldLog('error')) return
     const line = this.format('error', message, context)
-    if (this.stream === 'stderr') return this.toStderr(line, trace)
-    console.error(line, trace ?? '')
+    // `trace` is frequently a raw HTTP client error (request config,
+    // headers, response body) — redact secret-bearing fields before it ever
+    // reaches console/stderr, regardless of whether it was already wrapped
+    // in an SdkError (which redacts `.details` at construction) or not.
+    const safeTrace = trace === undefined ? undefined : redactSecrets(trace)
+    if (this.stream === 'stderr') return this.toStderr(line, safeTrace)
+    console.error(line, safeTrace ?? '')
   }
 }

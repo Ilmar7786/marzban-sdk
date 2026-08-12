@@ -5,7 +5,9 @@ import type { Unauthorized } from '../Unauthorized.ts'
  * Response Get Core Config Api Core Config Get
  * @description Successful Response
  */
-export type GetCoreConfig200 = object
+export type GetCoreConfig200 = {
+  [key: string]: any
+}
 
 /**
  * Unauthorized

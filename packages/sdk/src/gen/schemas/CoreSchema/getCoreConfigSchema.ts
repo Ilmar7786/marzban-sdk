@@ -12,7 +12,7 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 /**
  * @description Successful Response
  */
-export const getCoreConfig200Schema = z.object({}) as unknown as z.ZodType<GetCoreConfig200>
+export const getCoreConfig200Schema = z.object({}).catchall(z.any()) as unknown as z.ZodType<GetCoreConfig200>
 
 /**
  * @description Unauthorized

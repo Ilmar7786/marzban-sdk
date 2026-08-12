@@ -1,5 +1,6 @@
 import type { Admin } from './Admin.ts'
 import type { NextPlanModel } from './NextPlanModel.ts'
+import type { ProxySettings } from './ProxySettings.ts'
 import type { UserDataLimitResetStrategy } from './UserDataLimitResetStrategy.ts'
 import type { UserStatus } from './UserStatus.ts'
 
@@ -10,7 +11,9 @@ export type UserResponse = {
   /**
    * @type object
    */
-  proxies: object
+  proxies: {
+    [key: string]: ProxySettings
+  }
   expire?: (number | null) | null
   /**
    * @description data_limit can be 0 or greater

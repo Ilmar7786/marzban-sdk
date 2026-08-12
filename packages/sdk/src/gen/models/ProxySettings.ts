@@ -1,4 +1,6 @@
 /**
  * ProxySettings
  */
-export type ProxySettings = object
+export type ProxySettings = {
+  [key: string]: any
+}

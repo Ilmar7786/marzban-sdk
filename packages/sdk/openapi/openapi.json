@@ -390,7 +390,11 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "type": "object", "title": "Response Get Core Config Api Core Config Get" }
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Core Config Api Core Config Get",
+                  "additionalProperties": true
+                }
               }
             }
           },
@@ -412,7 +416,11 @@
         "description": "Modify the core configuration and restart the core.",
         "operationId": "modify_core_config",
         "requestBody": {
-          "content": { "application/json": { "schema": { "type": "object", "title": "Payload" } } },
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "title": "Payload", "additionalProperties": true }
+            }
+          },
           "required": true
         },
         "responses": {
@@ -420,7 +428,11 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "type": "object", "title": "Response Modify Core Config Api Core Config Put" }
+                "schema": {
+                  "type": "object",
+                  "title": "Response Modify Core Config Api Core Config Put",
+                  "additionalProperties": true
+                }
               }
             }
           },
@@ -1913,11 +1925,16 @@
         "required": ["tag", "protocol", "network", "tls", "port"],
         "title": "ProxyInbound"
       },
-      "ProxySettings": { "properties": {}, "type": "object", "title": "ProxySettings" },
+      "ProxySettings": { "properties": {}, "type": "object", "title": "ProxySettings", "additionalProperties": true },
       "ProxyTypes": { "type": "string", "enum": ["vmess", "vless", "trojan", "shadowsocks"], "title": "ProxyTypes" },
       "SubscriptionUserResponse": {
         "properties": {
-          "proxies": { "type": "object", "title": "Proxies" },
+          "proxies": {
+            "additionalProperties": { "$ref": "#/components/schemas/ProxySettings" },
+            "propertyNames": { "$ref": "#/components/schemas/ProxyTypes" },
+            "type": "object",
+            "title": "Proxies"
+          },
           "expire": { "anyOf": [{ "type": "integer" }, { "type": "null" }], "title": "Expire", "nullable": true },
           "data_limit": {
             "anyOf": [{ "type": "integer", "minimum": 0.0 }, { "type": "null" }],
@@ -2192,7 +2209,12 @@
       },
       "UserResponse": {
         "properties": {
-          "proxies": { "type": "object", "title": "Proxies" },
+          "proxies": {
+            "additionalProperties": { "$ref": "#/components/schemas/ProxySettings" },
+            "propertyNames": { "$ref": "#/components/schemas/ProxyTypes" },
+            "type": "object",
+            "title": "Proxies"
+          },
           "expire": { "anyOf": [{ "type": "integer" }, { "type": "null" }], "title": "Expire", "nullable": true },
           "data_limit": {
             "anyOf": [{ "type": "integer", "minimum": 0.0 }, { "type": "null" }],

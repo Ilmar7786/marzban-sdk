@@ -6,7 +6,9 @@ import type { Unauthorized } from '../Unauthorized.ts'
  * Response Modify Core Config Api Core Config Put
  * @description Successful Response
  */
-export type ModifyCoreConfig200 = object
+export type ModifyCoreConfig200 = {
+  [key: string]: any
+}
 
 /**
  * Unauthorized
@@ -29,7 +31,9 @@ export type ModifyCoreConfig422 = HTTPValidationError
 /**
  * Payload
  */
-export type ModifyCoreConfigMutationRequest = object
+export type ModifyCoreConfigMutationRequest = {
+  [key: string]: any
+}
 
 export type ModifyCoreConfigMutationResponse = ModifyCoreConfig200
 

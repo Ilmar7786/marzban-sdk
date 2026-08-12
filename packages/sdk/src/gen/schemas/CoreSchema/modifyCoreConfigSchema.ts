@@ -15,7 +15,7 @@ import { unauthorizedSchema } from '../unauthorizedSchema.ts'
 /**
  * @description Successful Response
  */
-export const modifyCoreConfig200Schema = z.object({}) as unknown as z.ZodType<ModifyCoreConfig200>
+export const modifyCoreConfig200Schema = z.object({}).catchall(z.any()) as unknown as z.ZodType<ModifyCoreConfig200>
 
 /**
  * @description Unauthorized
@@ -34,9 +34,9 @@ export const modifyCoreConfig422Schema = z.lazy(
   () => HTTPValidationErrorSchema
 ) as unknown as z.ZodType<ModifyCoreConfig422>
 
-export const modifyCoreConfigMutationRequestSchema = z.object(
-  {}
-) as unknown as z.ZodType<ModifyCoreConfigMutationRequest>
+export const modifyCoreConfigMutationRequestSchema = z
+  .object({})
+  .catchall(z.any()) as unknown as z.ZodType<ModifyCoreConfigMutationRequest>
 
 export const modifyCoreConfigMutationResponseSchema = z.lazy(
   () => modifyCoreConfig200Schema

@@ -18,14 +18,22 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint .",
-    "lint:fix": "eslint --fix ."
+    "lint:fix": "eslint --fix .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "marzban-sdk": "workspace:^"
+    "@modelcontextprotocol/server": "^2.0.0",
+    "marzban-sdk": "workspace:^",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
-    "tsup": "^8.5.1"
+    "@vitest/coverage-v8": "^4.1.10",
+    "tsup": "^8.5.1",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.10"
   },
   "repository": {
     "type": "git",

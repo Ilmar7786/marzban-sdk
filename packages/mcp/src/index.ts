@@ -1,9 +1,49 @@
 import { createRequire } from 'node:module'
 
-// Placeholder entry point — the actual MCP server (tools, resources, transport)
-// has not been implemented yet. This exists so the package skeleton builds,
-// installs, and runs end-to-end as part of the monorepo migration.
+import { serveStdio } from '@modelcontextprotocol/server/stdio'
+
+import { ConfigError, loadConfig, type McpConfig } from '@/config'
+import { createSdkClient } from '@/core/sdk-client'
+import { createMarzbanMcpServer } from '@/server'
+
 const require = createRequire(import.meta.url)
 const { name, version } = require('../package.json') as { name: string; version: string }
 
-console.log(`${name} v${version} — not implemented yet`)
+async function main(): Promise<void> {
+  let config: McpConfig
+  try {
+    config = loadConfig()
+  } catch (err) {
+    if (err instanceof ConfigError) {
+      console.error(err.message)
+      process.exit(1)
+    }
+    throw err
+  }
+
+  const sdk = await createSdkClient(config)
+
+  const handle = serveStdio(() => createMarzbanMcpServer({ name, version }), {
+    onerror: error => {
+      console.error(`[${name}] transport error: ${error.message}`)
+    },
+  })
+
+  let shuttingDown = false
+  const shutdown = async (signal: NodeJS.Signals): Promise<void> => {
+    if (shuttingDown) return
+    shuttingDown = true
+    console.error(`[${name}] received ${signal}, shutting down`)
+    await handle.close()
+    await sdk.destroy()
+    process.exit(0)
+  }
+
+  process.on('SIGINT', () => void shutdown('SIGINT'))
+  process.on('SIGTERM', () => void shutdown('SIGTERM'))
+}
+
+main().catch((err: unknown) => {
+  console.error(`[${name}] fatal error during startup:`, err)
+  process.exit(1)
+})

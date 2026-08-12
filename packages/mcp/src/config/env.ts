@@ -56,8 +56,8 @@ function readList(env: NodeJS.ProcessEnv, key: string): string[] | undefined {
 export function readRawConfigFromEnv(env: NodeJS.ProcessEnv = process.env): RawMcpConfig {
   return {
     baseUrl: readString(env, 'MARZBAN_BASE_URL') ?? '',
-    username: readString(env, 'MARZBAN_USERNAME'),
-    password: readString(env, 'MARZBAN_PASSWORD'),
+    username: readString(env, 'MARZBAN_USERNAME') ?? '',
+    password: readString(env, 'MARZBAN_PASSWORD') ?? '',
     token: readString(env, 'MARZBAN_TOKEN'),
     profile: readString(env, 'MARZBAN_MCP_PROFILE') as RawMcpConfig['profile'],
     format: readString(env, 'MARZBAN_MCP_FORMAT') as RawMcpConfig['format'],

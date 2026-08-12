@@ -6,7 +6,8 @@ import { buildSdkConfig, createSdkClient } from './sdk-client'
 
 const baseConfig: McpConfig = {
   baseUrl: 'https://panel.example.com',
-  token: 'jwt',
+  username: 'admin',
+  password: 'secret',
   profile: 'standard',
   format: 'text',
   verbosity: 'compact',
@@ -17,18 +18,18 @@ const baseConfig: McpConfig = {
 }
 
 describe('buildSdkConfig', () => {
-  it('falls back to placeholder credentials when only a token is configured', () => {
+  it('passes through the configured username/password', () => {
     const config = buildSdkConfig(baseConfig)
-    expect(config.username).toBe('__marzban_mcp_token_only__')
-    expect(config.password).toBe('__marzban_mcp_token_only__')
-    expect(config.token).toBe('jwt')
-  })
-
-  it('passes through real username/password when configured', () => {
-    const config = buildSdkConfig({ ...baseConfig, token: undefined, username: 'admin', password: 'secret' })
     expect(config.username).toBe('admin')
     expect(config.password).toBe('secret')
     expect(config.token).toBeUndefined()
+  })
+
+  it('passes through an optional token alongside the required credentials', () => {
+    const config = buildSdkConfig({ ...baseConfig, token: 'jwt' })
+    expect(config.token).toBe('jwt')
+    expect(config.username).toBe('admin')
+    expect(config.password).toBe('secret')
   })
 
   it('always defers authorization to the first tool call', () => {

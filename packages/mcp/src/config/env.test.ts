@@ -43,13 +43,13 @@ describe('readRawConfigFromEnv', () => {
     })
   })
 
-  it('defaults baseUrl to an empty string and leaves the rest undefined when unset', () => {
+  it('defaults baseUrl/username/password to empty strings and leaves the rest undefined when unset', () => {
     const raw = readRawConfigFromEnv(makeEnv())
 
     expect(raw).toEqual({
       baseUrl: '',
-      username: undefined,
-      password: undefined,
+      username: '',
+      password: '',
       token: undefined,
       profile: undefined,
       format: undefined,
@@ -64,8 +64,8 @@ describe('readRawConfigFromEnv', () => {
   })
 
   it('treats an empty string the same as an unset variable', () => {
-    const raw = readRawConfigFromEnv(makeEnv({ MARZBAN_USERNAME: '' }))
-    expect(raw.username).toBeUndefined()
+    const raw = readRawConfigFromEnv(makeEnv({ MARZBAN_TOKEN: '' }))
+    expect(raw.token).toBeUndefined()
   })
 
   it('produces NaN for a non-numeric MARZBAN_MCP_MAX_CHARS (rejected downstream by the schema)', () => {
@@ -100,7 +100,14 @@ describe('readRawConfigFromEnv', () => {
 
 describe('loadConfig', () => {
   it('returns a validated config for a well-formed environment', () => {
-    const config = loadConfig(makeEnv({ MARZBAN_BASE_URL: 'https://panel.example.com', MARZBAN_TOKEN: 'jwt' }))
+    const config = loadConfig(
+      makeEnv({
+        MARZBAN_BASE_URL: 'https://panel.example.com',
+        MARZBAN_USERNAME: 'admin',
+        MARZBAN_PASSWORD: 'secret',
+        MARZBAN_TOKEN: 'jwt',
+      })
+    )
     expect(config.baseUrl).toBe('https://panel.example.com')
     expect(config.token).toBe('jwt')
     expect(config.profile).toBe('standard')
@@ -124,14 +131,16 @@ describe('loadConfig', () => {
   it('defaults to process.env when no environment is passed', () => {
     const original = process.env.MARZBAN_BASE_URL
     process.env.MARZBAN_BASE_URL = 'https://panel.example.com'
-    process.env.MARZBAN_TOKEN = 'jwt'
+    process.env.MARZBAN_USERNAME = 'admin'
+    process.env.MARZBAN_PASSWORD = 'secret'
     try {
       const config = loadConfig()
       expect(config.baseUrl).toBe('https://panel.example.com')
     } finally {
       if (original === undefined) delete process.env.MARZBAN_BASE_URL
       else process.env.MARZBAN_BASE_URL = original
-      delete process.env.MARZBAN_TOKEN
+      delete process.env.MARZBAN_USERNAME
+      delete process.env.MARZBAN_PASSWORD
     }
   })
 })

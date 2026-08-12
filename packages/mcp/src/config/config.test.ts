@@ -3,29 +3,29 @@ import { describe, expect, it } from 'vitest'
 import { mcpConfigSchema } from './config'
 
 const baseUrl = 'https://panel.example.com'
+const creds = { username: 'admin', password: 'secret' }
 
 describe('mcpConfigSchema', () => {
-  it('accepts token-only credentials', () => {
-    const result = mcpConfigSchema.safeParse({ baseUrl, token: 'jwt-token' })
-    expect(result.success).toBe(true)
-  })
-
   it('accepts username+password credentials', () => {
-    const result = mcpConfigSchema.safeParse({ baseUrl, username: 'admin', password: 'secret' })
+    const result = mcpConfigSchema.safeParse({ baseUrl, ...creds })
     expect(result.success).toBe(true)
   })
 
-  it('accepts username+password combined with a token', () => {
-    const result = mcpConfigSchema.safeParse({ baseUrl, username: 'admin', password: 'secret', token: 'jwt' })
+  it('accepts username+password combined with an optional token', () => {
+    const result = mcpConfigSchema.safeParse({ baseUrl, ...creds, token: 'jwt' })
     expect(result.success).toBe(true)
+  })
+
+  it('rejects a token without username+password — Marzban tokens are short-lived and cannot be refreshed without a password', () => {
+    const result = mcpConfigSchema.safeParse({ baseUrl, token: 'jwt-token' })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues).toContainEqual(expect.objectContaining({ path: ['username'] }))
+    expect(result.error?.issues).toContainEqual(expect.objectContaining({ path: ['password'] }))
   })
 
   it('rejects a config with no credentials at all', () => {
     const result = mcpConfigSchema.safeParse({ baseUrl })
     expect(result.success).toBe(false)
-    expect(result.error?.issues).toContainEqual(
-      expect.objectContaining({ path: ['token'], message: expect.stringContaining('MARZBAN_TOKEN') })
-    )
   })
 
   it('rejects username without password', () => {
@@ -37,16 +37,16 @@ describe('mcpConfigSchema', () => {
   it('rejects password without username', () => {
     const result = mcpConfigSchema.safeParse({ baseUrl, password: 'secret' })
     expect(result.success).toBe(false)
-    expect(result.error?.issues).toContainEqual(expect.objectContaining({ path: ['password'] }))
+    expect(result.error?.issues).toContainEqual(expect.objectContaining({ path: ['username'] }))
   })
 
   it('rejects an invalid baseUrl', () => {
-    const result = mcpConfigSchema.safeParse({ baseUrl: 'not-a-url', token: 'jwt' })
+    const result = mcpConfigSchema.safeParse({ baseUrl: 'not-a-url', ...creds })
     expect(result.success).toBe(false)
   })
 
   it('applies defaults for every optional field', () => {
-    const result = mcpConfigSchema.parse({ baseUrl, token: 'jwt' })
+    const result = mcpConfigSchema.parse({ baseUrl, ...creds })
     expect(result).toMatchObject({
       profile: 'standard',
       format: 'text',
@@ -59,13 +59,14 @@ describe('mcpConfigSchema', () => {
   })
 
   it('rejects unknown enum values', () => {
-    const result = mcpConfigSchema.safeParse({ baseUrl, token: 'jwt', profile: 'god-mode' })
+    const result = mcpConfigSchema.safeParse({ baseUrl, ...creds, profile: 'god-mode' })
     expect(result.success).toBe(false)
   })
 
   it('accepts explicit overrides for every field', () => {
     const result = mcpConfigSchema.parse({
       baseUrl,
+      ...creds,
       token: 'jwt',
       profile: 'full',
       format: 'json',

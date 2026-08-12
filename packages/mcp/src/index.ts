@@ -3,6 +3,8 @@ import { createRequire } from 'node:module'
 import { serveStdio } from '@modelcontextprotocol/server/stdio'
 
 import { ConfigError, loadConfig, type McpConfig } from '@/config'
+import type { ToolContext } from '@/core/context'
+import { createStderrLogger } from '@/core/logger'
 import { createSdkClient } from '@/core/sdk-client'
 import { createMarzbanMcpServer } from '@/server'
 
@@ -22,8 +24,10 @@ async function main(): Promise<void> {
   }
 
   const sdk = await createSdkClient(config)
+  const logger = createStderrLogger(config.logLevel)
+  const ctx: ToolContext = { sdk, logger, config }
 
-  const handle = serveStdio(() => createMarzbanMcpServer({ name, version }), {
+  const handle = serveStdio(() => createMarzbanMcpServer({ name, version }, ctx), {
     onerror: error => {
       console.error(`[${name}] transport error: ${error.message}`)
     },

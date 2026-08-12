@@ -13,6 +13,7 @@ export interface RenderOptions {
   format: OutputFormat
   verbosity: Verbosity
   maxChars: number
+  showLinks: boolean
 }
 
 /**
@@ -23,7 +24,7 @@ export interface RenderOptions {
  */
 export function render<T>(data: T, view: View<T>, options: RenderOptions): CallToolResult {
   const projector = options.verbosity === 'full' && view.full ? view.full : view.compact
-  const rows = projector(data)
+  const rows = projector(data, { showLinks: options.showLinks })
 
   const rendered =
     options.format === 'table' ? renderTable(rows) : options.format === 'json' ? renderJson(rows) : renderText(rows)

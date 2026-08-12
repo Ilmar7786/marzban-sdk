@@ -133,6 +133,7 @@ export function registerTools(options: RegisterToolsOptions): ToolDefinition<z.Z
             format: ctx.config.format,
             verbosity: ctx.config.verbosity,
             maxChars: ctx.config.maxChars,
+            showLinks: ctx.config.showLinks,
           })
         } catch (err) {
           return toToolError(err)

@@ -1,5 +1,7 @@
-export { Config } from './config'
+export { errorText, redactSecrets } from './common'
+export { type Config, validateConfig, type ValidatedConfig } from './config'
 export * from './core/errors'
+export type { Logger, LoggerConfig, LoggerOptions, LogLevel } from './core/logger'
 export { createMarzbanSDK, type MarzbanSDK } from './core/MarzbanSDK'
 export * from './core/webhook'
 export * from './core/ws'

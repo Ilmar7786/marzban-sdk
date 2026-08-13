@@ -28,6 +28,11 @@ function isSensitiveKey(key: string): boolean {
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
+  // `walk`'s one call site (below) has already excluded null/non-object
+  // values by this point — this guard is unreachable there today, but stays
+  // for type-safety since the helper's own signature promises to handle any
+  // `unknown` input, not just what its current caller happens to pass.
+  /* istanbul ignore next */
   if (typeof value !== 'object' || value === null) return false
   const proto = Object.getPrototypeOf(value)
   return proto === Object.prototype || proto === null

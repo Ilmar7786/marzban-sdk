@@ -1,0 +1,47 @@
+---
+title: Configuration
+description: Every marzban-mcp environment variable — what it controls, its default, and the values it accepts.
+---
+
+Configuration is entirely env-based — set these in your MCP client's `env` block (see [Client Setup](/docs/mcp-server/client-setup)). Nothing here is ever accepted as a tool argument; see [Security](/docs/mcp-server/security) for why that's a hard rule, not just a convention.
+
+## Credentials
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `MARZBAN_BASE_URL` | Yes | — | Your panel's URL, e.g. `https://panel.example.com` |
+| `MARZBAN_USERNAME` | Yes | — | Admin username |
+| `MARZBAN_PASSWORD` | Yes | — | Admin password |
+| `MARZBAN_TOKEN` | No | — | An already-valid session token, to skip the first login call |
+
+<Callout type="info">
+  `MARZBAN_USERNAME`/`MARZBAN_PASSWORD` are required even when `MARZBAN_TOKEN` is set — see [Security](/docs/mcp-server/security#why-both-username-and-password-are-required) for why a token alone isn't enough.
+</Callout>
+
+## Access control
+
+| Variable | Default | Values | Description |
+|---|---|---|---|
+| `MARZBAN_MCP_PROFILE` | `standard` | `readonly` \| `standard` \| `full` | Which tools get registered at all — see [Security](/docs/mcp-server/security#profiles) |
+| `MARZBAN_MCP_CONFIRM` | `auto` | `off` \| `auto` \| `always` | How often a destructive tool re-asks for confirmation — see [Security](/docs/mcp-server/security#confirming-destructive-actions) |
+| `MARZBAN_MCP_SHOW_LINKS` | `false` | `true` \| `false` | Whether `proxies`, `subscription_url`, and `links` are shown in full instead of masked |
+| `MARZBAN_MCP_TOOLS_ALLOW` | — | Comma-separated globs, e.g. `marzban_users_*` | If set, only matching tools are registered |
+| `MARZBAN_MCP_TOOLS_DENY` | — | Comma-separated globs | Matching tools are never registered — wins over `_ALLOW` when both match the same tool |
+
+## Output shaping
+
+| Variable | Default | Values | Description |
+|---|---|---|---|
+| `MARZBAN_MCP_FORMAT` | `text` | `text` \| `table` \| `json` | How a tool's result is rendered for the model to read |
+| `MARZBAN_MCP_VERBOSITY` | `compact` | `compact` \| `full` | How many fields each response includes |
+| `MARZBAN_MCP_MAX_CHARS` | `8000` | Positive integer | Character budget per response before truncation |
+
+See [Response Format & Token Economy](/docs/mcp-server/response-format) for what each of these actually changes.
+
+## Logging
+
+| Variable | Default | Values | Description |
+|---|---|---|---|
+| `MARZBAN_MCP_LOG_LEVEL` | `warn` | `debug` \| `info` \| `warn` \| `error` | Minimum level written to stderr |
+
+Logs never go to stdout — stdout is reserved for the JSON-RPC protocol itself, and a single stray byte there would break the connection.

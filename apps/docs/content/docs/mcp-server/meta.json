@@ -1,0 +1,5 @@
+{
+  "title": "MCP Server",
+  "icon": "Bot",
+  "pages": ["overview", "client-setup", "configuration", "response-format", "security", "tools", "prompts"]
+}

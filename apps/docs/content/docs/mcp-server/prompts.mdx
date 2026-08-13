@@ -1,0 +1,46 @@
+---
+title: Prompts
+description: The 3 built-in MCP prompts — ready-made investigations that chain marzban-mcp's tools together.
+---
+
+A prompt isn't a tool — it doesn't touch the panel itself. It's a canned instruction that tells the model which tools to call, in what order, and what to look for in the results. Every tool that ends up called is still gated by the active [profile](/docs/mcp-server/security#profiles) and [confirmation rules](/docs/mcp-server/security#confirming-destructive-actions) exactly as if it had been called directly.
+
+Your MCP client surfaces these as selectable prompts — check its docs for exactly how (a slash command, a prompt picker, etc.).
+
+## `expiring_users_audit`
+
+Finds users whose subscription is expiring soon, or is already expired/limited, and suggests a next step for each.
+
+**Argument:** `withinDays` (optional, default `7`) — how many days ahead counts as "expiring soon".
+
+What it does:
+1. Lists users (paging through all of them if there are many, via `marzban_users_list`).
+2. Compares each active/on_hold user's days-left figure against the window.
+3. Also includes anyone already `expired` or `limited`.
+4. Reports them grouped by urgency — already expired first, then soonest-to-expire — with status, days left, and usage.
+5. Suggests `marzban_users_extend` or `marzban_users_deactivate` per user, but doesn't call either without the user's go-ahead.
+
+## `node_diagnostics`
+
+Investigates why a node might be unhealthy.
+
+**Argument:** `nodeName` (optional) — focus on one node; omit to check all of them.
+
+What it does:
+1. Calls `marzban_nodes_list` for status, Xray version, and any error message per node.
+2. Calls `marzban_system_stats` for panel-wide context — whether the core itself is running.
+3. Flags any node not in `connected` status, quoting its message verbatim.
+4. Compares Xray versions across nodes — a stale or missing version on one node often points to a failed update rather than a network issue.
+5. Summarizes per node, without attempting a fix (a real fix would mean `marzban_core_restart`, which is destructive and affects every node, not just the unhealthy one).
+
+## `traffic_report`
+
+Summarizes bandwidth usage across the panel, nodes, and top users for a period.
+
+**Arguments:** `start`, `end` (both optional, ISO datetimes) — omit either for no bound on that side.
+
+What it does:
+1. Calls `marzban_system_stats` for panel-wide totals and current speed.
+2. Calls `marzban_nodes_list` for per-node uplink/downlink over the period.
+3. Calls `marzban_users_list`, then `marzban_users_usage` for the heaviest-looking users, to break their traffic down by node.
+4. Summarizes total bandwidth, the top 5 users by usage, and any node carrying disproportionate load.

@@ -10,6 +10,7 @@
     "integrations",
     "advanced",
     "utilities",
+    "mcp-server",
     "resources"
   ]
 }

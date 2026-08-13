@@ -1,0 +1,142 @@
+---
+title: Client Setup
+description: How to connect marzban-mcp to Claude Desktop, Claude Code, Cursor, Cline, Windsurf, Continue.dev, and VS Code Copilot.
+---
+
+Almost every MCP client reads the same JSON shape — a `command`/`args`/`env` block, keyed by a server name you choose, under an `mcpServers` object:
+
+```json
+{
+  "mcpServers": {
+    "marzban": {
+      "command": "npx",
+      "args": ["-y", "marzban-mcp"],
+      "env": {
+        "MARZBAN_BASE_URL": "https://panel.example.com",
+        "MARZBAN_USERNAME": "admin",
+        "MARZBAN_PASSWORD": "secret"
+      }
+    }
+  }
+}
+```
+
+What differs per client is *where* that block goes, and occasionally the key it's nested under. Pick your client below.
+
+<Tabs items={['Claude Desktop', 'Claude Code', 'Cursor', 'Cline', 'Windsurf', 'Continue.dev', 'VS Code Copilot']}>
+  <Tab value="Claude Desktop">
+
+  Edit the config file directly, then fully quit and reopen the app (not just close the window):
+
+  | OS | Path |
+  |---|---|
+  | macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+  | Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+
+  Use the JSON block above as-is. If the file already has other servers, add `marzban` alongside them inside the existing `mcpServers` object rather than replacing it.
+
+  </Tab>
+  <Tab value="Claude Code">
+
+  Two options — pick whichever fits how you work:
+
+  **CLI** (writes the config for you):
+
+  ```bash
+  claude mcp add \
+    --env MARZBAN_BASE_URL=https://panel.example.com \
+    --env MARZBAN_USERNAME=admin \
+    --env MARZBAN_PASSWORD=secret \
+    marzban -- npx -y marzban-mcp
+  ```
+
+  By default this registers the server at `local` scope — private to you, active only in the current project. Add `--scope project` to write it into `.mcp.json` and share it with teammates via version control, or `--scope user` to make it available across every project.
+
+  **Hand-edit `.mcp.json`** at your project root with the same JSON block shown above — this is what `--scope project` writes for you, so editing it directly is equivalent.
+
+  </Tab>
+  <Tab value="Cursor">
+
+  Create (or edit) one of these with the JSON block above:
+
+  | Scope | Path |
+  |---|---|
+  | This project only | `.cursor/mcp.json` |
+  | Every project | `~/.cursor/mcp.json` |
+
+  </Tab>
+  <Tab value="Cline">
+
+  Cline keeps its own settings file, separate from VS Code's or any other extension's MCP config:
+
+  | OS | Path |
+  |---|---|
+  | macOS | `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` |
+  | Windows | `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json` |
+  | Linux | `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` |
+
+  Easier than navigating there by hand: open the Cline panel → **MCP Servers** icon → **Configure** tab → **Configure MCP Servers**, which opens this same file for editing. Add `marzban` under its `mcpServers` key using the JSON block above.
+
+  </Tab>
+  <Tab value="Windsurf">
+
+  | OS | Path |
+  |---|---|
+  | macOS | `~/.codeium/windsurf/mcp_config.json` |
+  | Windows | `%USERPROFILE%\.codeium\windsurf\mcp_config.json` |
+
+  Or from the UI: click the MCP icon in the Cascade panel → **Configure** → **View raw config**. Add the JSON block above, save, and restart Windsurf.
+
+  </Tab>
+  <Tab value="Continue.dev">
+
+  Continue's own config is YAML, but it also auto-loads any JSON file dropped into `.continue/mcpServers/` — the simplest route is to save the JSON block above as `.continue/mcpServers/marzban.json` in your project.
+
+  To configure it in native YAML instead (e.g. to add it to `~/.continue/config.yaml`'s top-level `mcpServers` block):
+
+  ```yaml
+  mcpServers:
+    - name: marzban
+      command: npx
+      args: ["-y", "marzban-mcp"]
+      env:
+        MARZBAN_BASE_URL: https://panel.example.com
+        MARZBAN_USERNAME: admin
+        MARZBAN_PASSWORD: secret
+  ```
+
+  </Tab>
+  <Tab value="VS Code Copilot">
+
+  <Callout type="warn">
+    VS Code uses `servers`, not `mcpServers`, as the top-level key — copying the JSON block above as-is won't work here.
+  </Callout>
+
+  Create `.vscode/mcp.json` in your project:
+
+  ```json
+  {
+    "servers": {
+      "marzban": {
+        "command": "npx",
+        "args": ["-y", "marzban-mcp"],
+        "env": {
+          "MARZBAN_BASE_URL": "https://panel.example.com",
+          "MARZBAN_USERNAME": "admin",
+          "MARZBAN_PASSWORD": "secret"
+        }
+      }
+    }
+  }
+  ```
+
+  Restart VS Code, then the tools are available to Copilot Chat (and any other MCP-aware extension). To avoid committing your password in plain text, VS Code supports an `inputs` section that prompts for a value and injects it via `${input:...}` — see the [MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) for the syntax.
+
+  </Tab>
+</Tabs>
+
+## Common issues
+
+- **First call hangs or times out** — `npx -y marzban-mcp` downloads the package on first run if it isn't cached yet. Give it a minute, especially on a slow connection.
+- **Nothing shows up after editing the config** — every client here needs a restart (or, for VS Code, at least a config reload) to pick up changes. Editing the file alone isn't enough.
+- **"command not found: npx"** — the client launches the server with whatever `PATH` it sees, which isn't always your shell's `PATH` (especially for GUI apps on macOS). Make sure Node.js is installed where the client can find it, or use an absolute path to `npx` in `command`.

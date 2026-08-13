@@ -1,0 +1,76 @@
+---
+title: Response Format & Token Economy
+description: How marzban-mcp shapes tool output — format, verbosity, pagination, and truncation — to keep responses cheap without hiding anything.
+---
+
+An AI agent's context is a shared, finite budget. Every tool here is designed around that constraint deliberately, not as an afterthought — this page covers how.
+
+## `format`: text, table, or json
+
+`MARZBAN_MCP_FORMAT` controls how a result is rendered as text for the model to read. The same `marzban_users_get` call looks like this in each mode:
+
+<Tabs items={['text', 'table', 'json']}>
+  <Tab value="text">
+
+  ```
+  username: alice | status: active | usage: 2.1 GB / 10 GB | expire: 2026-09-01 (18d)
+  ```
+
+  The default — compact `key: value` lines, cheaper in tokens than a markdown table for a single row.
+
+  </Tab>
+  <Tab value="table">
+
+  ```
+  | username | status | usage | expire |
+  | --- | --- | --- | --- |
+  | alice | active | 2.1 GB / 10 GB | 2026-09-01 (18d) |
+  ```
+
+  Reads better once there are several rows — a user list, a node list.
+
+  </Tab>
+  <Tab value="json">
+
+  ```json
+  { "username": "alice", "status": "active", "usage": "2.1 GB / 10 GB", "expire": "2026-09-01 (18d)" }
+  ```
+
+  Same projected fields as the other two, just JSON-shaped instead of a separately-rendered `structuredContent` (see below).
+
+  </Tab>
+</Tabs>
+
+## `verbosity`: compact vs full
+
+Every tool response is a *projection* of the underlying data, not the raw object. `MARZBAN_MCP_VERBOSITY=compact` (the default) keeps only what's relevant most of the time — for a user, that's `username`, `status`, usage, and expiry. `full` adds the rest: `proxies` (masked unless `MARZBAN_MCP_SHOW_LINKS` is set), `inbounds`, `note`, and similar detail fields that are rarely needed but sometimes essential.
+
+Switch to `full` when you're actually inspecting configuration details, not for routine lookups — a `marzban_users_list` call over 50 users in `full` mode costs meaningfully more tokens than the same call in `compact`.
+
+## `content` vs `structuredContent`
+
+Every response actually carries two representations: `content` is the compact, format/verbosity-shaped text described above, meant for the model to read cheaply. `structuredContent` is always the complete, unprojected data, meant for a client to consume programmatically. Switching `verbosity`/`format` only changes `content` — nothing is ever actually hidden from a client capable of reading `structuredContent` directly.
+
+## Pagination
+
+List tools (`marzban_users_list`, and similarly-shaped tools elsewhere) default to a page size of 25 and cap at 100 per call, and always report the true `total` plus a note like *"showing 25 of 340 — increase offset to see more"*. The intent is to nudge toward `search` for a known user rather than paging through everyone — `marzban_users_get` is a better tool than iterating `marzban_users_list` when you already know the username.
+
+## Truncation
+
+`MARZBAN_MCP_MAX_CHARS` (default `8000`) caps every response's `content` at a character budget. If a response would exceed it, it's cut with an explicit marker — never silently. A model reading a silently-truncated response has no way to know it's looking at partial data; a marked one does.
+
+## `marzban_config_get` — a special case
+
+The Xray core config can run into tens of kilobytes — large enough that returning it raw by default would burn a disproportionate chunk of context on a single call. `marzban_config_get` instead defaults to a structural summary: inbound/outbound tags, ports, protocols, and a routing-rule count. Pass `section` (e.g. `"inbounds"`) for one key's raw JSON, or `section: "raw"` for the entire config — but only when you actually need it.
+
+## Human-readable values
+
+Byte counts and dates render as `formatBytes`/human-relative strings (`"2.1 GB"`, `"18d"`) in `content`, so the model doesn't have to do that arithmetic itself. `structuredContent` keeps the raw numbers (bytes, Unix timestamps) for anything that needs to compute with them.
+
+## Tool descriptions steer, too
+
+Several tool descriptions explicitly say when *not* to use them — `marzban_users_list`'s description says to prefer `search` over paging through everyone; `marzban_users_update`'s says to prefer the dedicated `marzban_users_activate`/`deactivate`/`hold`/`extend` tools for status changes and renewals. This is part of the same economy: steering the model toward the cheaper, more specific tool before it reaches for the expensive general one.
+
+## `tools/list` caching
+
+The tool list itself is fully determined by `MARZBAN_MCP_PROFILE`/`_TOOLS_ALLOW`/`_TOOLS_DENY`, fixed at process startup — it cannot change for the life of a connection. The server sets a cache hint on `tools/list` accordingly, so a client that respects it (per the MCP spec's caching support) doesn't need to re-fetch and re-pay for the same tool definitions on every turn.

@@ -24,13 +24,14 @@ const sdk = await createMarzbanSDK({
   logger: {
     level: 'debug',      // 'debug' | 'info' | 'warn' | 'error'
     timestamp: true,     // prepend ISO timestamp to each line (default: true)
+    stream: 'stdout',    // 'stdout' | 'stderr' (default: 'stdout')
   },
 })
 ```
 
 ### `LoggerOptions`
 
-The shape of the options object. Both fields are optional — omit one to keep its default.
+The shape of the options object. All fields are optional — omit one to keep its default.
 
 ```ts
 import type { LoggerOptions } from 'marzban-sdk'
@@ -40,6 +41,22 @@ import type { LoggerOptions } from 'marzban-sdk'
 |-------|------|----------|-------------|
 | `level` | `'debug' \| 'info' \| 'warn' \| 'error'` | No | Minimum level to emit. Defaults to the environment-based level (`info` in development, `error` in production). |
 | `timestamp` | `boolean` | No | Prepend an ISO timestamp to each line. Default: `true`. |
+| `stream` | `'stdout' \| 'stderr'` | No | Where the built-in logger writes. Default: `'stdout'`. |
+
+### Output stream
+
+`stream: 'stderr'` writes straight to `process.stderr`, bypassing `console` entirely (with its own TTY-based color detection). Use it whenever stdout is reserved for something else that a stray log line would corrupt — the canonical case is a stdio-based server, like an MCP server, where stdout carries the JSON-RPC wire protocol:
+
+```ts
+const sdk = await createMarzbanSDK({
+  // ...
+  logger: { stream: 'stderr' },
+})
+```
+
+<Callout type="warn">
+  With a custom logger object (see below) instead of the built-in one, you're responsible for choosing the right stream yourself — `stream` only affects the built-in logger.
+</Callout>
 
 ### Log levels
 

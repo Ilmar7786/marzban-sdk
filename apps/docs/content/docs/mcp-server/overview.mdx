@@ -1,0 +1,46 @@
+---
+title: Overview
+description: marzban-mcp — an MCP server that lets AI agents manage a Marzban panel through marzban-sdk, with profile-gated tools and confirmation on every destructive action.
+---
+
+[`marzban-mcp`](https://www.npmjs.com/package/marzban-mcp) is a [Model Context Protocol](https://modelcontextprotocol.io) server built on `marzban-sdk`. It gives an AI agent — Claude, Cursor, or any other MCP client — a set of tools to manage a Marzban panel: users, subscriptions, nodes, and the core config.
+
+It's a separate package from the SDK itself. If you're building your own integration in code, you want [`marzban-sdk`](/docs) instead — this section covers the ready-made server for AI clients.
+
+## At a glance
+
+- **21 tools**, namespaced `marzban_<area>_<action>`, covering the full user lifecycle plus config, hosts, nodes, system stats, and subscriptions.
+- **3 prompts** that chain those tools into ready-made investigations (expiring subscriptions, node health, traffic reports).
+- **Profile-gated access** — a tool outside the active profile never appears in `tools/list` at all, not just hidden behind a hint.
+- **Every destructive action needs confirmation** — a first call only describes the consequences and returns a one-time token; nothing runs until a second, explicitly confirmed call repeats it.
+- **Credentials only from environment variables** — never accepted as a tool argument, so a model can't redirect the server or leak them through a call.
+- **Credential-bearing fields masked by default** — `proxies`, `subscription_url`, and `links` stay hidden unless you opt in.
+
+## Quick example
+
+```json title="claude_desktop_config.json / .mcp.json"
+{
+  "mcpServers": {
+    "marzban": {
+      "command": "npx",
+      "args": ["-y", "marzban-mcp"],
+      "env": {
+        "MARZBAN_BASE_URL": "https://panel.example.com",
+        "MARZBAN_USERNAME": "admin",
+        "MARZBAN_PASSWORD": "secret"
+      }
+    }
+  }
+}
+```
+
+Nearly every MCP client reads this same shape — see [Client Setup](/docs/mcp-server/client-setup) for exact instructions per client.
+
+<Cards>
+  <Card title="Client Setup" href="/docs/mcp-server/client-setup" description="Claude, Cursor, Cline, Windsurf, Continue.dev, VS Code" />
+  <Card title="Configuration" href="/docs/mcp-server/configuration" description="Every environment variable, grouped and explained" />
+  <Card title="Response Format & Token Economy" href="/docs/mcp-server/response-format" description="Output shaping, pagination, and truncation" />
+  <Card title="Security" href="/docs/mcp-server/security" description="Credentials, confirmation, masking — in full detail" />
+  <Card title="Tools" href="/docs/mcp-server/tools" description="All 21 tools, grouped by area" />
+  <Card title="Prompts" href="/docs/mcp-server/prompts" description="The 3 built-in investigation prompts" />
+</Cards>

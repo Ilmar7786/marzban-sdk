@@ -50,6 +50,23 @@ class SdkError extends Error {
 | `WEBHOOK_VALIDATION_ERROR` | `WebhookValidationError` | Webhook payload doesn't match expected schema |
 | `WEBHOOK_ENVIRONMENT_ERROR` | `WebhookEnvironmentError` | Signature verification called in a browser context |
 
+## Secret redaction
+
+`details` is safe to log or send to an external service as-is — passwords, tokens, `Authorization` headers, cookies and similar fields are stripped to `[REDACTED]` before the error is even constructed, wherever they appear in the object graph (including inside an already-`JSON.stringify`'d request body, e.g. a failed login's payload). The same redaction applies to whatever a caught error's `trace` prints through the built-in logger, so a raw secret never reaches your terminal or log files either.
+
+```ts
+try {
+  await createMarzbanSDK({ baseUrl: '...', username: 'admin', password: 'hunter2' })
+} catch (err) {
+  if (isAuthError(err)) {
+    console.error(err.details)
+    // password/token fields inside are already "[REDACTED]" — safe to log
+  }
+}
+```
+
+This happens automatically — there's nothing to opt into, and no redaction helper to import.
+
 ## Type guards
 
 Import the guards to narrow errors without `instanceof`:

@@ -28,10 +28,9 @@ export type ConfirmFn = (input: {
 }) => ConfirmDecision | Promise<ConfirmDecision>
 
 /**
- * Placeholder confirm strategy — `core/confirm` (token + MRTR, plan §6) lands
- * in a later step and replaces this. Safe as a stand-in today because no
- * `destructive`-scope tool is registered before then; `registerTools` below
- * only ever invokes `confirm` for that scope.
+ * A `ConfirmFn` that never asks. `createMarzbanMcpServer` uses the real
+ * strategy from `core/confirm` instead — this is for tests that need a
+ * `ConfirmFn` but aren't exercising confirmation itself.
  */
 export const alwaysProceed: ConfirmFn = () => ({ proceed: true })
 
@@ -121,9 +120,14 @@ export function registerTools(options: RegisterToolsOptions): ToolDefinition<z.Z
           if (tool.scope === 'destructive') {
             const decision = await confirm({ tool, args, ctx, serverCtx })
             if (!decision.proceed) {
+              // isError: true, not false — every destructive tool declares
+              // an outputSchema, and the SDK requires structuredContent on
+              // every non-error result that has one (it has no bearing on
+              // this tool's actual output shape, so there's nothing honest
+              // to put there). The model still reads `content` either way.
               return {
                 content: [{ type: 'text', text: decision.message ?? 'Confirmation required.' }],
-                isError: false,
+                isError: true,
               }
             }
           }

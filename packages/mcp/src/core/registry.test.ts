@@ -202,7 +202,9 @@ describe('registerTools', () => {
 
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
     expect(handler).not.toHaveBeenCalled()
-    expect(result).toEqual({ content: [{ type: 'text', text: 'Not yet — confirm first.' }], isError: false })
+    // isError: true (not false) — the tool declares an outputSchema, and the
+    // SDK requires structuredContent on every non-error result that has one.
+    expect(result).toEqual({ content: [{ type: 'text', text: 'Not yet — confirm first.' }], isError: true })
   })
 
   it('falls back to a generic message when confirm declines without one', async () => {
@@ -216,7 +218,7 @@ describe('registerTools', () => {
     })
 
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
-    expect(result).toEqual({ content: [{ type: 'text', text: 'Confirmation required.' }], isError: false })
+    expect(result).toEqual({ content: [{ type: 'text', text: 'Confirmation required.' }], isError: true })
   })
 
   it('maps a thrown ToolError to an isError result instead of throwing', async () => {

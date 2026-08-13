@@ -1,7 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/server'
 
+import { createConfirmFn } from './core/confirm'
 import type { ToolContext } from './core/context'
-import { alwaysProceed, registerTools } from './core/registry'
+import { registerTools } from './core/registry'
 import { allTools } from './modules'
 
 export interface McpServerInfo {
@@ -11,9 +12,8 @@ export interface McpServerInfo {
 
 export function createMarzbanMcpServer(info: McpServerInfo, ctx: ToolContext): McpServer {
   const server = new McpServer(info, { capabilities: { tools: {} } })
-  // `confirm` stays alwaysProceed until core/confirm (token + MRTR) lands —
-  // safe today because the `full` profile (the only one exposing
-  // `destructive`-scope tools) has none registered yet.
-  registerTools({ server, tools: allTools, ctx, confirm: alwaysProceed })
+  // A fresh confirm strategy per server instance — its signing key and
+  // trustedTools set are meant to live and die with the server (plan §6.1).
+  registerTools({ server, tools: allTools, ctx, confirm: createConfirmFn() })
   return server
 }

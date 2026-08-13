@@ -28,6 +28,15 @@ export interface ToolDefinition<I extends z.ZodType, O extends z.ZodType> {
   annotations?: Pick<ToolAnnotations, 'idempotentHint' | 'openWorldHint'>
   view: View<z.infer<O>>
   handler: (args: z.infer<I>, ctx: ToolContext) => Promise<z.infer<O>>
+  /**
+   * `scope: 'destructive'` only. Describes what this specific call would do
+   * before it happens — shown to the model (and, through it, the user) as
+   * part of the confirmation prompt (plan §6.1/§6.3: a host's "Allow" dialog
+   * shows the tool name and arguments, never the consequences). Free to call
+   * the SDK for context (e.g. read the target user before a delete). Falls
+   * back to a generic description in `core/confirm` when omitted.
+   */
+  describeConsequences?: (args: z.infer<I>, ctx: ToolContext) => string | Promise<string>
 }
 
 /** Identity function — exists purely so object-literal callers get contextual type inference for `inputSchema`/`outputSchema`/`handler` without spelling out the generics by hand. */

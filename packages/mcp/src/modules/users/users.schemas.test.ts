@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { usersExtendInputSchema } from './users.schemas'
+import { usersExtendInputSchema, usersResetTrafficInputSchema } from './users.schemas'
 
 describe('usersExtendInputSchema', () => {
   it('accepts addDuration alone', () => {
@@ -21,5 +21,21 @@ describe('usersExtendInputSchema', () => {
     const result = usersExtendInputSchema.safeParse({ username: 'alice' })
     expect(result.success).toBe(false)
     expect(result.error?.issues[0].message).toContain('Provide addDuration and/or addData')
+  })
+})
+
+describe('usersResetTrafficInputSchema', () => {
+  it('accepts a username without all', () => {
+    expect(usersResetTrafficInputSchema.safeParse({ username: 'alice' }).success).toBe(true)
+  })
+
+  it('accepts all=true without a username', () => {
+    expect(usersResetTrafficInputSchema.safeParse({ all: true }).success).toBe(true)
+  })
+
+  it('rejects when neither username nor all=true is provided', () => {
+    const result = usersResetTrafficInputSchema.safeParse({})
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].message).toContain('Provide either username, or all=true')
   })
 })

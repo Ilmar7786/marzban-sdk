@@ -23,6 +23,12 @@ async function main(): Promise<void> {
     throw err
   }
 
+  if (config.confirm === 'off') {
+    console.error(
+      `[${name}] confirmation disabled (MARZBAN_MCP_CONFIRM=off) — destructive tools execute without confirmation`
+    )
+  }
+
   const sdk = await createSdkClient(config)
   const logger = createStderrLogger(config.logLevel)
   const ctx: ToolContext = { sdk, logger, config }

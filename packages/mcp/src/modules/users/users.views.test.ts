@@ -3,8 +3,16 @@ import { describe, expect, it } from 'vitest'
 
 import type { ViewRow } from '@/format/views/types'
 
-import type { UserExtended, UserList, UserUsage, UserWithSummary } from './users.views'
-import { userExtendedView, userListView, userUsageView, userView, userWithSummaryView } from './users.views'
+import type { UserDeleted, UserExtended, UserList, UsersResetTraffic, UserUsage, UserWithSummary } from './users.views'
+import {
+  userDeletedView,
+  userExtendedView,
+  userListView,
+  usersResetTrafficView,
+  userUsageView,
+  userView,
+  userWithSummaryView,
+} from './users.views'
 
 const SHOW: { showLinks: boolean } = { showLinks: true }
 const HIDE: { showLinks: boolean } = { showLinks: false }
@@ -240,6 +248,45 @@ describe('userUsageView', () => {
     })
     expect((userUsageView.compact({ ...base, dataLimit: 0 }, HIDE) as Record<string, unknown>[])[0]).toMatchObject({
       data_limit: 'unlimited',
+    })
+  })
+})
+
+describe('userDeletedView', () => {
+  it('reports the deleted username', () => {
+    const fixture: UserDeleted = { username: 'alice', deleted: true }
+    expect(userDeletedView.compact(fixture, HIDE)).toEqual({ username: 'alice', status: 'deleted' })
+  })
+})
+
+describe('usersResetTrafficView', () => {
+  it('reports a single-user reset with formatted usage', () => {
+    const fixture: UsersResetTraffic = { scope: 'single', username: 'alice', usedTraffic: 1000 }
+    expect(usersResetTrafficView.compact(fixture, HIDE)).toEqual({
+      scope: 'single',
+      username: 'alice',
+      used_traffic: '1000 B',
+      note: null,
+    })
+  })
+
+  it('falls back to empty/zero when a single-scope result is missing username or usedTraffic', () => {
+    const fixture: UsersResetTraffic = { scope: 'single', username: null, usedTraffic: null }
+    expect(usersResetTrafficView.compact(fixture, HIDE)).toEqual({
+      scope: 'single',
+      username: '',
+      used_traffic: '0 B',
+      note: null,
+    })
+  })
+
+  it('reports an all-users reset', () => {
+    const fixture: UsersResetTraffic = { scope: 'all', username: null, usedTraffic: null }
+    expect(usersResetTrafficView.compact(fixture, HIDE)).toEqual({
+      scope: 'all',
+      note: 'Data usage reset for all users.',
+      username: null,
+      used_traffic: null,
     })
   })
 })

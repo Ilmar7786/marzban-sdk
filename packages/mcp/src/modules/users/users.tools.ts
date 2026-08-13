@@ -1,6 +1,7 @@
 import { formatBytes, type ProxySettings } from 'marzban-sdk'
 
 import { defineTool } from '@/core/define-tool'
+import { ToolError } from '@/core/errors'
 import { clampLimit, paginationNote } from '@/shared/pagination'
 
 import { buildRenewalPatch, summarizeUser } from './users.helpers'
@@ -11,6 +12,8 @@ import {
   usersCreateOutputSchema,
   usersDeactivateInputSchema,
   usersDeactivateOutputSchema,
+  usersDeleteInputSchema,
+  usersDeleteOutputSchema,
   usersExtendInputSchema,
   usersExtendOutputSchema,
   usersGetInputSchema,
@@ -19,12 +22,22 @@ import {
   usersHoldOutputSchema,
   usersListInputSchema,
   usersListOutputSchema,
+  usersResetTrafficInputSchema,
+  usersResetTrafficOutputSchema,
   usersUpdateInputSchema,
   usersUpdateOutputSchema,
   usersUsageInputSchema,
   usersUsageOutputSchema,
 } from './users.schemas'
-import { userExtendedView, userListView, userUsageView, userView, userWithSummaryView } from './users.views'
+import {
+  userDeletedView,
+  userExtendedView,
+  userListView,
+  usersResetTrafficView,
+  userUsageView,
+  userView,
+  userWithSummaryView,
+} from './users.views'
 
 export const usersListTool = defineTool({
   name: 'marzban_users_list',
@@ -201,5 +214,68 @@ export const usersUsageTool = defineTool({
       dataLimit: user.data_limit ?? null,
       byNode: usage.usages,
     }
+  },
+})
+
+function expireDateOrNever(expire: number | null | undefined): string {
+  return expire && expire > 0 ? new Date(expire * 1000).toISOString().slice(0, 10) : 'never'
+}
+
+export const usersDeleteTool = defineTool({
+  name: 'marzban_users_delete',
+  title: 'Delete user',
+  description:
+    'Permanently deletes a user, along with their subscription link and traffic history. Irreversible — requires confirmation. Prefer marzban_users_deactivate if you only need to block access without losing their data.',
+  inputSchema: usersDeleteInputSchema,
+  outputSchema: usersDeleteOutputSchema,
+  scope: 'destructive',
+  view: userDeletedView,
+  describeConsequences: async (args, ctx) => {
+    // Best-effort context, not a precondition for confirming: a panel
+    // hiccup here must not turn "please confirm" into a raw network error —
+    // the deletion is exactly as irreversible either way.
+    try {
+      const user = await ctx.sdk.user.getUser(args.username)
+      return `This will permanently delete user "${args.username}" (status: ${user.status}, used ${formatBytes(user.used_traffic)}, expires ${expireDateOrNever(user.expire)}) and their subscription link. This cannot be undone.`
+    } catch {
+      return `This will permanently delete user "${args.username}" and their subscription link. This cannot be undone. (Could not fetch their current details to show here.)`
+    }
+  },
+  handler: async (args, ctx) => {
+    await ctx.sdk.user.removeUser(args.username)
+    return { username: args.username, deleted: true as const }
+  },
+})
+
+export const usersResetTrafficTool = defineTool({
+  name: 'marzban_users_reset_traffic',
+  title: 'Reset user data usage',
+  description:
+    'Resets used traffic back to zero for one user, or for every user at once when `all: true`. Does not change data_limit or expire. Irreversible — requires confirmation; `all: true` affects every user on the panel in one call.',
+  inputSchema: usersResetTrafficInputSchema,
+  outputSchema: usersResetTrafficOutputSchema,
+  scope: 'destructive',
+  view: usersResetTrafficView,
+  describeConsequences: async (args, ctx) => {
+    if (args.all) {
+      return 'This will reset used traffic to zero for every user on the panel at once. This cannot be undone and cannot be scoped down afterward.'
+    }
+    if (!args.username) throw new ToolError('INVALID_ARGUMENTS', 'username is required unless all=true.')
+    // Same best-effort reasoning as marzban_users_delete above.
+    try {
+      const user = await ctx.sdk.user.getUser(args.username)
+      return `This will reset used traffic for "${args.username}" from ${formatBytes(user.used_traffic)} back to zero. This cannot be undone.`
+    } catch {
+      return `This will reset used traffic for "${args.username}" back to zero. This cannot be undone. (Could not fetch their current usage to show here.)`
+    }
+  },
+  handler: async (args, ctx) => {
+    if (args.all) {
+      await ctx.sdk.user.resetUsersDataUsage()
+      return { scope: 'all' as const, username: null, usedTraffic: null }
+    }
+    if (!args.username) throw new ToolError('INVALID_ARGUMENTS', 'username is required unless all=true.')
+    const user = await ctx.sdk.user.resetUserDataUsage(args.username)
+    return { scope: 'single' as const, username: user.username, usedTraffic: user.used_traffic }
   },
 })

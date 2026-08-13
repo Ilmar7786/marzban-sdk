@@ -140,3 +140,30 @@ export const userUsageView: View<UserUsage> = {
     ...usage.byNode.map(nodeUsageRow),
   ],
 }
+
+export interface UserDeleted {
+  username: string
+  deleted: true
+}
+
+export const userDeletedView: View<UserDeleted> = {
+  compact: ({ username }) => ({ username, status: 'deleted' }),
+}
+
+export interface UsersResetTraffic {
+  scope: 'all' | 'single'
+  username: string | null
+  usedTraffic: number | null
+}
+
+export const usersResetTrafficView: View<UsersResetTraffic> = {
+  compact: data =>
+    data.scope === 'all'
+      ? { scope: 'all', note: 'Data usage reset for all users.', username: null, used_traffic: null }
+      : {
+          scope: 'single',
+          username: data.username ?? '',
+          used_traffic: formatBytes(data.usedTraffic ?? 0),
+          note: null,
+        },
+}

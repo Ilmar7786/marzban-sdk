@@ -3,6 +3,14 @@ import { z } from 'zod'
 
 import { isDurationString, parseDurationMs } from './duration'
 
+/** Shared by every `destructive`-scope tool — see `core/confirm`. Never present on the first call; the tool describes what would happen and mints one for the model to echo back once the user has explicitly agreed. */
+export const confirmTokenSchema = z
+  .string()
+  .optional()
+  .describe(
+    'Omit on the first call. The tool will describe the consequences and return a token here — pass it back in a repeated call, but only after the user has explicitly confirmed.'
+  )
+
 export const usernameSchema = z
   .string()
   .min(3, 'Username must be at least 3 characters.')

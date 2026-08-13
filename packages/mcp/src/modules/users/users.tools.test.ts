@@ -8,10 +8,12 @@ import {
   usersActivateTool,
   usersCreateTool,
   usersDeactivateTool,
+  usersDeleteTool,
   usersExtendTool,
   usersGetTool,
   usersHoldTool,
   usersListTool,
+  usersResetTrafficTool,
   usersUpdateTool,
   usersUsageTool,
 } from './users.tools'
@@ -279,5 +281,116 @@ describe('usersUsageTool', () => {
 
     expect(result.lifetimeUsedTraffic).toBe(0)
     expect(result.dataLimit).toBeNull()
+  })
+})
+
+describe('usersDeleteTool', () => {
+  it('removes the user and reports it as deleted', async () => {
+    const removeUser = vi.fn().mockResolvedValue(undefined)
+    const ctx = makeContext({ user: { removeUser } })
+
+    const result = await usersDeleteTool.handler({ username: 'alice' }, ctx)
+
+    expect(removeUser).toHaveBeenCalledWith('alice')
+    expect(result).toEqual({ username: 'alice', deleted: true })
+  })
+
+  it('describes the consequences using the current user, including a future expire date', async () => {
+    const futureExpire = Math.floor(Date.now() / 1000) + 86_400
+    const user = makeUser({ status: 'active', used_traffic: 12_345, expire: futureExpire })
+    const getUser = vi.fn().mockResolvedValue(user)
+    const ctx = makeContext({ user: { getUser } })
+
+    const text = await usersDeleteTool.describeConsequences!({ username: 'alice' }, ctx)
+
+    expect(getUser).toHaveBeenCalledWith('alice')
+    expect(text).toContain('permanently delete user "alice"')
+    expect(text).toContain('status: active')
+    expect(text).toContain(new Date(futureExpire * 1000).toISOString().slice(0, 10))
+  })
+
+  it('describes an unset expire as "never"', async () => {
+    const user = makeUser({ expire: undefined })
+    const getUser = vi.fn().mockResolvedValue(user)
+    const ctx = makeContext({ user: { getUser } })
+
+    const text = await usersDeleteTool.describeConsequences!({ username: 'alice' }, ctx)
+
+    expect(text).toContain('expires never')
+  })
+
+  it('falls back to a generic description when the panel is unreachable', async () => {
+    const getUser = vi.fn().mockRejectedValue(new Error('network error'))
+    const ctx = makeContext({ user: { getUser } })
+
+    const text = await usersDeleteTool.describeConsequences!({ username: 'alice' }, ctx)
+
+    expect(text).toContain('permanently delete user "alice"')
+    expect(text).toContain('Could not fetch their current details')
+  })
+})
+
+describe('usersResetTrafficTool', () => {
+  it('resets a single user and reports their new usage', async () => {
+    const resetUserDataUsage = vi.fn().mockResolvedValue(makeUser({ used_traffic: 0 }))
+    const ctx = makeContext({ user: { resetUserDataUsage } })
+
+    const result = await usersResetTrafficTool.handler({ username: 'alice' }, ctx)
+
+    expect(resetUserDataUsage).toHaveBeenCalledWith('alice')
+    expect(result).toEqual({ scope: 'single', username: 'alice', usedTraffic: 0 })
+  })
+
+  it('resets every user when all=true', async () => {
+    const resetUsersDataUsage = vi.fn().mockResolvedValue(undefined)
+    const ctx = makeContext({ user: { resetUsersDataUsage } })
+
+    const result = await usersResetTrafficTool.handler({ all: true }, ctx)
+
+    expect(resetUsersDataUsage).toHaveBeenCalled()
+    expect(result).toEqual({ scope: 'all', username: null, usedTraffic: null })
+  })
+
+  it('throws if neither username nor all is given, even though the schema already guards this', async () => {
+    const ctx = makeContext({})
+    await expect(usersResetTrafficTool.handler({}, ctx)).rejects.toThrow('username is required unless all=true.')
+  })
+
+  it('describes resetting a single user, including their current usage', async () => {
+    const user = makeUser({ used_traffic: 5_000_000 })
+    const getUser = vi.fn().mockResolvedValue(user)
+    const ctx = makeContext({ user: { getUser } })
+
+    const text = await usersResetTrafficTool.describeConsequences!({ username: 'alice' }, ctx)
+
+    expect(getUser).toHaveBeenCalledWith('alice')
+    expect(text).toContain('reset used traffic for "alice"')
+  })
+
+  it('describes resetting all users without touching the SDK', async () => {
+    const getUser = vi.fn()
+    const ctx = makeContext({ user: { getUser } })
+
+    const text = await usersResetTrafficTool.describeConsequences!({ all: true }, ctx)
+
+    expect(getUser).not.toHaveBeenCalled()
+    expect(text).toContain('every user on the panel')
+  })
+
+  it('describeConsequences throws if neither username nor all is given', async () => {
+    const ctx = makeContext({})
+    await expect(usersResetTrafficTool.describeConsequences!({}, ctx)).rejects.toThrow(
+      'username is required unless all=true.'
+    )
+  })
+
+  it('describeConsequences falls back to a generic description when the panel is unreachable', async () => {
+    const getUser = vi.fn().mockRejectedValue(new Error('network error'))
+    const ctx = makeContext({ user: { getUser } })
+
+    const text = await usersResetTrafficTool.describeConsequences!({ username: 'alice' }, ctx)
+
+    expect(text).toContain('reset used traffic for "alice"')
+    expect(text).toContain('Could not fetch their current usage')
   })
 })

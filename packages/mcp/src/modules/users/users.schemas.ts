@@ -1,7 +1,13 @@
 import { userResponseSchema, userUsageResponseSchema } from 'marzban-sdk'
 import { z } from 'zod'
 
-import { durationMsInputSchema, sizeInputSchema, timestampInputSchema, usernameSchema } from '@/shared/schemas'
+import {
+  confirmTokenSchema,
+  durationMsInputSchema,
+  sizeInputSchema,
+  timestampInputSchema,
+  usernameSchema,
+} from '@/shared/schemas'
 
 // --- shared fragments -------------------------------------------------
 
@@ -150,4 +156,38 @@ export const usersUsageOutputSchema = z.object({
   lifetimeUsedTraffic: z.number(),
   dataLimit: z.number().nullable(),
   byNode: z.array(userUsageResponseSchema),
+})
+
+// --- users_delete ------------------------------------------------------------
+
+export const usersDeleteInputSchema = z.object({
+  username: usernameSchema,
+  confirmToken: confirmTokenSchema,
+})
+
+export const usersDeleteOutputSchema = z.object({
+  username: z.string(),
+  deleted: z.literal(true),
+})
+
+// --- users_reset_traffic -----------------------------------------------------
+
+export const usersResetTrafficInputSchema = z
+  .object({
+    username: usernameSchema.optional().describe('Required unless `all` is true.'),
+    all: z.boolean().optional().describe('Reset data usage for every user instead of one. Ignores `username`.'),
+    confirmToken: confirmTokenSchema,
+  })
+  .refine(v => v.all === true || v.username !== undefined, {
+    message: 'Provide either username, or all=true to reset every user.',
+    path: ['username'],
+  })
+
+// A flat object rather than a `scope`-discriminated union — `outputSchema`
+// becomes the tool's wire JSON Schema, and the MCP spec requires that to
+// describe a single object type.
+export const usersResetTrafficOutputSchema = z.object({
+  scope: z.enum(['all', 'single']),
+  username: z.string().nullable(),
+  usedTraffic: z.number().nullable(),
 })

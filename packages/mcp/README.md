@@ -103,4 +103,4 @@ A destructive tool's first call never runs anything — it describes exactly wha
 
 ## License
 
-[MIT](../../LICENSE) © [ilmar7786](https://github.com/Ilmar7786)
+[MIT](./LICENSE) © [ilmar7786](https://github.com/Ilmar7786)

@@ -39,18 +39,18 @@ jobs:
             tag_pattern: '^(sdk-)?v[0-9].*'
             include_path_args: >-
               --include-path 'packages/sdk/**' --include-path 'src/**' --include-path 'openapi/**'
-          # marzban-cli and marzban-mcp are private skeletons for now — add them
-          # here once they're ready to publish (drop "private": true first):
+          # marzban-cli is still a private skeleton — add it here once it's
+          # ready to publish (drop "private": true first):
           # - dir: packages/cli
           #   pkg: marzban-cli
           #   tag_prefix: cli-v
           #   tag_pattern: '^cli-v.*'
           #   include_path_args: "--include-path 'packages/cli/**'"
-          # - dir: packages/mcp
-          #   pkg: marzban-mcp
-          #   tag_prefix: mcp-v
-          #   tag_pattern: '^mcp-v.*'
-          #   include_path_args: "--include-path 'packages/mcp/**'"
+          - dir: packages/mcp
+            pkg: marzban-mcp
+            tag_prefix: mcp-v
+            tag_pattern: '^mcp-v.*'
+            include_path_args: "--include-path 'packages/mcp/**'"
     steps:
       - uses: actions/checkout@v6
         with:

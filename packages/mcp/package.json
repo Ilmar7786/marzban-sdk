@@ -1,10 +1,24 @@
 {
   "name": "marzban-mcp",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "MCP server for the Marzban API, built on marzban-sdk.",
+  "keywords": [
+    "marzban-mcp",
+    "marzban",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "ai-agent",
+    "claude",
+    "claude-desktop",
+    "claude-code",
+    "cursor",
+    "vpn",
+    "xray"
+  ],
   "author": "ilmar7786",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "sideEffects": false,
   "type": "module",
   "bin": {

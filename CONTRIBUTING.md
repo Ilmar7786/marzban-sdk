@@ -24,42 +24,13 @@ unpublished work-in-progress packages built on top of it; the docs site is
 git clone https://github.com/Ilmar7786/marzban-sdk.git
 cd marzban-sdk
 pnpm install
+pnpm build && pnpm test
 ```
 
-### Available scripts
-
-Run from the repo root — Turborepo fans these out to every package (or scope
-one with `--filter`, e.g. `pnpm turbo run test --filter=marzban-sdk`):
-
-| Command                             | Description                                            |
-| ----------------------------------- | ------------------------------------------------------ |
-| `pnpm build`                        | Compile every package → `dist/` (ESM + CJS)            |
-| `pnpm test`                         | Run the full test suite once with Vitest               |
-| `pnpm lint`                         | Run ESLint across every package                        |
-| `pnpm format`                       | Format the codebase with Prettier                      |
-| `pnpm --filter marzban-sdk codegen` | Regenerate the SDK API client from `openapi/` via Kubb |
-
-SDK-specific scripts (`test:watch`, `test:coverage`, `dev`) live in
-[`packages/sdk/package.json`](./packages/sdk/package.json) — run them with
-`pnpm --filter marzban-sdk <script>`.
-
-## Testing
-
-The SDK is covered by [Vitest](https://vitest.dev). Tests live next to the code
-they cover as `packages/sdk/src/**/*.test.ts`.
-
-```sh
-pnpm test                                    # run once, every package
-pnpm --filter marzban-sdk test:watch         # watch mode while developing
-pnpm --filter marzban-sdk test:coverage      # run with a coverage report
-```
-
-Hand-written code is held at **100% coverage** — statements, branches, functions
-and lines. Generated code (`packages/sdk/src/gen/`, produced from the OpenAPI
-spec) and type-only files are excluded from coverage on purpose.
-
-Every feature and bug fix must come with tests, and
-`pnpm --filter marzban-sdk test:coverage` must stay green before a PR is merged.
+For how the workspace, tests, CI, and releases actually work — task graph,
+coverage rules, commit/branch conventions, and why things are built the way
+they are — see **[`docs/`](./docs/README.md)**. That's the canonical source;
+this file only covers the mechanics of sending a patch.
 
 ## Submitting a pull request
 
@@ -67,10 +38,12 @@ Every feature and bug fix must come with tests, and
    ```sh
    git checkout -b feat/your-feature
    ```
-2. Make your changes and add or update tests in `packages/sdk/src/**/*.test.ts`.
-3. Run `pnpm --filter marzban-sdk test:coverage` and `pnpm build` — both must pass.
+2. Make your changes and add or update tests next to the code they cover
+   (see [`docs/testing.md`](./docs/testing.md) for coverage requirements).
+3. Run `pnpm test` and `pnpm build` — both must pass.
 4. Commit using [Conventional Commits](https://www.conventionalcommits.org/)
-   (enforced by commitlint via a Husky `commit-msg` hook):
+   (enforced by commitlint — see [`docs/conventions.md`](./docs/conventions.md)
+   for the exact type/scope rules):
    ```
    feat: add pagination to getUsers
    fix: handle missing token in AuthManager
@@ -78,41 +51,12 @@ Every feature and bug fix must come with tests, and
    ```
 5. Push to your fork and open a PR against the `main` branch.
 
-## Commit message format
-
-```
-type(scope?): short description
-
-Optional body.
-
-BREAKING CHANGE: description  ← drives the major version bump
-```
-
-**Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `build`.
-
-**Scope** (optional but recommended in a monorepo): `sdk`, `cli`, `mcp`, `docs`,
-`deps`, `ci`, `release`.
-
-Use `type!` or a `BREAKING CHANGE:` footer for breaking changes.
-
 ## Code style
 
 - All code is **TypeScript** with `strict` mode enabled.
 - ESLint + Prettier enforce style — run `pnpm lint` before committing.
 - Avoid `any` — prefer proper generics or `unknown`.
 - Comments explain _why_, not _what_, and only when it's non-obvious.
-
-## Regenerating the API client
-
-The `packages/sdk/src/gen/` directory is auto-generated from the OpenAPI spec —
-do **not** edit it by hand:
-
-```sh
-# Update the spec in packages/sdk/openapi/ first, then:
-pnpm --filter marzban-sdk codegen
-```
-
-If you're fixing a bug in a generated file, fix the template or the spec instead.
 
 ## Questions
 

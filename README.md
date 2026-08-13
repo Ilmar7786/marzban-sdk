@@ -119,8 +119,10 @@ Each publishable package has its own version, changelog and release tags
 
 ## Contributing
 
-Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md). Found a bug
-or have an idea? [Open an issue](https://github.com/Ilmar7786/marzban-sdk/issues).
+Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for how to
+submit a patch, or [`docs/`](./docs/README.md) for how the repo, its tests,
+CI and releases actually work. Found a bug or have an idea?
+[Open an issue](https://github.com/Ilmar7786/marzban-sdk/issues).
 
 ## License
 

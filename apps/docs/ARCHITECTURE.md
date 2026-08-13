@@ -1,0 +1,53 @@
+# `apps/docs` architecture
+
+**Covers:** how the documentation site is built and deployed, where content
+lives, its (lack of a) link to the code it documents.
+**Excludes:** how to write a docs page — see Fumadocs' own docs for that;
+release/deploy mechanics — see [`docs/release.md`](../../docs/release.md).
+**Next:** [`docs/architecture.md`](../../docs/architecture.md) for why this
+package only ever appears in `devDependencies`.
+
+## Purpose and boundary
+
+The public documentation site for `marzban-sdk` and `marzban-mcp` — usage
+guides, configuration reference, API surface descriptions. Consumer-facing
+only; nothing here is read by the other packages.
+
+## Stack
+
+Next.js 16 (App Router) + [Fumadocs](https://fumadocs.dev) (`fumadocs-core`,
+`fumadocs-ui`, `fumadocs-mdx`), Tailwind CSS v4. Content is MDX under
+`content/docs/**`, one `meta.json` per section controlling page order; the
+top-level section order lives in `content/docs/meta.json`. `source.config.ts`
+defines the MDX collection schema; `fumadocs-mdx` compiles it into `.source/`
+via the package's `postinstall` script.
+
+## Build and deploy
+
+`next.config.mjs` sets `output: 'export'` (static HTML, no server) and
+`trailingSlash: true`. The build emits `apps/docs/out/`, which
+`.github/workflows/docs.yml` uploads to GitHub Pages on every push to `main`
+that touches `apps/docs/**`.
+
+`basePath` (`'/marzban-sdk'` in production, empty in dev) is defined in both
+`next.config.mjs` and `src/lib/shared.ts` — intentionally duplicated, because
+`next.config.mjs` can't import runtime application code. If you change one,
+change both.
+
+## Relationship to the rest of the repo
+
+`marzban-sdk` is listed under this package's `devDependencies`, but nothing
+here imports it. That entry exists solely so Turborepo's `^build` dependency
+builds the SDK before the docs site — see
+[`docs/architecture.md`](../../docs/architecture.md).
+
+**Content is maintained by hand, not generated from code.** Nothing here
+regenerates docs from the SDK's OpenAPI spec or MCP's tool definitions. Two
+places are the most likely to drift from the code they describe:
+
+- `content/docs/mcp-server/tools.mdx` — the MCP tool list.
+- `src/components/docs/type-glossary.ts` — the SDK type glossary powering
+  inline type popovers.
+
+When either the SDK's public API or the MCP tool set changes, update these by
+hand alongside the code change.

@@ -109,6 +109,8 @@ try {
 
 ### Handling HTTP errors
 
+`HttpError` exposes the underlying HTTP response through typed getters, instead of reaching into `.details` (which carries the raw, redacted Axios error) yourself:
+
 ```ts
 import { isHttpError } from 'marzban-sdk'
 
@@ -116,11 +118,15 @@ try {
   const user = await sdk.user.getUser('non-existent')
 } catch (err) {
   if (isHttpError(err)) {
-    console.error('HTTP error code:', err.code)
-    console.error('Details:', err.details) // may contain Axios error info
+    console.error('HTTP status:', err.status)       // 404, or undefined if the request never got a response
+    console.error('Status text:', err.statusText)    // "Not Found"
+    console.error('Response body:', err.data)        // whatever the server returned
+    console.error('Request:', err.method, err.url)    // "GET", "/api/user/non-existent"
   }
 }
 ```
+
+`status`/`statusText`/`data`/`method`/`url` are all `undefined` when there was no response to read them from — a network failure, a timeout, or a DNS error never reaches the server, so there's no status code to report. Check for `undefined` rather than assuming a response always exists.
 
 ### Handling config errors
 

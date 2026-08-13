@@ -179,6 +179,53 @@ describe('HttpError', () => {
   it('sets name to HttpError', () => {
     expect(new HttpError().name).toBe('HttpError')
   })
+
+  describe('status/statusText/data/method/url', () => {
+    it('extracts all fields from an Axios-shaped error', () => {
+      const err = new HttpError({
+        response: { status: 404, statusText: 'Not Found', data: { detail: 'user not found' } },
+        config: { method: 'get', url: '/api/user/ghost' },
+      })
+      expect(err.status).toBe(404)
+      expect(err.statusText).toBe('Not Found')
+      expect(err.data).toEqual({ detail: 'user not found' })
+      expect(err.method).toBe('GET')
+      expect(err.url).toBe('/api/user/ghost')
+    })
+
+    it('is all undefined when details is a plain string (no response at all)', () => {
+      const err = new HttpError('No access token after re-authentication')
+      expect(err.status).toBeUndefined()
+      expect(err.statusText).toBeUndefined()
+      expect(err.data).toBeUndefined()
+      expect(err.method).toBeUndefined()
+      expect(err.url).toBeUndefined()
+    })
+
+    it('is all undefined when constructed with no details', () => {
+      const err = new HttpError()
+      expect(err.status).toBeUndefined()
+      expect(err.method).toBeUndefined()
+    })
+
+    it('ignores a non-numeric status and a non-string statusText/method/url', () => {
+      const err = new HttpError({
+        response: { status: '404', statusText: 404 },
+        config: { method: 123, url: null },
+      })
+      expect(err.status).toBeUndefined()
+      expect(err.statusText).toBeUndefined()
+      expect(err.method).toBeUndefined()
+      expect(err.url).toBeUndefined()
+    })
+
+    it('is all undefined when response/config are missing or not objects', () => {
+      const err = new HttpError({ response: 'oops', config: null })
+      expect(err.status).toBeUndefined()
+      expect(err.data).toBeUndefined()
+      expect(err.method).toBeUndefined()
+    })
+  })
 })
 
 describe('WebhookSignatureError', () => {

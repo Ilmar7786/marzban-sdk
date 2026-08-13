@@ -37,6 +37,14 @@ export interface ToolDefinition<I extends z.ZodType, O extends z.ZodType> {
    * back to a generic description in `core/confirm` when omitted.
    */
   describeConsequences?: (args: z.infer<I>, ctx: ToolContext) => string | Promise<string>
+  /**
+   * `scope: 'destructive'` only. When it returns true for a given call, the
+   * registry skips confirmation for that call — for `dry_run`-style flags
+   * where the call provably makes no change (plan §6.5), so a preview isn't
+   * gated behind the same confirmation as the real write it's previewing.
+   * Defaults to always confirming when omitted.
+   */
+  skipConfirm?: (args: z.infer<I>, ctx: ToolContext) => boolean
 }
 
 /** Identity function — exists purely so object-literal callers get contextual type inference for `inputSchema`/`outputSchema`/`handler` without spelling out the generics by hand. */

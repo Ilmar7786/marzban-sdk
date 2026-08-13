@@ -117,7 +117,7 @@ export function registerTools(options: RegisterToolsOptions): ToolDefinition<z.Z
       },
       async (args: unknown, serverCtx: ServerContext): Promise<CallToolResult> => {
         try {
-          if (tool.scope === 'destructive') {
+          if (tool.scope === 'destructive' && !(tool.skipConfirm?.(args, ctx) ?? false)) {
             const decision = await confirm({ tool, args, ctx, serverCtx })
             if (!decision.proceed) {
               // isError: true, not false — every destructive tool declares

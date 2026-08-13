@@ -221,6 +221,37 @@ describe('registerTools', () => {
     expect(result).toEqual({ content: [{ type: 'text', text: 'Confirmation required.' }], isError: true })
   })
 
+  it("skips confirm entirely when the tool's skipConfirm returns true for these args", async () => {
+    const { server, registered } = createFakeServer()
+    const confirm = vi.fn<ConfirmFn>(() => ({ proceed: false, message: 'should not be seen' }))
+    const skipConfirm = vi.fn((args: unknown) => (args as { value: string }).value === 'skip')
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive', skipConfirm })],
+      ctx: makeContext({ profile: 'full' }),
+      confirm,
+    })
+
+    const result = await registered.get('marzban_test_tool')!.handler({ value: 'skip' }, fakeServerCtx)
+    expect(confirm).not.toHaveBeenCalled()
+    expect(result.structuredContent).toEqual({ echoed: 'skip' })
+  })
+
+  it('still calls confirm when skipConfirm returns false for these args', async () => {
+    const { server, registered } = createFakeServer()
+    const confirm = vi.fn<ConfirmFn>(() => ({ proceed: true }))
+    const skipConfirm = vi.fn(() => false)
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive', skipConfirm })],
+      ctx: makeContext({ profile: 'full' }),
+      confirm,
+    })
+
+    await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    expect(confirm).toHaveBeenCalledTimes(1)
+  })
+
   it('maps a thrown ToolError to an isError result instead of throwing', async () => {
     const { server, registered } = createFakeServer()
     const tool = makeTool({

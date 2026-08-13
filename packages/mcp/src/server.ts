@@ -1,9 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/server'
 
 import { createConfirmFn } from './core/confirm'
-import type { ToolContext } from './core/context'
 import { registerPrompts } from './core/prompts'
-import { registerTools } from './core/registry'
+import type { ToolContext } from './core/tool'
+import { registerTools } from './core/tool'
 import { allTools } from './modules'
 import { allPrompts } from './prompts'
 

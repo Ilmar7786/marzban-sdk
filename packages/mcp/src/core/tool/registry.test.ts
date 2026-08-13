@@ -6,9 +6,9 @@ import { z } from 'zod'
 import type { McpConfig } from '@/config'
 import type { View } from '@/format/views/types'
 
+import { ToolError } from '../errors'
 import type { ToolContext } from './context'
 import { defineTool } from './define-tool'
-import { ToolError } from './errors'
 import { alwaysProceed, type ConfirmFn, registerTools, selectTools } from './registry'
 
 type RegisteredEntry = {

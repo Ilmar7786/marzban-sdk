@@ -6,8 +6,7 @@ import { z } from 'zod'
 import type { McpConfig } from '@/config'
 import type { View } from '@/format/views/types'
 
-import type { ToolContext } from '../context'
-import { defineTool } from '../define-tool'
+import { defineTool, type ToolContext } from '../tool'
 import { createConfirmFn } from './confirm'
 
 const fakeServerCtx = {} as ServerContext

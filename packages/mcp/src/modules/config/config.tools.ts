@@ -1,4 +1,4 @@
-import { defineTool } from '@/core/define-tool'
+import { defineTool } from '@/core/tool'
 
 import { diffTopLevelKeys, summarizeCoreConfig, validateHostTemplates } from './config.helpers'
 import {

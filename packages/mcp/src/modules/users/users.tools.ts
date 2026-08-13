@@ -1,7 +1,7 @@
 import { formatBytes, type ProxySettings } from 'marzban-sdk'
 
-import { defineTool } from '@/core/define-tool'
 import { ToolError } from '@/core/errors'
+import { defineTool } from '@/core/tool'
 import { clampLimit, paginationNote } from '@/shared/pagination'
 
 import { buildRenewalPatch, summarizeUser } from './users.helpers'

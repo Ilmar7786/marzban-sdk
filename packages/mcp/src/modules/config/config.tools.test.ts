@@ -2,7 +2,7 @@ import type { MarzbanSDK } from 'marzban-sdk'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { McpConfig } from '@/config'
-import type { ToolContext } from '@/core/context'
+import type { ToolContext } from '@/core/tool'
 
 import { configGetTool, configUpdateTool, coreRestartTool, hostsGetTool, hostsUpdateTool } from './config.tools'
 

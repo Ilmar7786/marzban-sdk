@@ -3,9 +3,9 @@ import { createRequire } from 'node:module'
 import { serveStdio } from '@modelcontextprotocol/server/stdio'
 
 import { ConfigError, loadConfig, type McpConfig } from '@/config'
-import type { ToolContext } from '@/core/context'
 import { createStderrLogger } from '@/core/logger'
 import { createSdkClient } from '@/core/sdk-client'
+import type { ToolContext } from '@/core/tool'
 import { createMarzbanMcpServer } from '@/server'
 
 const require = createRequire(import.meta.url)

@@ -1,4 +1,4 @@
-import { defineTool } from '@/core/define-tool'
+import { defineTool } from '@/core/tool'
 
 import { nodesListInputSchema, nodesListOutputSchema } from './nodes.schemas'
 import { nodesListView } from './nodes.views'

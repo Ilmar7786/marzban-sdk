@@ -2,7 +2,7 @@ import type { GetPromptResult } from '@modelcontextprotocol/server'
 import type { z } from 'zod'
 
 /**
- * A prompt as data, same spirit as `core/define-tool.ts`'s `ToolDefinition`
+ * A prompt as data, same spirit as `core/tool/define-tool.ts`'s `ToolDefinition`
  * — though prompts have no scope/confirm/render pipeline to share, since
  * they never touch the SDK themselves. A prompt is just a canned message
  * that steers the model toward the right sequence of (already

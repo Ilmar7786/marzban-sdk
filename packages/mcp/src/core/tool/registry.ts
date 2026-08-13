@@ -4,9 +4,9 @@ import type { z } from 'zod'
 import type { McpConfig } from '@/config'
 import { render } from '@/format/render'
 
+import { toToolError } from '../errors'
 import type { ToolContext } from './context'
 import type { ToolDefinition, ToolScope } from './define-tool'
-import { toToolError } from './errors'
 
 const PROFILE_SCOPES: Record<McpConfig['profile'], ReadonlySet<ToolScope>> = {
   readonly: new Set(['read']),

@@ -1,4 +1,4 @@
-import type { ConfirmDecision, ConfirmFn } from '../registry'
+import type { ConfirmDecision, ConfirmFn } from '../tool'
 import { CONFIRM_TOKEN_TTL_SECONDS, createConfirmTokenCodec } from './token'
 
 function extractConfirmToken(args: unknown): string | undefined {

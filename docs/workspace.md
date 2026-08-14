@@ -81,4 +81,14 @@ OpenAPI spec.
 
 `build`, `dev`, `lint`, `test`, `types:check` all fan out via
 `turbo run <task>`. `format`/`format:check` run Prettier directly across the
-whole repo (not per-package, not through Turborepo).
+whole repo (not per-package, not through Turborepo). `local:up`/`local:down`/
+`local:logs`/`local:reset` wrap the Docker stand in `local/marzban/` (below)
+— not Turborepo tasks either, there's nothing to cache.
+
+## Local Marzban panel
+
+`local/marzban/` is a disposable Marzban panel in Docker for manually
+exercising `marzban-sdk`/`marzban-mcp` against a real panel — not part of the
+test suite (see [testing.md](./testing.md#network-isolation)). Start it with
+`pnpm local:up`; see [`local/marzban/README.md`](../local/marzban/README.md)
+for the rest.

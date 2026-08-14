@@ -44,6 +44,7 @@ left column, touch the right column in the same PR:
 | `.github/workflows/ci.yml`                                                             | [`ci.md`](./ci.md)                                                |
 | `.github/workflows/publish.yml`, `.github/workflows/docs.yml`, `cliff.toml`            | [`release.md`](./release.md)                                      |
 | Any decision with real consequences (a new dependency direction, a discarded approach) | A new [ADR](./adr/README.md)                                      |
+| `local/**`                                                                             | [`local/README.md`](../local/README.md)                           |
 
 Each doc file opens with a 3-line block: what it covers, what it deliberately
 excludes, where to go next — so it can be read on its own, without the rest of

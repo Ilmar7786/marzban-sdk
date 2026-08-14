@@ -27,6 +27,9 @@ pnpm install
 pnpm build && pnpm test
 ```
 
+To try changes against a real Marzban panel, `pnpm local:up` starts a
+disposable one in Docker — see [`local/README.md`](./local/README.md).
+
 For how the workspace, tests, CI, and releases actually work — task graph,
 coverage rules, commit/branch conventions, and why things are built the way
 they are — see **[`docs/`](./docs/README.md)**. That's the canonical source;

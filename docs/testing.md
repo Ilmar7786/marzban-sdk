@@ -51,3 +51,5 @@ itself is mocked — `vi.mock('axios')` / `vi.mock('axios-retry')` — so tests
 exercise real request-building and error-handling logic against a fake
 client. There are no integration tests against a live Marzban panel; if
 you're validating against a real panel, that's manual, not part of the suite.
+[`local/marzban/README.md`](../local/marzban/README.md) has a disposable
+Docker panel for that.

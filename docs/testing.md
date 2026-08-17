@@ -58,9 +58,9 @@ pnpm --filter marzban-sdk test:coverage
   - [x] Admin
   - [x] Core
   - [ ] Node
-  - [ ] Subscription
+  - [x] Subscription
   - [x] System
-  - [ ] UserTemplate
+  - [x] UserTemplate
 
 ## Coverage
 

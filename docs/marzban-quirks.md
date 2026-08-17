@@ -179,3 +179,71 @@ and
 core config with a syntactically valid but semantically broken inbound)
 might still hit the documented 422 path. Only the two specific cases above
 were verified.
+
+## `addUserTemplate` rejects an omitted/null `name` with 409, even against an empty template list
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+Every field on `UserTemplateCreate` is optional, and `addUserTemplate({})`
+type-checks fine — but the panel always rejects it with `409 "Template by
+this name already exists"`, reproducibly, even when `getUserTemplates()`
+returns an empty array. It isn't a real name collision; a `null`/omitted
+name apparently can't be created at all.
+
+**Workaround:** none needed once known — always pass a `name` to
+`addUserTemplate`. See
+[`user-template.integration.test.ts`](../packages/sdk/test/integration/user-template.integration.test.ts).
+
+**Open:** whether this is intentional (uniqueness check comparing `NULL` to
+itself) or a panel bug wasn't investigated further.
+
+## `addUserTemplate`/`modifyUserTemplate` silently drop inbound tags that don't match a real inbound
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+Unlike `addUser` (which 500s for a protocol with no matching inbound — see
+above), a template's `inbounds` dictionary is filtered, not validated: an
+unknown inbound tag is silently dropped from the stored/returned value, no
+error. A protocol key whose only tag(s) were all unknown disappears from
+`inbounds` entirely rather than coming back as an empty array.
+
+**Workaround:** none needed — don't assume a template's `inbounds` in the
+response mirrors what you sent; read it back. See
+[`user-template.integration.test.ts`](../packages/sdk/test/integration/user-template.integration.test.ts).
+
+**Open:** not tested against a panel with more than one real inbound tag —
+only confirmed that a single bogus tag is dropped and a single valid tag
+alongside it survives.
+
+## `UserTemplate`'s `data_limit`/`expire_duration` are not normalized from `0` to `null`, unlike `User`
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+The "`data_limit: 0` / `expire: 0` on create come back as `null`" quirk
+above is specific to `addUser`/`modifyUser`. `addUserTemplate({ data_limit:
+0, expire_duration: 0, ... })` echoes back literal `0`s, not `null` — both
+still mean "unlimited"/"no expiry" semantically (per the JSDoc on
+`addUserTemplate`), just represented differently on the wire than the User
+module.
+
+**Workaround:** none needed — just don't generalize the User module's 0→null
+normalization to templates.
+
+## `revokeUserSubscription` does not change the subscription token — only the proxy credentials
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+`subscription_url` (and the `/sub/{token}` token embedded in it) is a
+stable, deterministic value for the lifetime of a user — repeated reads
+return the byte-identical string every time, and so does
+`revokeUserSubscription()`'s own response. "Revoke" only rotates what's
+_behind_ the token: the proxy credentials (see
+`users.integration.test.ts`'s "revoking a subscription rotates the proxy
+credentials"). The subscription link itself keeps working, now serving the
+rotated credentials — it never needs to be re-shared with the end user
+after a revoke.
+
+**Workaround:** none needed — don't assume `revokeUserSubscription()`
+invalidates a previously-issued subscription link; it doesn't, by design.
+See
+[`subscription.integration.test.ts`](../packages/sdk/test/integration/subscription.integration.test.ts).

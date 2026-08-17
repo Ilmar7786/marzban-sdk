@@ -133,3 +133,49 @@ call resolving — see
 a real caller sees an `HttpError` on a successful activation. The
 `add_remaining_traffic` semantics are worth a closer look before anyone
 relies on them.
+
+## `modifyHosts` merges by inbound tag — it does not replace the whole map
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+Both this repo's docs (`apps/docs/content/docs/modules/system.mdx`) and a
+first read of `PUT /api/hosts` describe it as replacing "the existing
+config", which reads as whole-map replace — PUT semantics, omitted tag
+gone. That's not what happens: a tag **omitted** from the request body is
+left completely untouched. `PUT /api/hosts` with `{}` is a no-op — the
+response and the following `GET` both echo the panel's existing host map
+unchanged. Only tags **present** in the payload are touched; a present tag
+with an empty array (`{ "<tag>": [] }`) does clear that tag's hosts.
+
+**Workaround:** none needed once known — don't assume an empty or partial
+`modifyHosts` payload wipes anything not explicitly listed. To actually
+clear a tag, list it with `[]`; see
+[`system-hosts.integration.test.ts`](../packages/sdk/test/integration/system-hosts.integration.test.ts).
+
+**Open:** whether this holds for a panel with multiple inbounds/tags the
+same way it does for `local/marzban/`'s single Shadowsocks inbound is
+untested — only one tag exists to probe against here.
+
+## `modifyCoreConfig`/`modifyHosts` reject structurally invalid input with 400, not 422
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+Both `coreApi.ts`'s and `systemApi.ts`'s generated error unions declare 422
+(`HTTPValidationError`) for these mutations (a FastAPI/Pydantic
+convention), but the panel actually rejects a structurally invalid write —
+an empty core config (`{}`, "config doesn't have inbounds") or a
+`modifyHosts` payload keyed by an inbound tag that doesn't exist ("Inbound
+&lt;tag&gt; doesn't exist") — with a **400**, not a 422. In both cases the
+write does not land; a follow-up `GET` confirms the prior state is
+unchanged.
+
+**Workaround:** none needed — `HttpError.status` still carries the real
+code; just don't assert 422 for these specific bad-input shapes. See
+[`core.integration.test.ts`](../packages/sdk/test/integration/core.integration.test.ts)
+and
+[`system-hosts.integration.test.ts`](../packages/sdk/test/integration/system-hosts.integration.test.ts).
+
+**Open:** not exhaustively characterized — other malformed shapes (e.g. a
+core config with a syntactically valid but semantically broken inbound)
+might still hit the documented 422 path. Only the two specific cases above
+were verified.

@@ -38,9 +38,9 @@ import type { SubscriptionUserResponse } from 'marzban-sdk'
 
 ## Methods
 
-### `userSubscription(token, params?)`
+### `userSubscription(token, headers?)`
 
-Fetch the user's subscription config in the format for their VPN client — the raw subscription payload (base64-encoded links or a client-specific config).
+Fetch the user's subscription config in the format for their VPN client — the raw subscription payload (base64-encoded links or a client-specific config). `headers` is an optional `{ 'user-agent'?: string }` used to pick the client format server-side — there's no query-params argument.
 
 **Returns** `any`
 
@@ -88,20 +88,20 @@ const usage = await sdk.subscription.userGetUsage('user-subscription-token', {
 
 ---
 
-### `userSubscriptionWithClientType(token, clientType)`
+### `userSubscriptionWithClientType(clientType, token)`
 
-Fetch the subscription formatted for a specific VPN client.
+Fetch the subscription formatted for a specific VPN client. Note the argument order — `clientType` comes first, then `token`.
 
 **Returns** `any`
 
 ```ts
 const clashConfig = await sdk.subscription.userSubscriptionWithClientType(
-  'user-subscription-token',
-  'clash'
+  'clash',
+  'user-subscription-token'
 )
 ```
 
-Common client types: `clash`, `singbox`, `v2ray`, `outline`.
+Accepted client types: `clash`, `clash-meta`, `sing-box`, `outline`, `v2ray`, `v2ray-json`.
 
 ## Common patterns
 

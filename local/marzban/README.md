@@ -3,8 +3,8 @@
 Part of [`local/`](../README.md) — see that file for how this fits alongside
 other dev stacks. A throwaway [Marzban](https://github.com/Gozargah/Marzban)
 panel in Docker, for manually exercising `marzban-sdk` and `marzban-mcp`
-against a real panel. Not part of the automated test suite — see the
-"Network isolation" section of [`docs/testing.md`](../../docs/testing.md).
+against a real panel, and for the automated integration suites — see the
+"Integration" section of [`docs/testing.md`](../../docs/testing.md).
 
 The panel is served over HTTPS with a self-signed certificate — required for
 it to bind at all inside the container (see "Ports" below).
@@ -102,11 +102,17 @@ safely — don't set that against a real panel.
 
 ## Things to know
 
-- **User creation needs at least one Xray inbound configured.** The image
-  ships a default `xray_config.json` with example inbounds, which is enough
-  for CRUD/API testing. If you replace the Xray config via the panel and
-  remove all inbounds, user-creation calls will start failing — that's
-  Marzban behavior, not an SDK bug.
+Behavioral quirks of the real Marzban panel (404s that should 200, fields
+that normalize on the wire, etc.) that you'll hit manually testing here too
+are centralized in [`docs/marzban-quirks.md`](../../docs/marzban-quirks.md)
+rather than repeated per-stand — that's where `DELETE` always 500ing despite
+succeeding, `addUser` requiring a non-empty `proxies`, and a few others are
+documented.
+
+- **The bundled `xray_config.json` ships one Shadowsocks inbound** (port
+  1080, not published — see "Ports" above) — enough to satisfy the
+  non-empty-`proxies` requirement in `marzban-quirks.md` for CRUD/API
+  testing without further setup.
 - **`DEBUG=True` is incompatible with this image.** It makes the app shell
   out to `npm run dev` for the dashboard frontend on startup, and the image
   has no `npm` — the container crash-loops. `DOCS=True` (Swagger/Redoc at

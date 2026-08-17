@@ -1,0 +1,52 @@
+name: Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+
+      - name: Start local Marzban panel
+        run: |
+          cp local/marzban/.env.example local/marzban/.env
+          bash local/marzban/gen-cert.sh
+          docker compose -f local/marzban/docker-compose.yml up -d
+
+      - name: Wait for the panel to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1:8000/docs | grep -q 200; then
+              echo "Panel is up."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Panel did not become ready in time." >&2
+          exit 1
+
+      - run: pnpm --filter marzban-sdk test:integration
+      - run: pnpm --filter marzban-mcp test:integration
+
+      - name: Panel logs (on failure)
+        if: failure()
+        run: docker compose -f local/marzban/docker-compose.yml logs
+
+      - name: Tear down the panel
+        if: always()
+        run: docker compose -f local/marzban/docker-compose.yml down -v

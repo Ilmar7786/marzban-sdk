@@ -31,6 +31,24 @@ pnpm --filter marzban-sdk test:coverage
   (open-ended OpenAPI objects silently losing keys on parse) so a future
   `codegen` run against an imprecise spec fails the suite instead of shipping
   a bug. See [`packages/sdk/ARCHITECTURE.md`](../packages/sdk/ARCHITECTURE.md).
+- **Integration** — `packages/sdk/test/integration/**/*.integration.test.ts`
+  and `packages/mcp/test/integration/**/*.integration.test.ts` run against a
+  real Marzban panel (no mocked transport). Separate configs
+  (`vitest.integration.config.ts` in each package), separate scripts
+  (`test:integration`), not part of `pnpm test`/`test:coverage` or the
+  100%-coverage threshold — see "Network isolation" below for why. `sdk`'s
+  suite covers one domain (`users`) end to end — happy path, conflicts (409),
+  missing entities (404), boundary values, and a live check that the
+  ADR-0003 spec patch still round-trips real proxy settings without dropping
+  keys. `mcp`'s suite is deliberately thin: 3 smoke tests against real tools
+  (a passthrough, one with its own logic, one destructive with the
+  confirm-flow), not a re-run of `sdk`'s edge cases — the mocked-SDK unit
+  tests in `packages/mcp/src/modules/**` already prove each tool calls the
+  SDK correctly; what they can't catch is drift between an MCP tool's zod
+  schema and the SDK's real types. Real Marzban behavior these suites had to
+  work around — 500s that should succeed, fields that normalize on the wire,
+  etc. — is centralized in [marzban-quirks.md](./marzban-quirks.md) rather
+  than commented inline everywhere it's relevant.
 
 ## Coverage
 
@@ -49,7 +67,15 @@ A PR that drops coverage below 100% on either package fails
 There's no HTTP mock library (no msw, no nock) in this repo. The transport
 itself is mocked — `vi.mock('axios')` / `vi.mock('axios-retry')` — so tests
 exercise real request-building and error-handling logic against a fake
-client. There are no integration tests against a live Marzban panel; if
-you're validating against a real panel, that's manual, not part of the suite.
-[`local/marzban/README.md`](../local/marzban/README.md) has a disposable
-Docker panel for that.
+client. [`local/marzban/README.md`](../local/marzban/README.md) has a disposable
+Docker panel for the "Integration" level above — and for ad hoc manual
+poking, which is still the faster loop for one-off checks.
+
+```sh
+pnpm local:up && pnpm local:logs   # wait for it to report ready, then Ctrl+C
+pnpm --filter marzban-sdk test:integration
+pnpm --filter marzban-mcp test:integration
+```
+
+Not wired into `ci.yml` — see [ci.md](./ci.md) for why and where it does
+run.

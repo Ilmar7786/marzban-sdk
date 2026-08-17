@@ -11,17 +11,18 @@ belong here — link to the file instead of restating it.
 
 ## Map
 
-| File                                 | Answers                                                           |
-| ------------------------------------ | ----------------------------------------------------------------- |
-| [overview.md](./overview.md)         | What this repo is, what each package does, who consumes it        |
-| [architecture.md](./architecture.md) | How the packages relate: dependency graph, invariants, boundaries |
-| [workspace.md](./workspace.md)       | pnpm + Turborepo + TypeScript setup, running things locally       |
-| [conventions.md](./conventions.md)   | Code style, naming, commits, branching                            |
-| [testing.md](./testing.md)           | Test levels, coverage rules, what's mocked and what isn't         |
-| [ci.md](./ci.md)                     | What CI checks, what gates a merge, how to reproduce it locally   |
-| [release.md](./release.md)           | Versioning, tagging, changelogs, npm publish, docs deploy         |
-| [history.md](./history.md)           | The project's major eras and why direction changed                |
-| [adr/](./adr/README.md)              | Individual architecture decisions, one file each                  |
+| File                                     | Answers                                                           |
+| ---------------------------------------- | ----------------------------------------------------------------- |
+| [overview.md](./overview.md)             | What this repo is, what each package does, who consumes it        |
+| [architecture.md](./architecture.md)     | How the packages relate: dependency graph, invariants, boundaries |
+| [workspace.md](./workspace.md)           | pnpm + Turborepo + TypeScript setup, running things locally       |
+| [conventions.md](./conventions.md)       | Code style, naming, commits, branching                            |
+| [testing.md](./testing.md)               | Test levels, coverage rules, what's mocked and what isn't         |
+| [marzban-quirks.md](./marzban-quirks.md) | Real Marzban panel behavior our code/tests work around            |
+| [ci.md](./ci.md)                         | What CI checks, what gates a merge, how to reproduce it locally   |
+| [release.md](./release.md)               | Versioning, tagging, changelogs, npm publish, docs deploy         |
+| [history.md](./history.md)               | The project's major eras and why direction changed                |
+| [adr/](./adr/README.md)                  | Individual architecture decisions, one file each                  |
 
 Per-package architecture lives next to the code that implements it, not here:
 
@@ -45,6 +46,7 @@ left column, touch the right column in the same PR:
 | `.github/workflows/publish.yml`, `.github/workflows/docs.yml`, `cliff.toml`            | [`release.md`](./release.md)                                      |
 | Any decision with real consequences (a new dependency direction, a discarded approach) | A new [ADR](./adr/README.md)                                      |
 | `local/**`                                                                             | [`local/README.md`](../local/README.md)                           |
+| A newly-observed real Marzban behavior an integration test had to work around          | [`marzban-quirks.md`](./marzban-quirks.md)                        |
 
 Each doc file opens with a 3-line block: what it covers, what it deliberately
 excludes, where to go next — so it can be read on its own, without the rest of

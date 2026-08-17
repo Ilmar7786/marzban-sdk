@@ -102,3 +102,34 @@ deterministically on read.
 computes expiry client-side instead of trusting `status` alone. Integration
 tests assert the lag explicitly rather than assuming a fresh `GET` reflects
 an already-past `expire`.
+
+**Also affects:** `GET /api/users/expired` and `DELETE /api/users/expired`
+filter by the (lazily-updated) `status` column, not the raw `expire`
+timestamp — a user created with a past `expire` moments ago does not show
+up in either call yet. `revoke_sub` is the cheapest confirmed way to force
+the recalculation on demand; see
+[`users-bulk.integration.test.ts`](../packages/sdk/test/integration/users-bulk.integration.test.ts).
+
+## `activeNextPlan` 404s with "User doesn't have next plan" even when it applies the plan
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+`POST /api/user/{username}/active-next` on a user with a queued `next_plan`
+reliably responds `404 {"detail": "User doesn't have next plan"}` — but a
+follow-up `GET` shows `data_limit`/`expire` already updated to the queued
+plan's values and `next_plan` cleared. The plan was applied; only the HTTP
+response claims otherwise. Same shape as the `DELETE /api/user` 500 quirk
+above. Separately, `next_plan.add_remaining_traffic: true` was observed to
+replace `data_limit` outright with the next plan's value; `false` was
+observed to **sum** the old and new `data_limit` instead of leaving the old
+value out, the opposite of what the flag name suggests — not fully
+characterized, and not asserted on by the integration suite.
+
+**Workaround:** confirm the outcome via a follow-up `GET`, not via this
+call resolving — see
+[`users-lifecycle.integration.test.ts`](../packages/sdk/test/integration/users-lifecycle.integration.test.ts).
+
+**Open:** same as `removeUser` above — the SDK doesn't special-case this;
+a real caller sees an `HttpError` on a successful activation. The
+`add_remaining_traffic` semantics are worth a closer look before anyone
+relies on them.

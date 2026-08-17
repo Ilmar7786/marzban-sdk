@@ -4,11 +4,8 @@ import { AuthError, createMarzbanSDK, HttpError, isHttpError, type MarzbanSDK } 
 import { createCleanupRegistry, uniqueTestName } from './helpers/cleanup'
 import { createTestSdk } from './helpers/client'
 import { getIntegrationEnv } from './helpers/env'
+import { SHADOWSOCKS_PROXY } from './helpers/fixtures'
 import { freshConnectionConfig, removeUserTolerantly } from './helpers/quirks'
-
-// docs/marzban-quirks.md: "addUser requires a non-empty proxies" — this is
-// the one inbound local/marzban/'s bundled xray_config.json ships.
-const SHADOWSOCKS_PROXY = { shadowsocks: {} }
 
 describe('users integration', () => {
   let sdk: MarzbanSDK
@@ -113,6 +110,26 @@ describe('users integration', () => {
 
     expect(created.data_limit).toBeNull()
     expect(created.expire).toBeNull()
+  })
+
+  it('treats an explicit null on modify as "no change", unlike 0 which clears the limit', async () => {
+    const username = uniqueTestName('modify-null')
+    cleanup.register(() => removeUserTolerantly(sdk, username))
+
+    const dataLimit = 1_073_741_824 // 1GB
+    const expire = Math.floor(Date.now() / 1000) + 86_400
+    await sdk.user.addUser({ username, status: 'active', data_limit: dataLimit, expire, proxies: SHADOWSOCKS_PROXY })
+
+    // Explicit `null`, not omitted — per userApi.ts's own doc comment,
+    // "Fields set to `null` or omitted will not be modified."
+    const updated = await sdk.user.modifyUser(username, {
+      data_limit: null,
+      expire: null,
+      note: 'null means no change',
+    })
+
+    expect(updated.data_limit).toBe(dataLimit)
+    expect(updated.expire).toBe(expire)
   })
 
   it('does not synchronously flip status to expired for a past expire (Marzban recalculates lazily elsewhere)', async () => {

@@ -36,12 +36,9 @@ pnpm --filter marzban-sdk test:coverage
   real Marzban panel (no mocked transport). Separate configs
   (`vitest.integration.config.ts` in each package), separate scripts
   (`test:integration`), not part of `pnpm test`/`test:coverage` or the
-  100%-coverage threshold — see "Network isolation" below for why. `sdk`'s
-  suite covers one domain (`users`) end to end — happy path, conflicts (409),
-  missing entities (404), boundary values, and a live check that the
-  ADR-0003 spec patch still round-trips real proxy settings without dropping
-  keys. `mcp`'s suite is deliberately thin: 3 smoke tests against real tools
-  (a passthrough, one with its own logic, one destructive with the
+  100%-coverage threshold — see "Network isolation" below for why. `mcp`'s
+  suite is deliberately thin: 3 smoke tests against real tools (a
+  passthrough, one with its own logic, one destructive with the
   confirm-flow), not a re-run of `sdk`'s edge cases — the mocked-SDK unit
   tests in `packages/mcp/src/modules/**` already prove each tool calls the
   SDK correctly; what they can't catch is drift between an MCP tool's zod
@@ -49,6 +46,15 @@ pnpm --filter marzban-sdk test:coverage
   work around — 500s that should succeed, fields that normalize on the wire,
   etc. — is centralized in [marzban-quirks.md](./marzban-quirks.md) rather
   than commented inline everywhere it's relevant.
+
+  `sdk` module coverage:
+  - [x] User
+  - [x] Admin
+  - [ ] Core
+  - [ ] Node
+  - [ ] Subscription
+  - [ ] System
+  - [ ] UserTemplate
 
 ## Coverage
 

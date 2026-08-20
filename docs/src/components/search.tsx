@@ -1,7 +1,6 @@
 'use client'
-import { create } from '@orama/orama'
 import { useDocsSearch } from 'fumadocs-core/search/client'
-import { oramaStaticClient } from 'fumadocs-core/search/client/orama-static'
+import { staticClient } from 'fumadocs-core/search/client/orama-static'
 import {
   SearchDialog,
   SearchDialogClose,
@@ -13,6 +12,7 @@ import {
   SearchDialogOverlay,
   type SharedProps,
 } from 'fumadocs-ui/components/dialog/search'
+import { create } from 'zbsearch'
 
 function initOrama() {
   return create({
@@ -24,7 +24,7 @@ function initOrama() {
 
 export default function DefaultSearchDialog(props: SharedProps) {
   const { search, setSearch, query } = useDocsSearch({
-    client: oramaStaticClient({
+    client: staticClient({
       initOrama,
       from: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/search`,
     }),

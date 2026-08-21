@@ -33,6 +33,14 @@ export const mcpConfigSchema = z.object({
   toolsDeny: z.array(z.string().min(1)).optional(),
   logLevel: z.enum(['debug', 'info', 'warn', 'error']).default(DEFAULT_LOG_LEVEL),
   showLinks: z.boolean().default(DEFAULT_SHOW_LINKS),
+  // Covers the common self-hosted-Marzban case: a panel behind a self-signed
+  // or internal-CA certificate. Trusts one extra CA rather than disabling
+  // verification — see buildSdkConfig in core/sdk-client.ts.
+  caFile: z.string().min(1).optional(),
+  // Escape hatch for panels the operator cannot get a trusted/known CA for.
+  // Deliberately not exposed as a generic "insecure" toggle — the env var
+  // name spells out exactly what it disables.
+  tlsRejectUnauthorized: z.boolean().optional(),
 })
 
 export type McpConfig = z.infer<typeof mcpConfigSchema>

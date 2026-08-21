@@ -23,6 +23,8 @@ describe('readRawConfigFromEnv', () => {
         MARZBAN_MCP_TOOLS_DENY: 'config_update',
         MARZBAN_MCP_LOG_LEVEL: 'debug',
         MARZBAN_MCP_SHOW_LINKS: 'true',
+        MARZBAN_TLS_CA_FILE: '/etc/ssl/ca.pem',
+        MARZBAN_TLS_REJECT_UNAUTHORIZED: 'false',
       })
     )
 
@@ -40,6 +42,8 @@ describe('readRawConfigFromEnv', () => {
       toolsDeny: ['config_update'],
       logLevel: 'debug',
       showLinks: true,
+      caFile: '/etc/ssl/ca.pem',
+      tlsRejectUnauthorized: false,
     })
   })
 
@@ -60,6 +64,8 @@ describe('readRawConfigFromEnv', () => {
       toolsDeny: undefined,
       logLevel: undefined,
       showLinks: undefined,
+      caFile: undefined,
+      tlsRejectUnauthorized: undefined,
     })
   })
 
@@ -95,6 +101,22 @@ describe('readRawConfigFromEnv', () => {
   it('treats a list of only empty entries as unset', () => {
     const raw = readRawConfigFromEnv(makeEnv({ MARZBAN_MCP_TOOLS_ALLOW: ' , , ' }))
     expect(raw.toolsAllow).toBeUndefined()
+  })
+
+  it('parses MARZBAN_TLS_REJECT_UNAUTHORIZED as a boolean, independent of MARZBAN_MCP_SHOW_LINKS', () => {
+    expect(readRawConfigFromEnv(makeEnv({ MARZBAN_TLS_REJECT_UNAUTHORIZED: 'false' })).tlsRejectUnauthorized).toBe(
+      false
+    )
+    expect(readRawConfigFromEnv(makeEnv({ MARZBAN_TLS_REJECT_UNAUTHORIZED: 'true' })).tlsRejectUnauthorized).toBe(true)
+  })
+
+  it('throws ConfigError for an unrecognized MARZBAN_TLS_REJECT_UNAUTHORIZED spelling', () => {
+    expect(() => readRawConfigFromEnv(makeEnv({ MARZBAN_TLS_REJECT_UNAUTHORIZED: 'maybe' }))).toThrow(ConfigError)
+  })
+
+  it('treats an empty MARZBAN_TLS_CA_FILE the same as unset', () => {
+    const raw = readRawConfigFromEnv(makeEnv({ MARZBAN_TLS_CA_FILE: '' }))
+    expect(raw.caFile).toBeUndefined()
   })
 })
 

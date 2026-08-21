@@ -23,8 +23,14 @@ runs:
         # when several release at once, two jobs can race here. npm publish +
         # the GitHub release already happened by this point, so a failed push
         # must be retried rather than left to fail the job.
+        #
+        # --autostash: earlier release steps can leave the tree dirty on
+        # purpose (e.g. the workspace-range rewrite before `npm publish`,
+        # which is never committed back). Without it every rebase — and so
+        # every retry — dies with "cannot pull with rebase: You have
+        # unstaged changes".
         for attempt in 1 2 3 4 5; do
-          if git pull --rebase origin main && git push origin HEAD:main; then
+          if git pull --rebase --autostash origin main && git push origin HEAD:main; then
             exit 0
           fi
           echo "Push attempt $attempt failed, retrying after backoff..."

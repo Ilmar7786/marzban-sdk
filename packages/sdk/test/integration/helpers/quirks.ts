@@ -16,7 +16,7 @@ import { isHttpError, type MarzbanSDK } from '../../../src/index'
  * every generated method's `config` parameter without an unsafe cast.
  */
 export function freshConnectionConfig(): Record<string, unknown> {
-  return { httpsAgent: new https.Agent({ rejectUnauthorized: false }) }
+  return { httpsAgent: new https.Agent() }
 }
 
 /**

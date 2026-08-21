@@ -21,6 +21,24 @@ Yes, for most features. The SDK is designed to be cross-runtime:
 
 Yes. The package ships ESM and CJS bundles that work in plain JavaScript. You'll lose autocomplete and type checking, but the runtime behaviour is identical.
 
+### My self-hosted panel uses a self-signed certificate — how do I connect?
+
+Pass a Node `https.Agent` configured with your CA via the `httpsAgent` config option, rather than disabling TLS verification:
+
+```ts
+import { readFileSync } from 'node:fs'
+import https from 'node:https'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://panel.example.com',
+  username: 'admin',
+  password: 'secret',
+  httpsAgent: new https.Agent({ ca: readFileSync('ca.pem') }),
+})
+```
+
+See [Self-signed certificates & custom CA](/docs/configuration/config-options#self-signed-certificates--custom-ca). Using `marzban-mcp` instead? Set `MARZBAN_TLS_CA_FILE` — see [MCP Configuration](/docs/mcp-server/configuration#tls--self-signed-certificates).
+
 ---
 
 ## Authentication

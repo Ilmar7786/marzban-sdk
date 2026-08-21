@@ -34,9 +34,13 @@ pnpm --filter marzban-sdk test:coverage
 - **Integration** — `packages/sdk/test/integration/**/*.integration.test.ts`
   and `packages/mcp/test/integration/**/*.integration.test.ts` run against a
   real Marzban panel (no mocked transport). Separate configs
-  (`vitest.integration.config.ts` in each package), separate scripts
-  (`test:integration`), not part of `pnpm test`/`test:coverage` or the
-  100%-coverage threshold — see "Network isolation" below for why. `mcp`'s
+  (`vitest.integration.config.ts` in each package, built from the shared
+  `unitConfig`/`integrationConfig` helpers in the root `vitest.shared.ts`),
+  separate scripts (`test:integration`), not part of `pnpm test`/`test:coverage`
+  or the 100%-coverage threshold — see "Network isolation" below for why. The
+  local panel's self-signed cert is trusted via each package's own
+  `httpsAgent`/`MARZBAN_TLS_CA_FILE` support (`test/integration/helpers/tls.ts`
+  in each package), not by disabling TLS verification process-wide. `mcp`'s
   suite is deliberately thin: 3 smoke tests against real tools (a
   passthrough, one with its own logic, one destructive with the
   confirm-flow), not a re-run of `sdk`'s edge cases — the mocked-SDK unit

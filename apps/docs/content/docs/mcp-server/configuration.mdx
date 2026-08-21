@@ -45,3 +45,12 @@ See [Response Format & Token Economy](/docs/mcp-server/response-format) for what
 | `MARZBAN_MCP_LOG_LEVEL` | `warn` | `debug` \| `info` \| `warn` \| `error` | Minimum level written to stderr |
 
 Logs never go to stdout — stdout is reserved for the JSON-RPC protocol itself, and a single stray byte there would break the connection.
+
+## TLS / self-signed certificates
+
+| Variable | Default | Values | Description |
+|---|---|---|---|
+| `MARZBAN_TLS_CA_FILE` | — | Path to a CA cert (PEM) | Trust this CA in addition to the system store — for a panel behind a self-signed or internal-CA certificate. Relative paths resolve against the process's working directory. |
+| `MARZBAN_TLS_REJECT_UNAUTHORIZED` | — | `true` \| `false` | Escape hatch for a panel you can't get a trusted/known CA for. Setting `false` disables certificate validation entirely and logs a startup warning — prefer `MARZBAN_TLS_CA_FILE` whenever the CA is available. |
+
+An unreadable `MARZBAN_TLS_CA_FILE` fails startup with a `ConfigError` naming the resolved path, rather than a bare `ENOENT`.

@@ -159,6 +159,11 @@ export const typeGlossary: Record<string, TypeInfo> = {
       'Logger interface (debug / info / warn / error methods). Implement it to plug in your own logging stack, e.g. Winston or Pino.',
     href: '/docs/configuration/logging#custom-logger',
   },
+  HttpAgentLike: {
+    description:
+      "Structural stand-in for Node's http.Agent / https.Agent (or a compatible agent, e.g. from https-proxy-agent) — the type of httpAgent and httpsAgent. Node-only; ignored (with a warning) in the browser.",
+    href: '/docs/configuration/config-options#self-signed-certificates--custom-ca',
+  },
 
   // ── Real-time logs ─────────────────────────────────────────────────────
   LogOptions: {

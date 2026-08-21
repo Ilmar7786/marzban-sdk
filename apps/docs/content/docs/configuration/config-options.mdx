@@ -18,6 +18,8 @@ The `Config` object is passed to `createMarzbanSDK` or the `MarzbanSDK` construc
 | `retries` | `number` | No | `3` | Number of automatic retries for failed HTTP requests and WebSocket reconnections. Uses exponential backoff. |
 | `logger` | `false \| LoggerOptions \| Logger` | No | env-aware | Logging configuration. See [Logging](/docs/configuration/logging). |
 | `webhook` | `{ secret?: string }` | No | — | Webhook configuration. Set `secret` to enable HMAC-SHA256 signature verification. |
+| `httpAgent` | `HttpAgentLike` | No | — | Node.js `http.Agent` (or compatible) used for `http:` requests. Ignored in browsers. |
+| `httpsAgent` | `HttpAgentLike` | No | — | Node.js `https.Agent` (or compatible) used for `https:` requests and the WebSocket log stream. Ignored in browsers. See [Self-signed certificates](#self-signed-certificates--custom-ca) below. |
 
 ## Minimal config
 
@@ -69,6 +71,29 @@ const sdk = await createMarzbanSDK({
 
 <Callout type="warn">
   If the supplied `token` expires, the SDK will re-authenticate using `username` and `password` automatically. Both fields are still required.
+</Callout>
+
+## Self-signed certificates & custom CA
+
+Self-hosted Marzban panels are frequently served behind a self-signed or internal-CA certificate. Rather than disabling TLS verification, pass a Node `https.Agent` configured with the CA to trust:
+
+```ts
+import { readFileSync } from 'node:fs'
+import https from 'node:https'
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://panel.example.com',
+  username: 'admin',
+  password: 'secret',
+  httpsAgent: new https.Agent({ ca: readFileSync('ca.pem') }),
+})
+```
+
+The same `httpsAgent` also covers `sdk.logs` — see [WebSocket Logs](/docs/realtime/websocket-logs#custom-agent--self-signed-certificates). `httpAgent`/`httpsAgent` are Node-only: they're ignored (with a warning) in the browser, where there's no way to hand a custom CA to the native `fetch`/`WebSocket` implementations.
+
+<Callout type="error">
+  Don't set `rejectUnauthorized: false` on the agent to work around a certificate error — that disables verification entirely, for every connection the agent makes, not just the one you're debugging. Trust the specific CA instead, as shown above.
 </Callout>
 
 ## Retry behaviour

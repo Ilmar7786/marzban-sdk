@@ -92,6 +92,28 @@ close()
 await sdk.destroy()
 ```
 
+## Custom agent & self-signed certificates
+
+`sdk.logs` reuses the `httpsAgent` from your SDK config (see [Self-signed certificates & custom CA](/docs/configuration/config-options#self-signed-certificates--custom-ca)) — nothing extra to configure:
+
+```ts
+import { readFileSync } from 'node:fs'
+import https from 'node:https'
+import { createMarzbanSDK } from 'marzban-sdk'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://panel.example.com',
+  username: 'admin',
+  password: 'secret',
+  httpsAgent: new https.Agent({ ca: readFileSync('ca.pem') }),
+})
+
+// Trusts the same CA as the REST calls above.
+await sdk.logs.connectByCore({ onMessage: data => console.log(data) })
+```
+
+This is Node-only: neither the browser's native `WebSocket` nor Node's own global `WebSocket` (21+) can be given a custom agent, so a configured `httpsAgent` forces the connection through the `ws`-package-backed client instead — see "Browser support" below. In the browser the agent is ignored (with a warning), the same as the HTTP client.
+
 ## Browser support
 
 The WebSocket client auto-detects the runtime:
@@ -99,7 +121,7 @@ The WebSocket client auto-detects the runtime:
 - **Modern environments** (browser, Deno, Bun, Node.js 21+) — uses the native `WebSocket` global.
 - **Older Node.js (18–20)** — falls back to the `ws` package (included as an optional dependency).
 
-No configuration required — the detection is fully transparent.
+No configuration required for that detection — it's fully transparent, **unless** you set `httpsAgent`, which forces the `ws`-backed client outside the browser (see above) regardless of what's natively available.
 
 ## React / frontend example
 

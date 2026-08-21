@@ -58,23 +58,14 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           force: ${{ inputs.force_publish || false }}
 
-      # npm can only rewrite `workspace:*` protocol deps for workspaces it
-      # manages itself — this repo uses pnpm workspaces, so the root
-      # package.json has no `workspaces` field and npm leaves the range
-      # untouched. Left as-is, the published package.json would still say
-      # `workspace:^`, which `npm install` outside this repo cannot resolve.
-      - name: Resolve workspace dependency ranges
-        if: steps.prepare.outputs.changed == 'true'
-        run: node scripts/resolve-workspace-deps.mjs packages/mcp
-
-      - name: Publish to npm
-        if: steps.prepare.outputs.changed == 'true'
-        uses: JS-DevTools/npm-publish@v4
-        with:
-          package: packages/mcp/package.json
-          provenance: true
-          dry-run: ${{ inputs.dry_run || false }}
-
+      # Docker build/push runs BEFORE the workspace-range rewrite below on
+      # purpose: the Dockerfile's own `pnpm install --frozen-lockfile` needs
+      # packages/mcp/package.json to still say `workspace:^`, matching what
+      # pnpm-lock.yaml was actually generated against. Rewriting it first
+      # (as an earlier version of this workflow did) desyncs the two and
+      # `--frozen-lockfile` fails inside the build. `pnpm deploy` in the
+      # Dockerfile resolves the workspace protocol correctly on its own —
+      # this rewrite is only needed for the npm publish step further down.
       - name: Set up QEMU
         if: steps.prepare.outputs.changed == 'true'
         uses: docker/setup-qemu-action@v3
@@ -100,6 +91,10 @@ jobs:
       # Also produces the org.opencontainers.image.* labels (source, revision,
       # created, licenses, …) from the repo/git context — worth keeping this
       # action around for that alone, even with hand-picked tags below.
+      # title/description are overridden explicitly: metadata-action's own
+      # defaults for those two come from the GitHub *repository's* name and
+      # About description ("marzban-sdk" / the repo's blurb), not from this
+      # specific package — left alone, the image ends up labeled as sdk.
       - name: Docker image metadata
         if: steps.prepare.outputs.changed == 'true'
         id: meta
@@ -110,6 +105,9 @@ jobs:
             type=raw,value=${{ steps.prepare.outputs.version }}
             type=raw,value=${{ steps.minor.outputs.value }}
             type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=marzban-mcp
+            org.opencontainers.image.description=MCP server for the Marzban API, built on marzban-sdk
 
       # provenance/sbom attestations require an actual registry push to
       # attach to — in a dry run (push: false) they're left off entirely
@@ -129,6 +127,25 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # npm can only rewrite `workspace:*` protocol deps for workspaces it
+      # manages itself — this repo uses pnpm workspaces, so the root
+      # package.json has no `workspaces` field and npm leaves the range
+      # untouched. Left as-is, the published package.json would still say
+      # `workspace:^`, which `npm install` outside this repo cannot resolve.
+      # Runs after the Docker build (see the comment above it) so the
+      # rewrite never leaks into that build's context.
+      - name: Resolve workspace dependency ranges
+        if: steps.prepare.outputs.changed == 'true'
+        run: node scripts/resolve-workspace-deps.mjs packages/mcp
+
+      - name: Publish to npm
+        if: steps.prepare.outputs.changed == 'true'
+        uses: JS-DevTools/npm-publish@v4
+        with:
+          package: packages/mcp/package.json
+          provenance: true
+          dry-run: ${{ inputs.dry_run || false }}
 
       - name: Add artifact links to release notes
         if: steps.prepare.outputs.changed == 'true'

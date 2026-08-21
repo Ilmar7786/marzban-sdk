@@ -35,13 +35,15 @@ bump "version" in packages/<pkg>/package.json, merge to main
   → CI runs on main and succeeds
   → release-<pkg>.yml runs (triggered by workflow_run, not by the push itself)
       release-prepare  (dry-run detects the version bump → changelog → notes)
+      → [mcp only] docker buildx build --push (amd64 + arm64; Docker Hub auth via stored secrets, not OIDC)
       → [mcp only] resolve workspace:* deps to real ranges (see below)
       → npm publish --provenance (OIDC, no stored npm token)
-      → [mcp only] docker buildx build --push (amd64 + arm64, GHCR-style OIDC N/A — Docker Hub uses stored secrets)
       → artifact links appended to the release notes
       → GitHub Release created, tag = "<prefix>v<version>"
       → commit-changelog pushes the CHANGELOG.md update back to main
 ```
+
+mcp's Docker build runs **before** the workspace-range rewrite, not after — see the next section for why the order matters.
 
 **Nobody creates a release tag by hand** — the GitHub Release step creates it
 from `tag_prefix + version`. Tag prefixes: `sdk-v*`, `mcp-v*`.
@@ -51,7 +53,7 @@ already on npm, the workflow stops there — publishing nothing. This is what
 makes it safe for both release workflows to run on every `main` push without
 over-publishing.
 
-### Why mcp's package.json gets rewritten before publish
+### Why mcp's package.json gets rewritten before publish — and only right before
 
 `packages/mcp/package.json` depends on `marzban-sdk` via `workspace:^`. npm
 only rewrites the `workspace:` protocol for workspaces declared in its own
@@ -61,6 +63,16 @@ string `workspace:^`, which `npm install` can't resolve outside this repo.
 [`scripts/resolve-workspace-deps.mjs`](../scripts/resolve-workspace-deps.mjs)
 rewrites it to the real published range right before `npm publish` runs, in
 CI only — the change is never committed back to git.
+
+This rewrite has to run **after** the Docker build, not before. The Docker
+build's context is the same checked-out working tree (`COPY . .`), and its
+`pnpm install --frozen-lockfile` needs `packages/mcp/package.json` to still
+say `workspace:^`, matching what `pnpm-lock.yaml` was actually generated
+against — `pnpm deploy` inside the Dockerfile resolves the workspace
+protocol correctly on its own. Rewriting the file first desyncs it from the
+lockfile and `--frozen-lockfile` fails; this is exactly what broke the first
+real mcp release (npm succeeded, the Docker step failed on a lockfile
+mismatch) before the step order was fixed.
 
 ### Recovering a partially-failed release
 

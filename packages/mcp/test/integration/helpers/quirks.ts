@@ -6,7 +6,7 @@ import { isHttpError, type MarzbanSDK } from 'marzban-sdk'
 // docs/marzban-quirks.md for the full writeup of what's worked around here.
 
 export function freshConnectionConfig(): Record<string, unknown> {
-  return { httpsAgent: new https.Agent({ rejectUnauthorized: false }) }
+  return { httpsAgent: new https.Agent({ rejectUnauthorized: true }) }
 }
 
 export async function removeUserTolerantly(sdk: MarzbanSDK, username: string): Promise<void> {

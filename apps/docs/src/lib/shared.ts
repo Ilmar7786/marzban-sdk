@@ -10,6 +10,8 @@ export const gitConfig = {
 }
 
 export const npmPackage = 'marzban-sdk'
+export const mcpNpmPackage = 'marzban-mcp'
+export const mcpDockerImage = 'ilmar7786/marzban-mcp'
 
 /**
  * Deployment base path. GitHub Pages serves a project site from

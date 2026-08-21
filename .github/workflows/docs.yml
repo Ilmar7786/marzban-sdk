@@ -7,6 +7,12 @@ on:
       - 'apps/docs/**'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
+  # The site is a static export — the GitHub star count in the header is
+  # baked in at build time (see `fetchStars()` in header-github.tsx), so it
+  # only refreshes on a rebuild. This periodic rebuild is what keeps it
+  # current between content pushes.
+  schedule:
+    - cron: '0 */6 * * *'
 
 # Allow only one concurrent deployment, skipping runs queued between the run
 # in-progress and latest queued. Do not cancel in-progress runs.

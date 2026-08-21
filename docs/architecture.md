@@ -7,12 +7,12 @@ that graph simple, known trade-offs.
 
 ## Dependency graph
 
-```
-marzban-sdk (packages/sdk)
-     ▲            ▲            ▲
-     │ dep         │ dep         │ devDep (build-order hint only)
-     │            │            │
-marzban-mcp   marzban-cli   marzban-sdk-docs
+```mermaid
+flowchart BT
+    SDK["marzban-sdk<br/>(packages/sdk)"]
+    MCP["marzban-mcp"] -- dep --> SDK
+    CLI["marzban-cli"] -- dep --> SDK
+    Docs["marzban-sdk-docs"] -. "devDep (build-order hint only)" .-> SDK
 ```
 
 One level, acyclic. `marzban-sdk` is the only package with no workspace

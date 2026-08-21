@@ -1,12 +1,13 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { ThemeSwitch } from 'fumadocs-ui/layouts/shared/slots/theme-switch'
-import { BookOpen, Package } from 'lucide-react'
+import { BookOpen } from 'lucide-react'
 
 import { HeaderGithub } from '@/components/landing/header-github'
 import { BrandMark } from '@/components/ui/brand-mark'
+import { PackagesPopover } from '@/components/ui/packages-popover'
 import { Tooltip } from '@/components/ui/tooltip'
 
-import { appName, npmPackage } from './shared'
+import { appName } from './shared'
 
 /** Ghost icon button for the landing header nav, matching Fumadocs' own controls. */
 const navIconButton =
@@ -15,7 +16,7 @@ const navIconButton =
 /**
  * Shared layout options for both the landing (HomeLayout) and docs (DocsLayout).
  *
- * The utility controls — npm and the GitHub star pill — live in the nav `links`
+ * The utility controls — the packages popover and the GitHub star pill — live in the nav `links`
  * so they render in the landing header. The docs layout renders these itself in
  * a single compact sidebar-footer row (see `DocsSidebarFooter`), so it opts out
  * here via `navExtras: false` to avoid duplicating them as stray chips in the
@@ -58,16 +59,8 @@ export function baseOptions({ navExtras = true }: { navExtras?: boolean } = {}):
               type: 'custom',
               secondary: true,
               children: (
-                <Tooltip label="View on npm" side="bottom">
-                  <a
-                    href={`https://www.npmjs.com/package/${npmPackage}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="View on npm"
-                    className={navIconButton}
-                  >
-                    <Package />
-                  </a>
+                <Tooltip label="Packages" side="bottom">
+                  <PackagesPopover triggerClassName={navIconButton} />
                 </Tooltip>
               ),
             },

@@ -1,11 +1,15 @@
 import {
   Activity,
   ArrowRight,
+  Bot,
   Cpu,
+  EyeOff,
   FileCheck2,
+  Filter,
   Globe,
   KeyRound,
   LayoutTemplate,
+  ListChecks,
   PackageCheck,
   Radio,
   RefreshCw,
@@ -33,12 +37,12 @@ import { appName, gitConfig } from '@/lib/shared'
 export const metadata: Metadata = {
   // `absolute` opts out of the root `%s · MarzbanSDK` template — the landing
   // title already leads with the brand, so the suffix would duplicate it.
-  title: { absolute: `${appName} — The complete TypeScript SDK for Marzban` },
+  title: { absolute: `${appName} — The Marzban toolkit for code and AI agents` },
   description:
-    'A complete, production-grade TypeScript SDK for Marzban. Full typed API coverage across users, nodes, subscriptions and admins, plus auto token refresh, retry logic, WebSocket log streaming, Zod validation, webhook verification, and a classified error system — isomorphic for Node.js and the browser.',
+    'The Marzban toolkit: a complete, production-grade TypeScript SDK — full typed API coverage across users, nodes, subscriptions and admins, plus auto token refresh, retry logic, WebSocket log streaming, Zod validation, webhook verification, and a classified error system, isomorphic for Node.js and the browser — and marzban-mcp, an MCP server built on it so Claude, Cursor, or any MCP client can manage a Marzban panel directly.',
 }
 
-/** Infrastructure-level capabilities that make this an SDK, not a wrapper. */
+/** Infrastructure-level capabilities that make the SDK an SDK, not a wrapper. */
 const features = [
   {
     icon: Sparkles,
@@ -115,6 +119,40 @@ const modules = [
   { icon: Webhook, title: 'Webhooks', desc: 'Verify and handle inbound Marzban events.' },
 ]
 
+/** What makes marzban-mcp safe to hand to a model, not just capable. */
+const mcpFeatures = [
+  {
+    icon: KeyRound,
+    title: 'Env-only credentials',
+    desc: 'The panel URL, username and password are never accepted as a tool argument — a compromised or confused model can’t redirect the server elsewhere.',
+  },
+  {
+    icon: Filter,
+    title: 'Profile-gated tools',
+    desc: 'A tool outside the active profile never appears in tools/list at all, not just hidden behind a hint.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Confirmation on destructive actions',
+    desc: 'The first call only describes the consequences and returns a one-time token; nothing runs until a human-approved second call repeats it.',
+  },
+  {
+    icon: EyeOff,
+    title: 'Credentials masked by default',
+    desc: 'proxies, subscription_url and links stay hidden unless you explicitly opt in.',
+  },
+  {
+    icon: ListChecks,
+    title: '21 tools, 3 prompts',
+    desc: 'Full user lifecycle, config, hosts, nodes, system stats and subscriptions, plus ready-made investigations that chain several tools together.',
+  },
+  {
+    icon: Bot,
+    title: 'Built on marzban-sdk',
+    desc: 'The same typed client, auth and retry behavior as the SDK, just exposed as MCP tools — no drift between them.',
+  },
+]
+
 const sdkSample = `import { createMarzbanSDK, isAuthError } from 'marzban-sdk'
 
 // One call authenticates and wires up every API module.
@@ -141,11 +179,34 @@ try {
   if (isAuthError(err)) await sdk.authorize()
 }`
 
+const mcpSample = `{
+  "mcpServers": {
+    "marzban": {
+      "command": "npx",
+      "args": ["-y", "marzban-mcp"],
+      "env": {
+        "MARZBAN_BASE_URL": "https://panel.example.com",
+        "MARZBAN_USERNAME": "admin",
+        "MARZBAN_PASSWORD": "secret"
+      }
+    }
+  }
+}`
+
 function GithubIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
       <path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.39 1.24-3.23-.13-.3-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.23 0 4.63-2.81 5.65-5.49 5.95.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5z" />
     </svg>
+  )
+}
+
+/** Small uppercase pill labelling which product a section belongs to. */
+function Eyebrow({ children }: { children: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-fd-border bg-fd-card px-3 py-1 text-xs font-semibold tracking-wide text-fd-muted-foreground uppercase">
+      {children}
+    </span>
   )
 }
 
@@ -181,7 +242,7 @@ export default function HomePage() {
           {/* Badge */}
           <span className="animate-fade-up mb-6 inline-flex items-center gap-2 rounded-full border border-fd-border bg-fd-card px-3 py-1 text-sm text-fd-muted-foreground">
             <Zap className="size-3.5 text-fd-primary" />
-            TypeScript SDK &middot; Node.js &amp; Browser &middot; v3
+            TypeScript SDK &middot; MCP Server &middot; Node.js &amp; Browser
           </span>
 
           {/* Heading */}
@@ -189,9 +250,9 @@ export default function HomePage() {
             className="animate-fade-up text-4xl font-bold tracking-tight sm:text-6xl"
             style={{ animationDelay: '60ms' }}
           >
-            The complete SDK
+            The <span className="brand-gradient-text">Marzban toolkit</span>
             <br />
-            for the <span className="brand-gradient-text">Marzban API</span>
+            for code and AI agents
           </h1>
 
           {/* Sub-heading */}
@@ -199,9 +260,11 @@ export default function HomePage() {
             className="animate-fade-up mt-6 max-w-2xl text-lg text-fd-muted-foreground"
             style={{ animationDelay: '120ms' }}
           >
-            Far more than an API client. {appName} bundles the entire infrastructure layer a serious Marzban integration
-            needs — typed endpoints, auto token refresh, retries, WebSocket streaming, webhooks and runtime validation —
-            so you ship features, not plumbing.
+            {appName} bundles two things: a complete typed TypeScript SDK for building your own Marzban integration —
+            auth, retries, WebSocket streaming, webhooks, runtime validation — and{' '}
+            <code className="rounded bg-fd-muted px-1.5 py-0.5 font-mono text-base">marzban-mcp</code>, an MCP server
+            built on it so an AI agent can run your panel directly. Same auth, same retries, same typed errors, so
+            neither ever drifts from the other.
           </p>
 
           {/* CTA row */}
@@ -238,10 +301,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Code preview ─────────────────────────────────────────────── */}
+      {/* ── SDK: code preview ────────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-4xl px-4 py-20">
         <div className="mb-7 text-center">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          <Eyebrow>marzban-sdk</Eyebrow>
+          <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
             From install to <span className="brand-gradient-text">full API access</span> in minutes
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-fd-muted-foreground">
@@ -251,7 +315,7 @@ export default function HomePage() {
         <CodePreview code={sdkSample} lang="ts" title="example.ts" />
       </section>
 
-      {/* ── API modules ──────────────────────────────────────────────── */}
+      {/* ── SDK: API modules ─────────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-6xl px-4 pb-20">
         <div className="mb-10 text-center">
           <h2 className="text-3xl font-bold tracking-tight">The whole API, fully typed</h2>
@@ -278,7 +342,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Features grid ─────────────────────────────────────────────── */}
+      {/* ── SDK: features grid ───────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-6xl px-4 pb-20">
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold tracking-tight">A real SDK, not just a wrapper</h2>
@@ -303,6 +367,84 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── MCP: intro + code preview ────────────────────────────────── */}
+      <section className="relative overflow-hidden border-t border-fd-border">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-25"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, var(--color-fd-border) 1px, transparent 1px), linear-gradient(to bottom, var(--color-fd-border) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+            maskImage: 'radial-gradient(ellipse 60% 60% at 50% 0%, #000 40%, transparent 100%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 60% 60% at 50% 0%, #000 40%, transparent 100%)',
+          }}
+        />
+        <div className="relative mx-auto w-full max-w-4xl px-4 py-20">
+          <div className="mb-7 text-center">
+            <Eyebrow>marzban-mcp</Eyebrow>
+            <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
+              Or hand your panel to <span className="brand-gradient-text">an AI agent</span>
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-fd-muted-foreground">
+              Point Claude, Cursor, or any MCP client at your panel with one config block — no custom integration code,
+              built on the same SDK above.
+            </p>
+          </div>
+          <CodePreview code={mcpSample} lang="json" title="claude_desktop_config.json" />
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-sm text-fd-muted-foreground">
+            <a
+              href="https://www.npmjs.com/package/marzban-mcp"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-fd-border bg-fd-card px-3 py-1 hover:bg-fd-accent"
+            >
+              npx -y marzban-mcp
+            </a>
+            <a
+              href="https://hub.docker.com/r/ilmar7786/marzban-mcp"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-fd-border bg-fd-card px-3 py-1 hover:bg-fd-accent"
+            >
+              docker pull ilmar7786/marzban-mcp
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── MCP: features grid ───────────────────────────────────────── */}
+      <section className="mx-auto w-full max-w-6xl px-4 py-20">
+        <div className="mb-12 text-center">
+          <h2 className="text-3xl font-bold tracking-tight">Capable, but never unsupervised</h2>
+          <p className="mx-auto mt-3 max-w-xl text-fd-muted-foreground">
+            Every safety mechanism below is on by default — an agent can only do what its profile allows, and never
+            without your say-so on anything destructive.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {mcpFeatures.map(({ icon: Icon, title, desc }) => (
+            <div
+              key={title}
+              className="group rounded-xl border border-fd-border bg-fd-card p-5 transition-colors hover:border-fd-primary/50"
+            >
+              <div className="mb-4 inline-flex rounded-lg border border-fd-border bg-fd-background p-2.5 text-fd-primary transition-transform group-hover:scale-110">
+                <Icon className="size-5" />
+              </div>
+              <h3 className="font-semibold">{title}</h3>
+              <p className="mt-1.5 text-sm text-fd-muted-foreground">{desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-8 flex justify-center">
+          <Link
+            href="/docs/mcp-server/overview"
+            className="inline-flex items-center gap-2 rounded-lg border border-fd-border bg-fd-card px-5 py-2.5 font-medium transition-colors hover:bg-fd-accent"
+          >
+            Read the MCP server docs <ArrowRight className="size-4" />
+          </Link>
+        </div>
+      </section>
+
       {/* ── Final CTA ────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-t border-fd-border">
         <div
@@ -314,7 +456,8 @@ export default function HomePage() {
             Build your Marzban integration <span className="brand-gradient-text">the right way</span>
           </h2>
           <p className="mt-4 max-w-xl text-fd-muted-foreground">
-            Read the quick-start guide and have a typed, authenticated client running in a couple of minutes.
+            Read the SDK quick-start to build in code, or the MCP server docs to wire it up for an AI agent — either way
+            you&rsquo;re running the same battle-tested client underneath.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link

@@ -1,12 +1,12 @@
-import https from 'node:https'
-
 import { isHttpError, type MarzbanSDK } from 'marzban-sdk'
+
+import { tlsAgent } from './tls'
 
 // Mirrors packages/sdk/test/integration/helpers/quirks.ts — see
 // docs/marzban-quirks.md for the full writeup of what's worked around here.
 
 export function freshConnectionConfig(): Record<string, unknown> {
-  return { httpsAgent: new https.Agent({ rejectUnauthorized: true }) }
+  return { httpsAgent: tlsAgent() }
 }
 
 export async function removeUserTolerantly(sdk: MarzbanSDK, username: string): Promise<void> {

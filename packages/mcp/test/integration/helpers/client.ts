@@ -3,6 +3,7 @@ import { createMarzbanSDK, type MarzbanSDK } from 'marzban-sdk'
 import type { McpConfig } from '../../../src/config'
 import type { McpLogger } from '../../../src/core/logger'
 import type { ToolContext } from '../../../src/core/tool'
+import { tlsAgent } from './tls'
 
 /**
  * Defaults match local/marzban/.env.example — a fresh `pnpm local:up` works
@@ -30,6 +31,7 @@ export async function createTestToolContext(): Promise<ToolContext> {
     baseUrl: env.baseUrl,
     username: env.username,
     password: env.password,
+    httpsAgent: tlsAgent(),
     logger: false,
   })
   const config: McpConfig = {

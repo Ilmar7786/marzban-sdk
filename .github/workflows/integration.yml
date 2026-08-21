@@ -30,8 +30,12 @@ jobs:
 
       - name: Wait for the panel to be ready
         run: |
+          # --cacert (not -k): proves the SDK/MCP's httpsAgent-based CA trust
+          # actually works against this cert before the test suites — which
+          # rely on the same trust, not on skipping verification — even run.
           for i in $(seq 1 30); do
-            if curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1:8000/docs | grep -q 200; then
+            if curl -s --cacert local/marzban/data/certs/local.crt \
+              -o /dev/null -w '%{http_code}' https://127.0.0.1:8000/docs | grep -q 200; then
               echo "Panel is up."
               exit 0
             fi

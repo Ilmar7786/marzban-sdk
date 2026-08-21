@@ -1,0 +1,96 @@
+name: Release prepare
+description: >-
+  Detects whether a package's version actually changed (vs. what's already on
+  npm) and, if so, prepends its changelog and renders release notes.
+
+inputs:
+  package-dir:
+    description: Path to the package directory (e.g. packages/sdk)
+    required: true
+  tag-prefix:
+    description: Tag prefix for this package (e.g. sdk-v)
+    required: true
+  tag-pattern:
+    description: git-cliff --tag-pattern for this package's tag history
+    required: true
+  include-path-args:
+    description: git-cliff --include-path arguments, space-separated
+    required: true
+  github-token:
+    description: Token used for git-cliff's GitHub API calls
+    required: true
+  force:
+    description: >-
+      Treat this as a changed release even if the npm dry-run says otherwise.
+      Used to resume a release that failed after npm publish already
+      succeeded (see release-mcp.yml's force_publish input).
+    required: false
+    default: 'false'
+
+outputs:
+  changed:
+    description: Whether this package should be released
+    value: ${{ steps.decide.outputs.changed }}
+  version:
+    description: The version being released
+    value: ${{ steps.npm-dry-run.outputs.version }}
+  tag:
+    description: The full tag name (tag-prefix + version)
+    value: ${{ inputs.tag-prefix }}${{ steps.npm-dry-run.outputs.version }}
+  notes-path:
+    description: Path to the rendered release notes file
+    value: /tmp/release-notes.md
+
+runs:
+  using: composite
+  steps:
+    # JS-DevTools/npm-publish no-ops (empty `type` output) when the version
+    # in package.json already matches what's on npm. Dry-run first so we
+    # only touch the changelog/release for packages that actually changed.
+    - name: Check for a version bump
+      uses: JS-DevTools/npm-publish@v4
+      id: npm-dry-run
+      with:
+        package: ${{ inputs.package-dir }}/package.json
+        dry-run: true
+
+    - name: Decide whether to release
+      id: decide
+      shell: bash
+      run: |
+        if [ -n "${{ steps.npm-dry-run.outputs.type }}" ] || [ "${{ inputs.force }}" = "true" ]; then
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Update package changelog
+      if: steps.decide.outputs.changed == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        # --latest (rather than a full regenerate) is required here: git-cliff
+        # cannot correctly bucket commits per historical tag once --include-path
+        # is applied across the full multi-tag history — it collapses every
+        # release into one. Scoped to a single tag boundary, --include-path
+        # works correctly, so each release prepends just its own section.
+        pnpm exec git-cliff \
+          --tag "${{ inputs.tag-prefix }}${{ steps.npm-dry-run.outputs.version }}" \
+          --tag-pattern '${{ inputs.tag-pattern }}' \
+          --github-repo '${{ github.repository }}' \
+          ${{ inputs.include-path-args }} \
+          --latest --prepend '${{ inputs.package-dir }}/CHANGELOG.md'
+
+    - name: Render release notes
+      if: steps.decide.outputs.changed == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        pnpm exec git-cliff \
+          --tag "${{ inputs.tag-prefix }}${{ steps.npm-dry-run.outputs.version }}" \
+          --tag-pattern '${{ inputs.tag-pattern }}' \
+          --github-repo '${{ github.repository }}' \
+          ${{ inputs.include-path-args }} \
+          --latest --strip all > /tmp/release-notes.md

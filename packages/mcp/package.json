@@ -1,0 +1,64 @@
+{
+  "name": "marzban-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for the Marzban API, built on marzban-sdk.",
+  "keywords": [
+    "marzban-mcp",
+    "marzban",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "ai-agent",
+    "claude",
+    "claude-desktop",
+    "claude-code",
+    "cursor",
+    "vpn",
+    "xray"
+  ],
+  "author": "ilmar7786",
+  "license": "MIT",
+  "private": false,
+  "sideEffects": false,
+  "type": "module",
+  "bin": {
+    "marzban-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration:watch": "vitest --config vitest.integration.config.ts",
+    "inspect": "pnpm turbo run build --filter=marzban-mcp && npx -y @modelcontextprotocol/inspector@2.3.0 --config inspector.config.json --server marzban-local"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "marzban-sdk": "workspace:^",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "tsup": "^8.5.1",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ilmar7786/marzban-sdk.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/Ilmar7786/marzban-sdk/issues"
+  },
+  "homepage": "https://ilmar7786.github.io/marzban-sdk/"
+}

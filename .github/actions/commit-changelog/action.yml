@@ -1,0 +1,34 @@
+name: Commit changelog
+description: Commits and pushes changed changelog file(s) back to main, retrying on push races.
+
+inputs:
+  paths:
+    description: Paths to `git add` (space-separated)
+    required: true
+  message:
+    description: Commit message
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Commit updated changelog
+      shell: bash
+      run: |
+        git config user.name 'github-actions[bot]'
+        git config user.email 'github-actions[bot]@users.noreply.github.com'
+        git add ${{ inputs.paths }}
+        git commit -m '${{ inputs.message }}'
+        # Independent release workflows all push to the same main branch —
+        # when several release at once, two jobs can race here. npm publish +
+        # the GitHub release already happened by this point, so a failed push
+        # must be retried rather than left to fail the job.
+        for attempt in 1 2 3 4 5; do
+          if git pull --rebase origin main && git push origin HEAD:main; then
+            exit 0
+          fi
+          echo "Push attempt $attempt failed, retrying after backoff..."
+          sleep "$((RANDOM % 10 + attempt * 3))"
+        done
+        echo "::error::Failed to push ${{ inputs.paths }} after 5 attempts"
+        exit 1

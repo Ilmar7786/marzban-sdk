@@ -1,0 +1,142 @@
+---
+title: Context7
+description: How AI coding assistants can pull current marzban-sdk and marzban-mcp documentation on demand, instead of answering from stale training data.
+---
+
+<Callout type="info">
+  This is different from the [MCP server](/docs/mcp-server) (`marzban-mcp`). That one gives an AI agent operational access to a *running Marzban panel* — creating users, restarting the core. Context7 gives any AI coding assistant read access to *this documentation*, kept current with every release.
+</Callout>
+
+## What it is
+
+[Context7](https://context7.com) is an MCP server that resolves a library name to its current documentation and code examples, then feeds them into an AI assistant's context — instead of the assistant answering from training data that may be a year old. It exposes two tools: `resolve-library-id` (name → library ID) and `get-library-docs` (library ID → current docs). Most clients trigger it with the phrase `use context7` in a prompt.
+
+`marzban-sdk` is already indexed:
+
+```text
+Library ID: /websites/ilmar7786_github_io_marzban-sdk
+Source: this documentation site
+```
+
+## Why it matters here
+
+This monorepo ships releases often, and an assistant's training data doesn't move at the same pace — a model can confidently suggest an API shape that changed two versions ago. Context7 closes that gap automatically: your assistant re-fetches current docs on every relevant question, without anyone pasting a page into the chat by hand.
+
+For a team evaluating this SDK, it's a concrete signal: the project is set up to be used correctly by AI-assisted developers, not just documented for humans reading top to bottom.
+
+## Two ways an AI can read these docs
+
+| Mechanism | How a model gets it | Best for |
+|---|---|---|
+| [`llms.txt`](/llms.txt) / [`llms-full.txt`](/llms-full.txt) | A direct URL any assistant can fetch — no MCP required | Clients without MCP support, or pasting a link straight into a chat |
+| Context7 MCP | Automatic, inside your IDE, for every library you use — not just this one | Day-to-day development in an MCP-aware editor |
+
+## How a request flows
+
+1. You ask your assistant a question and mention `use context7` (or your client's equivalent).
+2. The assistant calls Context7's `resolve-library-id` for "marzban-sdk" — or you supply the ID above directly.
+3. Context7 calls `get-library-docs`, pulling from this site's current content.
+4. The docs come back into the assistant's context.
+5. The answer reflects the version you actually have installed, not whatever the model last saw in training.
+
+## Setting it up
+
+Context7 runs either as a remote HTTP server (`https://mcp.context7.com/mcp`, no install) or locally via `npx -y @upstash/context7-mcp`. An API key from [context7.com](https://context7.com) is optional but raises your rate limit.
+
+<Tabs items={['Cursor', 'Claude Code', 'Claude Desktop', 'Windsurf', 'VS Code Copilot']}>
+  <Tab value="Cursor">
+
+  Add to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (every project):
+
+  ```json
+  {
+    "mcpServers": {
+      "context7": {
+        "url": "https://mcp.context7.com/mcp"
+      }
+    }
+  }
+  ```
+
+  </Tab>
+  <Tab value="Claude Code">
+
+  ```bash
+  claude mcp add --transport http context7 https://mcp.context7.com/mcp
+  ```
+
+  Add `-s user` to make it available in every project instead of just this one.
+
+  </Tab>
+  <Tab value="Claude Desktop">
+
+  Edit the config file directly (see [Client Setup](/docs/mcp-server/client-setup) for the exact path per OS), then fully quit and reopen the app:
+
+  ```json
+  {
+    "mcpServers": {
+      "context7": {
+        "command": "npx",
+        "args": ["-y", "@upstash/context7-mcp"]
+      }
+    }
+  }
+  ```
+
+  </Tab>
+  <Tab value="Windsurf">
+
+  Click the MCP icon in the Cascade panel → **Configure** → **View raw config**, and add:
+
+  ```json
+  {
+    "mcpServers": {
+      "context7": {
+        "url": "https://mcp.context7.com/mcp"
+      }
+    }
+  }
+  ```
+
+  </Tab>
+  <Tab value="VS Code Copilot">
+
+  <Callout type="warn">
+    VS Code uses `servers`, not `mcpServers`, as the top-level key.
+  </Callout>
+
+  Create or edit `.vscode/mcp.json`:
+
+  ```json
+  {
+    "servers": {
+      "context7": {
+        "command": "npx",
+        "args": ["-y", "@upstash/context7-mcp"]
+      }
+    }
+  }
+  ```
+
+  </Tab>
+</Tabs>
+
+For any other MCP client, see [Context7's own client list](https://context7.com/docs/resources/all-clients) — the shape is almost always one of the two above.
+
+Then just ask, mentioning the trigger phrase:
+
+```text
+Add pagination to sdk.user.getUsers using paginateAll — use context7 for marzban-sdk's current API
+```
+
+Or skip the resolve step and reference the library directly:
+
+```text
+use library /websites/ilmar7786_github_io_marzban-sdk for marzban-sdk and marzban-mcp
+```
+
+## In practice
+
+- **Feature work** — ask for a change against a specific module ("add X to `sdk.node`") and get an answer against the API you actually have installed, not a remembered one.
+- **Onboarding** — a new hire's assistant is correct about this SDK from day one, without anyone walking them through what changed since the model's training cutoff.
+- **Agentic workflows** — an autonomous coding agent resolves documentation mid-task on its own, the same way it would for any other dependency it needs current facts about instead of guessing.

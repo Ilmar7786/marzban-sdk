@@ -1,0 +1,103 @@
+---
+title: Security
+description: How marzban-mcp handles credentials, gates access by profile, and confirms every destructive action before it runs — in full detail.
+---
+
+This page covers every safety mechanism the server has, and why each one is shaped the way it is. If you're deciding which profile to run in, or reviewing this before pointing it at a production panel, start here.
+
+## Credentials
+
+Credentials come from environment variables only, read once at startup, and are fixed for the process's entire lifetime. No tool's `inputSchema` accepts a field named `token`, `password`, `credentials`, `base_url`, `url`, or `host` — that's an architectural rule enforced across every tool, not a per-tool judgment call. A tool that accepted a URL or token as an argument would turn the server into an open proxy: text injected into ordinary data (a user's `note` field, say) could make it call out to an attacker-controlled host with attacker-controlled credentials.
+
+### Why both username and password are required
+
+Marzban's session tokens are short-lived by default, and the panel has no separate mechanism for long-lived API keys for external systems — a token is purely a per-login session artifact. `MARZBAN_USERNAME`/`MARZBAN_PASSWORD` let the server silently re-authenticate whenever a token expires, which it will over a server process's lifetime of hours or days. `MARZBAN_TOKEN` is accepted too, but purely as a startup optimization — if it's still fresh, the server skips the first login call. It is never a substitute for the password: without one, every tool would start failing the moment the initial token expired, with no way to recover short of a restart.
+
+## Profiles
+
+A profile is an access-control boundary, not a display hint. A tool outside the active profile is **never registered** — it doesn't appear in `tools/list` at all, so a model can't call what it can't see, and can't be talked into calling it either.
+
+| Profile | Exposes |
+|---|---|
+| `readonly` | Read-only tools only: lists, lookups, stats |
+| `standard` (default) | Read + write: full user CRUD, renewals, status changes, subscription lookups |
+| `full` | Everything in `standard`, plus every destructive tool |
+
+Set with `MARZBAN_MCP_PROFILE` — see [Configuration](/docs/mcp-server/configuration#access-control).
+
+## Confirming destructive actions
+
+A destructive tool's first call never runs anything. It describes exactly what would happen — with real context pulled from the panel, like the target user's current status or a diff against the current config — and returns a one-time token instead of a result. Only a second call, with that token attached, actually executes:
+
+```text
+> marzban_users_delete({ username: "alice" })
+
+< This will permanently delete user "alice" (status: active, used 12.4 GB,
+  expires 2026-09-01) and their subscription link. This cannot be undone.
+  Do not call this tool again until the user has explicitly said yes. Once
+  they have, repeat the exact same call with confirmToken: "v1.eyJwIjp7..."
+  added. The token is only valid for this tool and these exact arguments,
+  and expires in 5 minutes.
+
+> marzban_users_delete({ username: "alice", confirmToken: "v1.eyJwIjp7..." })
+
+< { username: "alice", deleted: true }
+```
+
+<Callout type="warn">
+  A token being available is not the same as the user's own consent. The text above is meant to be shown to the human and acted on only after they actually say yes — not treated as a formality the model can clear on its own judgment. Nothing about possessing a valid token authenticates who's asking; on stdio, that boundary is the process itself, not this token.
+</Callout>
+
+### The confirm_token mechanics
+
+The token is signed (HMAC), not just opaque — a model can't forge one, and re-using or repurposing one fails outright. On every verification, all of the following must hold, or the request is treated as unconfirmed and a fresh token is minted:
+
+1. **Signature is valid** — rules out a token the model invented or altered.
+2. **Not expired** — a 5-minute TTL, so a confirmation from an old, abandoned turn can't fire later.
+3. **Bound to this exact tool** — a token minted for `marzban_core_restart` is rejected if replayed against `marzban_users_delete`.
+4. **Bound to these exact arguments** — a token minted for `{ username: "alice" }` is rejected if replayed with `{ username: "bob" }`, or with `all: false` silently swapped to `all: true`.
+5. **Single-use** — once verified successfully, the same token can't be verified again.
+
+The signing key lives only in the server process's memory — a restart invalidates every outstanding token, by design.
+
+### Confirmation frequency: off / auto / always
+
+`MARZBAN_MCP_CONFIRM` controls how often the flow above happens:
+
+| Mode | Behavior | Best for |
+|---|---|---|
+| `auto` (default) | Confirm once per tool name per connection; after that, calls to the *same tool* proceed without re-asking | Interactive use — balances safety with not re-confirming "delete user" fifty times in a cleanup loop |
+| `always` | Confirm every single call, with no memory of what was already confirmed | Shared or interactive environments where even one accumulated trust is undesirable |
+| `off` | Skip confirmation entirely, from the very first call | Fully automated, unattended environments only — there is no safety net once this is set |
+
+Trust in `auto` mode is granted per tool *name*, not per call's arguments — confirming a delete for `alice` also trusts future deletes for `bob` without re-asking, for the rest of that connection. This is a deliberate, logged trade-off, not an oversight: it's no looser than what a host's own "always allow this tool" consent dialog already permits, just made explicit and auditable on this side. Every action taken under accumulated trust is still written to the audit log described below.
+
+## Credential masking
+
+`proxies`, `subscription_url`, and `links` are functionally access credentials — a `vless://` link embeds a UUID that grants connectivity — so they're masked by default in every tool response:
+
+- `proxies` shows only the configured protocol names, not their settings.
+- `subscription_url` shows only its origin (`https://panel.example.com/*** (hidden...)`).
+- `links` shows only a count (`3 link(s) (hidden...)`).
+
+Set `MARZBAN_MCP_SHOW_LINKS=true` to reveal them in full. This is a startup-time, all-or-nothing switch — there's no per-call override, so a model can't opt itself into revealing credentials mid-conversation.
+
+## No token or URL passthrough
+
+Related to the credentials rule above but worth calling out on its own: nothing in this server accepts a token, panel URL, or hostname from a model and uses it to make a request. The one narrow, intentional exception is `marzban_subscription_info`, which takes a *subscription* token (the low-privilege, per-user token embedded in a subscription link — not an admin credential) and queries the same public, unauthenticated endpoint a user's own client apps already hit, against the one fixed `MARZBAN_BASE_URL` configured at startup. It never accepts an arbitrary URL.
+
+## Config-write safety net
+
+`marzban_config_update` and `marzban_hosts_update` are the two tools that overwrite panel-wide configuration wholesale, so they carry extra guardrails beyond confirmation:
+
+- **Structural validation** — `marzban_config_update` refuses a payload that doesn't have array `inbounds`/`outbounds` fields, before it's even offered for confirmation.
+- **Automatic backup** — both tools fetch and return the pre-write state as `backup` in their response, so a mistaken write can be manually reverted.
+- **`dryRun` preview** — `marzban_config_update` accepts `dryRun: true`, which returns the exact diff against the current config with no write, no core restart, and — since it provably changes nothing — no confirmation step either.
+
+## Transport hygiene
+
+All server logs go to stderr, never stdout — stdout is reserved exclusively for the JSON-RPC protocol, and a single stray log line there would corrupt the connection. Errors surfaced back to the model reuse `marzban-sdk`'s own secret redaction, so a failure that happens to embed a header or request body never leaks a raw credential into the model's context either.
+
+## What's never exposed
+
+`adminToken` (issuing new admin JWTs) and admin account management (`createAdmin`/`modifyAdmin`/`removeAdmin`) are not registered as tools, in any profile. The server can manage what an admin manages — it can't mint new admin credentials for itself or anyone else.

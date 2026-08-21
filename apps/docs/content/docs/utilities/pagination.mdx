@@ -1,0 +1,61 @@
+---
+title: Pagination
+description: Walk every page of a paginated endpoint without hand-writing the offset/limit loop yourself.
+---
+
+Endpoints like `sdk.user.getUsers` are paginated with `offset`/`limit`, and stop reporting more once you've paged through everything. `paginateAll` wraps that loop into an async generator, so you write the fetch call once and consume items one at a time.
+
+## Import
+
+```ts
+import { paginateAll } from 'marzban-sdk'
+```
+
+## `paginateAll(fetchPage, opts?)`
+
+`fetchPage(offset, limit)` is your own call to a paginated method, adapted to return `{ items, total? }` — `paginateAll` knows nothing about any specific endpoint.
+
+```ts
+for await (const user of paginateAll((offset, limit) =>
+  sdk.user.getUsers({ offset, limit }).then(r => ({ items: r.users, total: r.total }))
+)) {
+  console.log(user.username)
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `pageSize` | `number` | `100` | Items requested per page |
+
+<Callout type="info">
+  `total` is optional in the `{ items, total? }` shape because not every paginated endpoint reports one — `getUsers` does, but `getAdmins`/`getUserTemplates` return a bare array with no count of the whole collection. Omit `total` for those; `paginateAll` falls back to stopping once a page comes back shorter than `pageSize` (or empty) instead.
+</Callout>
+
+## Collecting everything into an array
+
+`paginateAll` yields one item at a time — spread it or push into an array if you want them all at once:
+
+```ts
+const admins = []
+for await (const admin of paginateAll(
+  (offset, limit) => sdk.admin.getAdmins({ offset, limit }).then(items => ({ items })),
+  { pageSize: 50 }
+)) {
+  admins.push(admin)
+}
+```
+
+## Stopping early
+
+Since it's a generator, `break` out of the loop stops fetching further pages — the next page is never requested:
+
+```ts
+for await (const user of paginateAll((offset, limit) =>
+  sdk.user.getUsers({ offset, limit }).then(r => ({ items: r.users, total: r.total }))
+)) {
+  if (user.status === 'expired') {
+    console.log('First expired user:', user.username)
+    break
+  }
+}
+```

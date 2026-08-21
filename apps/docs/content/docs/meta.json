@@ -1,0 +1,17 @@
+{
+  "pages": [
+    "index",
+    "get-started",
+    "configuration",
+    "authentication",
+    "modules",
+    "realtime",
+    "webhooks",
+    "integrations",
+    "advanced",
+    "utilities",
+    "mcp-server",
+    "ai-tools",
+    "resources"
+  ]
+}

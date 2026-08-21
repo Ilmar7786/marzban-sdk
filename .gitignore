@@ -139,3 +139,9 @@ dist
 
 .openapi-generator
 .DS_Store
+
+# Turborepo cache
+.turbo
+
+# Local Marzban panel state (see local/marzban/README.md)
+local/marzban/data/

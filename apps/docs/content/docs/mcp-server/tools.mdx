@@ -1,0 +1,55 @@
+---
+title: Tools
+description: All 21 marzban-mcp tools, grouped by area, with their scope and what each one does.
+---
+
+Every tool is namespaced `marzban_<area>_<action>`. The **Scope** column determines which [profile](/docs/mcp-server/security#profiles) exposes it: `read`/`write` tools are in `standard` (the default), `destructive` tools need `full`.
+
+## Users
+
+| Tool | Scope | Description |
+|---|---|---|
+| `marzban_users_list` | read | List users, with search/status filters and pagination |
+| `marzban_users_get` | read | Get one user by username, with a computed summary (data left, days left, usage %) |
+| `marzban_users_create` | write | Create a user — optionally from a template, with any explicit field overriding the template's value |
+| `marzban_users_update` | write | Partially update a user; only the fields you provide change |
+| `marzban_users_activate` | write | Set status to `active` |
+| `marzban_users_deactivate` | write | Set status to `disabled`, blocking access without deleting the account |
+| `marzban_users_hold` | write | Set status to `on_hold` — inactive until first connection, then the hold timer starts |
+| `marzban_users_extend` | write | Renew: extend expiry and/or add data, relative to the user's current values (not an absolute overwrite) |
+| `marzban_users_usage` | read | Traffic usage, with a per-node breakdown |
+| `marzban_users_delete` | destructive | Permanently delete a user and their subscription link |
+| `marzban_users_reset_traffic` | destructive | Reset used traffic to zero, for one user or every user at once (`all: true`) |
+
+`marzban_users_activate`/`deactivate`/`hold` exist as separate tools rather than one generic "set status" tool deliberately — they're the most common operations, and a model reaches for them correctly on the first try without needing to know the underlying status enum.
+
+## Config
+
+| Tool | Scope | Description |
+|---|---|---|
+| `marzban_config_get` | read | Read the core (Xray) config — a structural summary by default; one section or the full JSON on request |
+| `marzban_config_update` | destructive | Replace the entire core config (restarts the core). `dryRun: true` previews the diff with no write and no confirmation needed |
+| `marzban_core_restart` | destructive | Restart the Xray core without changing its config |
+| `marzban_hosts_get` | read | List proxy hosts, flagging any field that references an unknown `{VARIABLE}` template token |
+| `marzban_hosts_update` | destructive | Replace the entire proxy host configuration |
+
+See [Security](/docs/mcp-server/security#config-write-safety-net) for the backup/dry-run guarantees on the two destructive config tools.
+
+## System & nodes
+
+| Tool | Scope | Description |
+|---|---|---|
+| `marzban_system_stats` | read | Panel-wide CPU/memory/user-count/bandwidth stats, plus core version and running state |
+| `marzban_system_inbounds` | read | List configured inbound proxies, grouped by protocol |
+| `marzban_nodes_list` | read | List nodes with status, Xray version, and bandwidth usage over a period |
+
+## Subscription
+
+| Tool | Scope | Description |
+|---|---|---|
+| `marzban_subscription_info` | read | Look up subscription status/usage by the token from a subscription URL — no username needed |
+| `marzban_users_revoke_subscription` | destructive | Issue a new subscription link for a user, invalidating the old one |
+
+## What's not here
+
+`adminToken` and admin account management (`createAdmin`/`modifyAdmin`/`removeAdmin`) are never registered, in any profile — see [Security](/docs/mcp-server/security#whats-never-exposed). User-template management (create/list/delete templates) isn't included either; `marzban_users_create`'s `templateId` argument references a template created through Marzban's own web panel.

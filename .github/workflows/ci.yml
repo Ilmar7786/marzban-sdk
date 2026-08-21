@@ -12,12 +12,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm test
-      - run: npm run build
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      # On a PR, compare against the base branch. On push to main, the tip
+      # already IS main, so comparing against origin/main would be a no-op —
+      # compare against the previous commit instead.
+      - name: Determine turbo filter base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "TURBO_FILTER=...[origin/${{ github.base_ref }}]" >> "$GITHUB_ENV"
+          else
+            echo "TURBO_FILTER=...[HEAD^1]" >> "$GITHUB_ENV"
+          fi
+      - run: pnpm turbo run lint test build --filter="$TURBO_FILTER"
+      - run: pnpm format:check

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "MarzbanSDK",
+  "description": "TypeScript SDK and MCP server for the Marzban panel API — typed endpoints, auth, retries, WebSocket log streaming, and webhooks.",
+  "folders": [],
+  "excludeFolders": ["docs", "packages/sdk/src/gen"],
+  "excludeFiles": ["CHANGELOG.md"],
+  "rules": [
+    "Construct the SDK with createMarzbanSDK(config), not `new MarzbanSDK(config)` directly.",
+    "marzban-mcp is a separate package built entirely on marzban-sdk — it has no HTTP logic of its own.",
+    "Narrow SDK errors with the exported type guards (isHttpError, isAuthError, isConfigurationError, isWebhookError), not by matching error.code strings."
+  ]
+}

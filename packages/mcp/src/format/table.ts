@@ -3,7 +3,7 @@ import type { ViewRow } from './views/types'
 function formatCell(value: ViewRow[string] | undefined): string {
   if (value === undefined) return ''
   if (value === null) return '—'
-  return String(value).replace(/\|/g, '\\|')
+  return String(value).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')
 }
 
 /** Renders rows as a markdown table. Column set is the union of keys across all rows (heterogeneous rows get blank cells), so a single view can mix shapes without the caller normalizing first. */

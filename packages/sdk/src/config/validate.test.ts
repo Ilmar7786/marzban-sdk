@@ -48,4 +48,25 @@ describe('validateConfig', () => {
     const result = validateConfig({ ...baseConfig, logger: { debug: 'not-a-fn' } })
     expect(result.logger).toEqual({})
   })
+
+  describe('httpAgent / httpsAgent', () => {
+    it('accepts an agent-like object with a destroy method for each field independently', () => {
+      const httpAgent = { destroy: () => {} }
+      const httpsAgent = { destroy: () => {} }
+
+      expect(validateConfig({ ...baseConfig, httpAgent }).httpAgent).toBe(httpAgent)
+      expect(validateConfig({ ...baseConfig, httpsAgent }).httpsAgent).toBe(httpsAgent)
+      expect(validateConfig(baseConfig).httpAgent).toBeUndefined()
+      expect(validateConfig(baseConfig).httpsAgent).toBeUndefined()
+    })
+
+    it('rejects a plain options object mistakenly passed instead of an agent instance', () => {
+      expect(() => validateConfig({ ...baseConfig, httpsAgent: { ca: 'not-an-agent' } })).toThrow(ConfigurationError)
+    })
+
+    it('rejects non-object values', () => {
+      expect(() => validateConfig({ ...baseConfig, httpAgent: 'nope' })).toThrow(ConfigurationError)
+      expect(() => validateConfig({ ...baseConfig, httpAgent: null })).toThrow(ConfigurationError)
+    })
+  })
 })

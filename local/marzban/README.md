@@ -41,18 +41,22 @@ something looks wrong, or run `pnpm local:reset` for a clean slate.
 
 ## Pointing the SDK / MCP at it
 
-The panel's certificate is self-signed — configure your client to trust it
-or skip verification accordingly.
+The panel's certificate is self-signed — trust it explicitly via `ca`
+(rather than disabling TLS verification). `gen-cert.sh` generates it with a
+`127.0.0.1` SAN, so Node accepts it once trusted this way.
 
 **SDK**, in a scratch script or REPL:
 
 ```ts
+import { readFileSync } from 'node:fs'
+import https from 'node:https'
 import { createMarzbanSDK } from 'marzban-sdk'
 
 const sdk = await createMarzbanSDK({
   baseUrl: 'https://127.0.0.1:8000',
   username: 'admin',
   password: 'changeme-local-only',
+  httpsAgent: new https.Agent({ ca: readFileSync('local/marzban/data/certs/local.crt') }),
 })
 ```
 
@@ -69,7 +73,8 @@ const sdk = await createMarzbanSDK({
         "MARZBAN_BASE_URL": "https://127.0.0.1:8000",
         "MARZBAN_USERNAME": "admin",
         "MARZBAN_PASSWORD": "changeme-local-only",
-        "MARZBAN_MCP_PROFILE": "full"
+        "MARZBAN_MCP_PROFILE": "full",
+        "MARZBAN_TLS_CA_FILE": "local/marzban/data/certs/local.crt"
       }
     }
   }

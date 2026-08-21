@@ -64,6 +64,7 @@ const close = await sdk.logs.connectByCore({
 - 🔁 **Built-in resilience** — configurable exponential back-off for transient failures, plus automatic WebSocket reconnects.
 - 🎯 **Classified errors** — `AuthError`, `HttpError`, `ConfigurationError` and webhook errors all extend `SdkError` with a machine-readable code and type-guard helpers.
 - 📡 **Real-time logs & webhooks** — WebSocket log streams from the core and nodes, plus HMAC-verified inbound webhooks with typed event subscriptions.
+- 🔐 **Custom CA support** — pass a Node `httpsAgent` to trust a self-hosted panel's self-signed certificate, without disabling TLS verification.
 
 ## Documentation
 

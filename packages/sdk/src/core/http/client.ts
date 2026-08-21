@@ -2,6 +2,7 @@ import { Client } from '@kubb/plugin-client/clients/axios'
 import axios, { AxiosInstance } from 'axios'
 import axiosRetry from 'axios-retry'
 
+import { isBrowser } from '@/common'
 import { MAX_RETRY_DELAY_MS, RETRY_BASE_DELAY_MS, ValidatedConfig } from '@/config'
 
 import { AuthManager } from '../auth'
@@ -32,13 +33,29 @@ export const configureHttpClient = (
   config: ValidatedConfig,
   logger: Logger
 ): HttpClientInstance => {
+  const hasCustomAgent = Boolean(config.httpAgent || config.httpsAgent)
+
   logger.debug(
-    `Configuring HTTP client: baseURL=${baseUrl}, timeout=${config.timeout}ms, retries=${config.retries}`,
+    `Configuring HTTP client: baseURL=${baseUrl}, timeout=${config.timeout}ms, retries=${config.retries}, customAgent=${hasCustomAgent}`,
     'HttpClient'
   )
 
-  const instanceAxios = axios.create({ baseURL: baseUrl, timeout: config.timeout })
-  const instancePublic = axios.create({ baseURL: baseUrl, timeout: config.timeout })
+  // axios silently ignores httpAgent/httpsAgent in the browser (it has no
+  // concept of a Node agent) — warn instead of leaving a configured-but-inert
+  // option, which is harder to notice than a log line.
+  if (hasCustomAgent && isBrowser()) {
+    logger.warn('httpAgent/httpsAgent are ignored in the browser — they only apply to Node.js requests.', 'HttpClient')
+  }
+
+  // Built conditionally (rather than always spreading possibly-undefined
+  // keys) so a caller without a custom agent gets the exact same axios
+  // config as before this option existed.
+  const agentOptions = {
+    ...(config.httpAgent && { httpAgent: config.httpAgent }),
+    ...(config.httpsAgent && { httpsAgent: config.httpsAgent }),
+  }
+  const instanceAxios = axios.create({ baseURL: baseUrl, timeout: config.timeout, ...agentOptions })
+  const instancePublic = axios.create({ baseURL: baseUrl, timeout: config.timeout, ...agentOptions })
 
   logger.debug('Setting up authentication interceptors', 'HttpClient')
   setupAuthInterceptors(instanceAxios, authService, config, logger)

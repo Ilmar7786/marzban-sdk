@@ -29,7 +29,22 @@ async function main(): Promise<void> {
     )
   }
 
-  const sdk = await createSdkClient(config)
+  if (config.tlsRejectUnauthorized === false) {
+    console.error(
+      `[${name}] TLS certificate verification disabled (MARZBAN_TLS_REJECT_UNAUTHORIZED=false) — do not use against an untrusted network`
+    )
+  }
+
+  let sdk: Awaited<ReturnType<typeof createSdkClient>>
+  try {
+    sdk = await createSdkClient(config)
+  } catch (err) {
+    if (err instanceof ConfigError) {
+      console.error(err.message)
+      process.exit(1)
+    }
+    throw err
+  }
   const logger = createStderrLogger(config.logLevel)
   const ctx: ToolContext = { sdk, logger, config }
 

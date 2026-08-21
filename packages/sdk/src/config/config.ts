@@ -1,8 +1,19 @@
 import { z } from 'zod/v4'
 
+import { HttpAgentLike } from '@/common'
+
 import { loggerConfigSchema } from './config.logger'
 import { webhookSchema } from './config.webhook'
 import { DEFAULT_RETRIES, DEFAULT_TIMEOUT } from './defaults'
+
+// Mirrors HttpAgentLike: requiring a `destroy` function (present on every
+// real http.Agent/https.Agent-derived instance, inherited from Node's Agent
+// base class) is what actually catches the most common mistake — passing the
+// options object meant for `new https.Agent(options)` instead of the agent
+// itself. A plain `typeof value === 'object'` check would let that through.
+const httpAgentSchema = z.custom<HttpAgentLike>(value => typeof (value as HttpAgentLike)?.destroy === 'function', {
+  message: 'Expected an http.Agent-like instance (e.g. `new https.Agent(...)`), not a plain options object.',
+})
 
 export const configSchema = z.object({
   baseUrl: z.url(),
@@ -14,6 +25,8 @@ export const configSchema = z.object({
   authenticateOnInit: z.boolean().default(true),
   logger: loggerConfigSchema.optional(),
   webhook: webhookSchema.optional(),
+  httpAgent: httpAgentSchema.optional(),
+  httpsAgent: httpAgentSchema.optional(),
 })
 
 /**
@@ -30,6 +43,8 @@ export const configSchema = z.object({
  * @property {boolean} [authenticateOnInit=true] - If false, SDK will not authenticate on instantiation (call `authorize()` manually).
  * @property {false | LoggerOptions | Logger} [logger] - Logging configuration: `false` to disable, options for the built-in logger, or a custom logger.
  * @property {object} [webhook] - Webhook handling options (e.g. signature `secret`).
+ * @property {HttpAgentLike} [httpAgent] - Node.js `http.Agent` (or compatible) used for `http:` requests. Ignored in browsers.
+ * @property {HttpAgentLike} [httpsAgent] - Node.js `https.Agent` (or compatible) used for `https:` requests and the WebSocket log stream — e.g. `new https.Agent({ ca: readFileSync('ca.pem') })` to trust a self-signed panel certificate. Ignored in browsers.
  */
 export type Config = z.input<typeof configSchema>
 export type ValidatedConfig = z.infer<typeof configSchema>

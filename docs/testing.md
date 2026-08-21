@@ -34,15 +34,24 @@ pnpm --filter marzban-sdk test:coverage
 - **Integration** — `packages/sdk/test/integration/**/*.integration.test.ts`
   and `packages/mcp/test/integration/**/*.integration.test.ts` run against a
   real Marzban panel (no mocked transport). Separate configs
-  (`vitest.integration.config.ts` in each package), separate scripts
-  (`test:integration`), not part of `pnpm test`/`test:coverage` or the
-  100%-coverage threshold — see "Network isolation" below for why. `mcp`'s
-  suite is deliberately thin: 3 smoke tests against real tools (a
-  passthrough, one with its own logic, one destructive with the
-  confirm-flow), not a re-run of `sdk`'s edge cases — the mocked-SDK unit
-  tests in `packages/mcp/src/modules/**` already prove each tool calls the
-  SDK correctly; what they can't catch is drift between an MCP tool's zod
-  schema and the SDK's real types. Real Marzban behavior these suites had to
+  (`vitest.integration.config.ts` in each package, built from the shared
+  `unitConfig`/`integrationConfig` helpers in the root `vitest.shared.ts`),
+  separate scripts (`test:integration`), not part of `pnpm test`/`test:coverage`
+  or the 100%-coverage threshold — see "Network isolation" below for why. The
+  local panel's self-signed cert is trusted via each package's own
+  `httpsAgent`/`MARZBAN_TLS_CA_FILE` support (`test/integration/helpers/tls.ts`
+  in each package), not by disabling TLS verification process-wide. `mcp`'s
+  suite stays deliberately smaller than `sdk`'s — not a re-run of `sdk`'s
+  edge cases, since the mocked-SDK unit tests in `packages/mcp/src/modules/**`
+  already prove each tool calls the SDK correctly; what they can't catch is
+  drift between an MCP tool's zod schema and the SDK's real types.
+  `smoke.integration.test.ts` covers that at the smallest scope: one
+  passthrough tool, one with MCP-only logic, one destructive tool through
+  the confirm-flow. `users-lifecycle.integration.test.ts` covers the full
+  path GitHub issue #65's Definition of Done asked for — create → extend →
+  deactivate → activate → usage → delete through the actual MCP tools, plus
+  reading and dry-running a core config change. Real Marzban behavior these
+  suites had to
   work around — 500s that should succeed, fields that normalize on the wire,
   etc. — is centralized in [marzban-quirks.md](./marzban-quirks.md) rather
   than commented inline everywhere it's relevant. The `core` and `system`

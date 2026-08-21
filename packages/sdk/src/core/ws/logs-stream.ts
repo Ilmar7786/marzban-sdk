@@ -1,4 +1,4 @@
-import { AnyType } from '@/common'
+import { AnyType, type HttpAgentLike, isBrowser } from '@/common'
 import { DEFAULT_RETRIES, DEFAULT_WS_INTERVAL } from '@/config'
 import { AuthManager } from '@/core/auth'
 import { Logger } from '@/core/logger'
@@ -32,6 +32,11 @@ export interface LogsStreamOptions {
   logger: Logger
   /** Max reconnection attempts on auth (403) failures. Defaults to {@link DEFAULT_RETRIES}. */
   maxRetries?: number
+  /**
+   * Node-only `https.Agent` (or compatible) for the WebSocket connection —
+   * e.g. to trust a self-signed panel certificate. Ignored in the browser.
+   */
+  httpsAgent?: HttpAgentLike
 }
 
 /**
@@ -44,17 +49,26 @@ export class LogsStream {
   private logger: Logger
   private activeConnections: Set<BaseWebSocketClient> = new Set()
   private maxRetries: number
+  private httpsAgent?: HttpAgentLike
 
   /**
    * Creates an API instance for handling logs via WebSocket.
    * @param options Configuration for the log stream. See {@link LogsStreamOptions}.
    */
-  constructor({ basePath, authService, logger, maxRetries = DEFAULT_RETRIES }: LogsStreamOptions) {
+  constructor({ basePath, authService, logger, maxRetries = DEFAULT_RETRIES, httpsAgent }: LogsStreamOptions) {
     this.basePath = basePath
     this.authService = authService
     this.logger = logger
     this.maxRetries = maxRetries
+    this.httpsAgent = httpsAgent
     this.logger.debug('LogsStream initialized', 'LogsStream')
+
+    if (httpsAgent && isBrowser()) {
+      this.logger.warn(
+        'httpsAgent is ignored in the browser — it only applies to Node.js WebSocket connections.',
+        'LogsStream'
+      )
+    }
   }
 
   /**
@@ -95,7 +109,7 @@ export class LogsStream {
     // Redact the token query param so JWTs never leak into logs.
     const redactedUrl = wsUrl.replace(/(token=)[^&]+/i, '$1***')
     this.logger.debug(`WebSocket URL generated: ${redactedUrl}`, 'LogsStream')
-    const wsClient: BaseWebSocketClient = await WebSocketClient.create(wsUrl)
+    const wsClient: BaseWebSocketClient = await WebSocketClient.create(wsUrl, undefined, { agent: this.httpsAgent })
     this.activeConnections.add(wsClient)
 
     // Mutable ref so the close handle returned to the caller always points to

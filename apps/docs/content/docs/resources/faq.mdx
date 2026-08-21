@@ -7,7 +7,7 @@ description: Answers to common MarzbanSDK questions — Marzban version support,
 
 ### What version of Marzban does this SDK support?
 
-MarzbanSDK v3.x targets the Marzban API as documented in the bundled OpenAPI specification. The generated API client is kept in sync with the official Marzban OpenAPI spec. Check the [Changelog](/docs/resources/changelog) for version compatibility notes.
+MarzbanSDK v3.x is generated from the Marzban API as of **v0.8.4** — that's the version pinned in the bundled OpenAPI specification (`packages/sdk/openapi/openapi.json`, `info.version`). Newer Marzban releases that are additive (new optional fields, new endpoints) generally keep working; a release that changes existing request/response shapes may not, until the spec is re-vendored and the client regenerated. Check the [Changelog](/docs/resources/changelog) for what changed between SDK versions.
 
 ### Does it work in the browser?
 
@@ -20,6 +20,24 @@ Yes, for most features. The SDK is designed to be cross-runtime:
 ### Can I use the SDK without TypeScript?
 
 Yes. The package ships ESM and CJS bundles that work in plain JavaScript. You'll lose autocomplete and type checking, but the runtime behaviour is identical.
+
+### My self-hosted panel uses a self-signed certificate — how do I connect?
+
+Pass a Node `https.Agent` configured with your CA via the `httpsAgent` config option, rather than disabling TLS verification:
+
+```ts
+import { readFileSync } from 'node:fs'
+import https from 'node:https'
+
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://panel.example.com',
+  username: 'admin',
+  password: 'secret',
+  httpsAgent: new https.Agent({ ca: readFileSync('ca.pem') }),
+})
+```
+
+See [Self-signed certificates & custom CA](/docs/configuration/config-options#self-signed-certificates--custom-ca). Using `marzban-mcp` instead? Set `MARZBAN_TLS_CA_FILE` — see [MCP Configuration](/docs/mcp-server/configuration#tls--self-signed-certificates).
 
 ---
 

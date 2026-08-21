@@ -1,6 +1,14 @@
 services:
   marzban:
-    image: gozargah/marzban:latest
+    # Pinned, not :latest: must match packages/sdk/openapi/openapi.json's
+    # info.version — that's the Marzban API version the SDK is generated
+    # against, so the local panel exercises the exact API surface the
+    # generated client expects. (As of writing, upstream's :latest tag is
+    # itself still pointing at this same v0.8.4 image — but that's not
+    # guaranteed to stay true, and pinning makes the intent explicit either
+    # way.) Bump this only alongside a deliberate openapi.json re-vendor —
+    # see docs/adr/0003-vendored-openapi-spec.md.
+    image: gozargah/marzban:v0.8.4
     container_name: marzban-sdk-local
     restart: unless-stopped
     env_file:

@@ -1,9 +1,9 @@
 import type { Mock } from 'vitest'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AnyType } from '@/common/types'
 
-import type { BaseWebSocketClient } from './client'
+import type { BaseWebSocketClient, WebSocketClientOptions } from './client'
 import { WebSocketClient } from './client'
 import { LogsStream } from './logs-stream'
 import { configurationUrlWs } from './utils'
@@ -14,8 +14,13 @@ vi.mock('./client', () => ({
   },
 }))
 
-const mockCreate = (WebSocketClient as unknown as { create: Mock<(url: string) => Promise<BaseWebSocketClient>> })
-  .create
+const mockCreate = (
+  WebSocketClient as unknown as {
+    create: Mock<
+      (url: string, protocols?: string | string[], options?: WebSocketClientOptions) => Promise<BaseWebSocketClient>
+    >
+  }
+).create
 
 type FakeWebSocketClient = {
   on: (event: string, listener: (payload: AnyType) => AnyType) => void
@@ -88,7 +93,7 @@ describe('LogsStream', () => {
       interval: 1,
     })
 
-    expect(mockCreate).toHaveBeenCalledWith(expectedUrl)
+    expect(mockCreate).toHaveBeenCalledWith(expectedUrl, undefined, { agent: undefined })
 
     const payload = { foo: 'bar' }
     await wsClient.trigger('message', { data: payload })
@@ -133,7 +138,7 @@ describe('LogsStream', () => {
       token: 'refreshed-token',
       interval: 1,
     })
-    expect(mockCreate).toHaveBeenLastCalledWith(expectedUrl)
+    expect(mockCreate).toHaveBeenLastCalledWith(expectedUrl, undefined, { agent: undefined })
 
     // Verify we don't keep around the failing connection.
     expect((stream as AnyType).activeConnections.size).toBe(1)
@@ -212,7 +217,7 @@ describe('LogsStream', () => {
       token: 'new-token',
       interval: 1,
     })
-    expect(mockCreate).toHaveBeenCalledWith(expectedUrl)
+    expect(mockCreate).toHaveBeenCalledWith(expectedUrl, undefined, { agent: undefined })
   })
 
   it('forwards non-403 errors through onError and does not reconnect', async () => {
@@ -249,7 +254,7 @@ describe('LogsStream', () => {
       interval: 1,
     })
 
-    expect(mockCreate).toHaveBeenCalledWith(expectedUrl)
+    expect(mockCreate).toHaveBeenCalledWith(expectedUrl, undefined, { agent: undefined })
 
     await wsClient.trigger('error', { message: 'Network error' })
     // No error handler provided, so no throw and no reconnect.
@@ -295,5 +300,40 @@ describe('LogsStream', () => {
     stream.closeAllConnections()
     expect(wsClient2.close).toHaveBeenCalled()
     expect((stream as AnyType).activeConnections.size).toBe(0)
+  })
+
+  describe('httpsAgent', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('forwards httpsAgent to WebSocketClient.create for each connection', async () => {
+      const wsClient = createFakeWebSocketClient()
+      mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
+      const httpsAgent = { destroy: vi.fn() }
+
+      const stream = new LogsStream({ basePath, authService, logger, httpsAgent })
+      await stream.connectByCore({ onMessage: vi.fn() })
+
+      expect(mockCreate).toHaveBeenCalledWith(expect.any(String), undefined, { agent: httpsAgent })
+    })
+
+    it('does not warn when no httpsAgent is configured', () => {
+      new LogsStream({ basePath, authService, logger })
+      expect(logger.warn).not.toHaveBeenCalled()
+    })
+
+    it('does not warn about httpsAgent outside the browser', () => {
+      new LogsStream({ basePath, authService, logger, httpsAgent: { destroy: vi.fn() } })
+      expect(logger.warn).not.toHaveBeenCalled()
+    })
+
+    it('warns that httpsAgent is ignored when running in the browser', () => {
+      vi.stubGlobal('window', { document: {} })
+
+      new LogsStream({ basePath, authService, logger, httpsAgent: { destroy: vi.fn() } })
+
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/ignored in the browser/), 'LogsStream')
+    })
   })
 })

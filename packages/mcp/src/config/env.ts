@@ -68,6 +68,8 @@ export function readRawConfigFromEnv(env: NodeJS.ProcessEnv = process.env): RawM
     toolsDeny: readList(env, 'MARZBAN_MCP_TOOLS_DENY'),
     logLevel: readString(env, 'MARZBAN_MCP_LOG_LEVEL') as RawMcpConfig['logLevel'],
     showLinks: readBoolean(env, 'MARZBAN_MCP_SHOW_LINKS'),
+    caFile: readString(env, 'MARZBAN_TLS_CA_FILE'),
+    tlsRejectUnauthorized: readBoolean(env, 'MARZBAN_TLS_REJECT_UNAUTHORIZED'),
   }
 }
 

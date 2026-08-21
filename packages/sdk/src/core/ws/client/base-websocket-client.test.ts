@@ -19,6 +19,10 @@ class TestWebSocketClient extends BaseWebSocketClient {
   getSocket() {
     return this.socketInstance
   }
+
+  getAgent() {
+    return this.agent
+  }
 }
 
 describe('BaseWebSocketClient', () => {
@@ -44,5 +48,11 @@ describe('BaseWebSocketClient', () => {
 
     // readyState should still be reflected
     expect(client.readyState).toBe(5)
+  })
+
+  it('stores options.agent for subclasses to use, and leaves it undefined when not provided', () => {
+    const agent = { destroy: vi.fn() }
+    expect(new TestWebSocketClient('wss://example.com', undefined, { agent }).getAgent()).toBe(agent)
+    expect(new TestWebSocketClient('wss://example.com').getAgent()).toBeUndefined()
   })
 })

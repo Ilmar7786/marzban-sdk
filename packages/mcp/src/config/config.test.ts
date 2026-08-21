@@ -90,4 +90,25 @@ describe('mcpConfigSchema', () => {
       showLinks: true,
     })
   })
+
+  describe('caFile / tlsRejectUnauthorized', () => {
+    it('are both optional and undefined by default', () => {
+      const result = mcpConfigSchema.parse({ baseUrl, ...creds })
+      expect(result.caFile).toBeUndefined()
+      expect(result.tlsRejectUnauthorized).toBeUndefined()
+    })
+
+    it('accepts each independently of the other', () => {
+      expect(mcpConfigSchema.parse({ baseUrl, ...creds, caFile: '/etc/ssl/ca.pem' }).caFile).toBe('/etc/ssl/ca.pem')
+      expect(mcpConfigSchema.parse({ baseUrl, ...creds, tlsRejectUnauthorized: false }).tlsRejectUnauthorized).toBe(
+        false
+      )
+      expect(mcpConfigSchema.parse({ baseUrl, ...creds, tlsRejectUnauthorized: true }).tlsRejectUnauthorized).toBe(true)
+    })
+
+    it('rejects an empty caFile', () => {
+      const result = mcpConfigSchema.safeParse({ baseUrl, ...creds, caFile: '' })
+      expect(result.success).toBe(false)
+    })
+  })
 })

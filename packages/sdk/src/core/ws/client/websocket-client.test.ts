@@ -89,4 +89,62 @@ describe('WebSocketClient', () => {
 
     expect(client.readyState).toBe(2)
   })
+
+  it('forces the ws-backed client when an agent is configured, even with a native WebSocket available, and forwards the agent to ws', async () => {
+    class FakeWebSocket {
+      public readyState = 1
+      addEventListener = vi.fn()
+    }
+    // Native WebSocket present (e.g. Node 21+) — normally preferred.
+    ;(globalThis as AnyType).WebSocket = FakeWebSocket
+
+    let receivedOptions: AnyType
+    class FakeWs {
+      public readyState = 1
+      addEventListener = vi.fn()
+      constructor(
+        public url: string,
+        public protocols: string | string[] | undefined,
+        options: AnyType
+      ) {
+        receivedOptions = options
+      }
+    }
+    vi.doMock('ws', () => ({ default: FakeWs }))
+
+    const { WebSocketClient } = await import('./websocket-client')
+    const agent = { destroy: vi.fn() }
+    const client = await WebSocketClient.create('wss://example.com', undefined, { agent })
+
+    expect(client.constructor.name).toBe('NodeWebSocketClient')
+    expect(receivedOptions).toEqual({ agent })
+  })
+
+  it('ignores the agent and still uses BrowserWebSocketClient in the browser', async () => {
+    class FakeWebSocket {
+      public readyState = 1
+      addEventListener = vi.fn()
+    }
+    ;(globalThis as AnyType).WebSocket = FakeWebSocket
+    ;(globalThis as AnyType).window = { document: {} }
+
+    const { WebSocketClient } = await import('./websocket-client')
+    const agent = { destroy: vi.fn() }
+    const client = await WebSocketClient.create('wss://example.com', undefined, { agent })
+
+    expect(client.constructor.name).toBe('BrowserWebSocketClient')
+  })
+
+  it('uses BrowserWebSocketClient when no agent is configured, regardless of environment', async () => {
+    class FakeWebSocket {
+      public readyState = 1
+      addEventListener = vi.fn()
+    }
+    ;(globalThis as AnyType).WebSocket = FakeWebSocket
+
+    const { WebSocketClient } = await import('./websocket-client')
+    const client = await WebSocketClient.create('wss://example.com')
+
+    expect(client.constructor.name).toBe('BrowserWebSocketClient')
+  })
 })

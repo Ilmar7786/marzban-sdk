@@ -1,6 +1,5 @@
-import https from 'node:https'
-
 import { isHttpError, type MarzbanSDK } from '../../../src/index'
+import { tlsAgent } from './tls'
 
 // Real Marzban panel behavior worked around below — see
 // docs/marzban-quirks.md for the full writeup (symptom, root cause,
@@ -16,7 +15,7 @@ import { isHttpError, type MarzbanSDK } from '../../../src/index'
  * every generated method's `config` parameter without an unsafe cast.
  */
 export function freshConnectionConfig(): Record<string, unknown> {
-  return { httpsAgent: new https.Agent() }
+  return { httpsAgent: tlsAgent() }
 }
 
 /**

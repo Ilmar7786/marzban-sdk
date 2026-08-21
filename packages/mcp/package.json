@@ -37,7 +37,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:integration:watch": "vitest --config vitest.integration.config.ts"
+    "test:integration:watch": "vitest --config vitest.integration.config.ts",
+    "inspect": "pnpm turbo run build --filter=marzban-mcp && npx -y @modelcontextprotocol/inspector@2.3.0 --config inspector.config.json --server marzban-local"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",

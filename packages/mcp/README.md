@@ -112,7 +112,10 @@ Full setup guides and the complete tool/prompt reference live at
 
 This package lives in the [`marzban-sdk`](https://github.com/Ilmar7786/marzban-sdk)
 monorepo — see the root [CONTRIBUTING.md](https://github.com/Ilmar7786/marzban-sdk/blob/main/CONTRIBUTING.md)
-for how to submit a patch. Found a bug or have an idea?
+for how to submit a patch. Running the server locally in watch mode, poking
+it with the MCP Inspector, or wiring a client to your own build? See
+[ARCHITECTURE.md § Local development & manual testing](https://github.com/Ilmar7786/marzban-sdk/blob/main/packages/mcp/ARCHITECTURE.md#local-development--manual-testing).
+Found a bug or have an idea?
 [Open an issue](https://github.com/Ilmar7786/marzban-sdk/issues).
 
 ## License

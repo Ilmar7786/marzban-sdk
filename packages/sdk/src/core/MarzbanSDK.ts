@@ -146,6 +146,7 @@ export class MarzbanSDK {
       authService: this._authService,
       logger: this._logger,
       maxRetries: this._config.retries,
+      httpsAgent: this._config.httpsAgent,
     })
     this.webhook = new WebhookManager({ ...this._config.webhook, logger: this._logger })
 
@@ -196,6 +197,10 @@ export class MarzbanSDK {
    *
    * Closes all active WebSocket log streams. Safe to call multiple times;
    * any error while closing connections is logged and swallowed.
+   *
+   * Does not touch `httpAgent`/`httpsAgent` from {@link Config} — the SDK
+   * never creates that agent, so it doesn't own or destroy it either;
+   * callers that supplied one are responsible for its lifecycle.
    *
    * @returns {Promise<void>} Resolves once cleanup has completed.
    */

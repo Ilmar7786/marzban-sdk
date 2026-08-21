@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AnyType } from '@/common'
 
@@ -38,6 +38,10 @@ describe('configureHttpClient', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     created.length = 0
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('creates authenticated and public axios instances with the base URL and timeout', () => {
@@ -89,5 +93,53 @@ describe('configureHttpClient', () => {
     expect(retryDelay(2)).toBe(2000) // 2^1 * 1000
     expect(retryDelay(3)).toBe(4000) // 2^2 * 1000
     expect(retryDelay(10)).toBe(30_000) // capped at MAX_RETRY_DELAY_MS
+  })
+
+  describe('custom agents', () => {
+    const httpAgent = { destroy: vi.fn() }
+    const httpsAgent = { destroy: vi.fn() }
+
+    it('forwards httpAgent/httpsAgent to both the authenticated and public axios instances', () => {
+      configureHttpClient('https://x', authService, makeConfig({ httpAgent, httpsAgent } as AnyType), logger)
+
+      expect(axiosCreateMock).toHaveBeenNthCalledWith(1, {
+        baseURL: 'https://x',
+        timeout: 30_000,
+        httpAgent,
+        httpsAgent,
+      })
+      expect(axiosCreateMock).toHaveBeenNthCalledWith(2, {
+        baseURL: 'https://x',
+        timeout: 30_000,
+        httpAgent,
+        httpsAgent,
+      })
+    })
+
+    it('omits httpAgent/httpsAgent from the axios config when not provided', () => {
+      configureHttpClient('https://x', authService, makeConfig(), logger)
+
+      const passedConfig = (axiosCreateMock.mock.calls[0] as AnyType[])[0]
+      expect(passedConfig).not.toHaveProperty('httpAgent')
+      expect(passedConfig).not.toHaveProperty('httpsAgent')
+    })
+
+    it('does not warn when no custom agent is configured', () => {
+      configureHttpClient('https://x', authService, makeConfig(), logger)
+      expect(logger.warn).not.toHaveBeenCalled()
+    })
+
+    it('does not warn about a custom agent outside the browser', () => {
+      configureHttpClient('https://x', authService, makeConfig({ httpsAgent } as AnyType), logger)
+      expect(logger.warn).not.toHaveBeenCalled()
+    })
+
+    it('warns that httpAgent/httpsAgent are ignored when running in the browser', () => {
+      vi.stubGlobal('window', { document: {} })
+
+      configureHttpClient('https://x', authService, makeConfig({ httpsAgent } as AnyType), logger)
+
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/ignored in the browser/), 'HttpClient')
+    })
   })
 })

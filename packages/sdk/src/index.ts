@@ -1,4 +1,4 @@
-export { errorText, redactSecrets } from './common'
+export { errorText, type HttpAgentLike, redactSecrets } from './common'
 export { type Config, validateConfig, type ValidatedConfig } from './config'
 export * from './core/errors'
 export type { Logger, LoggerConfig, LoggerOptions, LogLevel } from './core/logger'

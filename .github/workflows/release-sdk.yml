@@ -1,0 +1,97 @@
+name: Release sdk
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    branches: [main]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: >-
+          Dry run — npm publish stays --dry-run, the GitHub Release is created
+          as a draft (no real tag), and the changelog is not committed back.
+        type: boolean
+        default: true
+      force_publish:
+        description: >-
+          Release even if the dry-run check says the version already matches
+          npm. Only needed to resume a release that failed after npm publish
+          already succeeded.
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write # Required for OIDC / npm provenance
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo run build --filter=marzban-sdk
+
+      - name: Prepare release
+        uses: ./.github/actions/release-prepare
+        id: prepare
+        with:
+          package-dir: packages/sdk
+          tag-prefix: sdk-v
+          tag-pattern: '^(sdk-)?v[0-9].*'
+          include-path-args: >-
+            --include-path 'packages/sdk/**' --include-path 'src/**' --include-path 'openapi/**'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          force: ${{ inputs.force_publish || false }}
+
+      - name: Publish to npm
+        if: steps.prepare.outputs.changed == 'true'
+        uses: JS-DevTools/npm-publish@v4
+        with:
+          package: packages/sdk/package.json
+          provenance: true
+          dry-run: ${{ inputs.dry_run || false }}
+
+      - name: Add artifact links to release notes
+        if: steps.prepare.outputs.changed == 'true'
+        run: |
+          cat >> ${{ steps.prepare.outputs.notes-path }} << EOF
+
+          ## Artifacts
+
+          **npm** — [\`marzban-sdk@${{ steps.prepare.outputs.version }}\`](https://www.npmjs.com/package/marzban-sdk/v/${{ steps.prepare.outputs.version }})
+          \`npm install marzban-sdk@${{ steps.prepare.outputs.version }}\`
+          EOF
+
+      # A draft release is not tied to a real tag in the repo — GitHub only
+      # creates the tag when the draft is published — so this is safe to
+      # inspect and delete afterwards without leaving anything behind.
+      - name: Create GitHub Release
+        if: steps.prepare.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prepare.outputs.tag }}
+          name: ${{ steps.prepare.outputs.tag }}
+          body_path: ${{ steps.prepare.outputs.notes-path }}
+          draft: ${{ inputs.dry_run || false }}
+
+      - name: Commit updated changelog
+        if: steps.prepare.outputs.changed == 'true' && !(inputs.dry_run || false)
+        uses: ./.github/actions/commit-changelog
+        with:
+          paths: packages/sdk/CHANGELOG.md
+          message: 'chore(changelog): marzban-sdk ${{ steps.prepare.outputs.version }} [skip ci]'

@@ -6,30 +6,70 @@
 
 ## Package releases
 
-Two independent things happen, both automated once a `package.json` version
-bump lands on `main`:
+Each publishable package has its own release workflow —
+[`release-sdk.yml`](../.github/workflows/release-sdk.yml) and
+[`release-mcp.yml`](../.github/workflows/release-mcp.yml) — with its own
+trigger evaluation, its own publish targets, and no shared job or matrix
+between them. One package's release failing never blocks or skips the
+other's. `packages/cli` doesn't have one yet — it's still unpublished (see
+[`packages/cli/ARCHITECTURE.md`](../packages/cli/ARCHITECTURE.md)).
+
+Both workflows share the same two building blocks, factored into composite
+actions so the two files don't duplicate the fiddly parts:
+
+- [`.github/actions/release-prepare`](../.github/actions/release-prepare) —
+  runs `npm publish --dry-run` to detect whether `package.json`'s version
+  actually changed since what's on npm, and if so prepends the package's
+  `CHANGELOG.md` and renders release notes with git-cliff.
+- [`.github/actions/commit-changelog`](../.github/actions/commit-changelog) —
+  commits the updated changelog back to `main` as `github-actions[bot]`, with
+  a retry loop for the case where both packages release around the same time
+  and race on the push.
+
+Each workflow otherwise runs a straight sequence of steps in a single job —
+no job-to-job output plumbing — because mcp's release body depends on the
+Docker image digest, which only exists partway through:
 
 ```
 bump "version" in packages/<pkg>/package.json, merge to main
   → CI runs on main and succeeds
-  → publish.yml runs (triggered by workflow_run, not by the push itself)
-  → per-package matrix job:
-      npm-publish --dry-run  (detects whether the version actually changed)
-      → git-cliff prepends packages/<pkg>/CHANGELOG.md
+  → release-<pkg>.yml runs (triggered by workflow_run, not by the push itself)
+      release-prepare  (dry-run detects the version bump → changelog → notes)
+      → [mcp only] resolve workspace:* deps to real ranges (see below)
       → npm publish --provenance (OIDC, no stored npm token)
+      → [mcp only] docker buildx build --push (amd64 + arm64, GHCR-style OIDC N/A — Docker Hub uses stored secrets)
+      → artifact links appended to the release notes
       → GitHub Release created, tag = "<prefix>v<version>"
-      → changelog commit pushed back to main as github-actions[bot], [skip ci]
+      → commit-changelog pushes the CHANGELOG.md update back to main
 ```
 
 **Nobody creates a release tag by hand** — the GitHub Release step creates it
-from `tag_prefix + version`. Tag prefixes: `sdk-v*`, `mcp-v*`. `packages/cli`
-has a matrix row prepared but commented out until it's ready to publish (see
-[`packages/cli/ARCHITECTURE.md`](../packages/cli/ARCHITECTURE.md)).
+from `tag_prefix + version`. Tag prefixes: `sdk-v*`, `mcp-v*`.
 
 If the dry-run step finds the version in `package.json` unchanged from what's
-already on npm, that package's matrix job stops there — publishing nothing.
-This is what makes it safe for `publish.yml` to run on every `main` push
-without over-publishing.
+already on npm, the workflow stops there — publishing nothing. This is what
+makes it safe for both release workflows to run on every `main` push without
+over-publishing.
+
+### Why mcp's package.json gets rewritten before publish
+
+`packages/mcp/package.json` depends on `marzban-sdk` via `workspace:^`. npm
+only rewrites the `workspace:` protocol for workspaces declared in its own
+`workspaces` field — this repo uses pnpm workspaces instead, so the root
+`package.json` has no such field, and `npm publish` would ship the literal
+string `workspace:^`, which `npm install` can't resolve outside this repo.
+[`scripts/resolve-workspace-deps.mjs`](../scripts/resolve-workspace-deps.mjs)
+rewrites it to the real published range right before `npm publish` runs, in
+CI only — the change is never committed back to git.
+
+### Recovering a partially-failed release
+
+`release-mcp.yml` publishes to npm and then to Docker Hub in sequence. If the
+Docker step fails after npm already succeeded, re-running the workflow
+normally does nothing — the dry-run check sees the version already on npm and
+skips. Use `workflow_dispatch` with `force_publish: true` to force the rest of
+the pipeline (Docker build/push, release, changelog) to run again for that
+same version; `npm publish` itself is a no-op for a version already published.
 
 ### Dry-running a release
 
@@ -37,8 +77,9 @@ without over-publishing.
 workflow_dispatch → dry_run: true (the default)
 ```
 
-Runs the same pipeline with `npm publish --dry-run` and a draft GitHub
-Release — nothing lands on npm, no tag, no changelog commit.
+Runs the same pipeline with `npm publish --dry-run`, a draft GitHub Release,
+and — for mcp — `docker buildx build` without `--push`. Nothing lands on npm
+or Docker Hub, no tag, no changelog commit.
 
 ### Checking a changelog before it's generated in CI
 
@@ -53,6 +94,59 @@ pnpm changelog:sdk   # or changelog:cli / changelog:mcp
 `chore(release|deps|changelog)` commits are excluded so the changelog stays
 user-facing. This is why the commit format in
 [conventions.md](./conventions.md) matters beyond `git log` readability.
+
+One consequence of scoping git-cliff to `packages/mcp/**`: a fix that lands
+in `packages/sdk` and changes mcp's runtime behavior never shows up in mcp's
+own changelog. There's no automated fix for this — it's a known gap, not a
+bug.
+
+## mcp's Docker image
+
+[`packages/mcp/Dockerfile`](../packages/mcp/Dockerfile) is a two-stage build
+with the **repo root** as build context (it needs the pnpm workspace and
+`packages/sdk`'s source, not just `packages/mcp`):
+
+- **builder** (`--platform=$BUILDPLATFORM`, i.e. always the host arch, never
+  emulated): installs the `marzban-mcp...` workspace subset, runs the
+  Turborepo build, then `pnpm --filter=marzban-mcp deploy --prod --legacy
+/out` to produce a self-contained install (mcp + its resolved `marzban-sdk`
+  dependency + prod `node_modules`, no other workspace packages).
+- **runtime**: plain `node:24-alpine`, copies `/out`, runs as the non-root
+  `node` user.
+
+Building the emulated stage only for the platform swap (not the whole
+toolchain) is why `linux/arm64` doesn't need QEMU to run the actual build —
+the output is pure JS, only the base image differs per platform.
+
+The image talks MCP over stdio, same as the npm package — there's no port to
+`EXPOSE` and nothing to health-check from outside the container. Run it with
+`docker run -i --rm`.
+
+## Manual setup (one-time)
+
+Steps that don't reduce to code and have to be done by hand before the
+pipelines above can run for real:
+
+1. **Docker Hub**: create the `ilmar7786/marzban-mcp` repository, and a
+   personal access token scoped to Read & Write.
+2. **GitHub secrets**: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` (Settings →
+   Secrets and variables → Actions).
+3. **First `marzban-mcp` npm publish, done by hand.** npm's Trusted Publisher
+   (OIDC) can only be configured on a package that already exists on npm, and
+   `marzban-mcp` doesn't yet:
+   ```sh
+   pnpm turbo run build --filter=marzban-mcp
+   node scripts/resolve-workspace-deps.mjs packages/mcp
+   npm --prefix packages/mcp publish --access public
+   git checkout packages/mcp/package.json   # undo the workspace: rewrite locally
+   ```
+4. **Configure Trusted Publisher** for `marzban-mcp` on npmjs.com (package
+   page → Settings → Trusted Publisher → GitHub Actions), repository
+   `Ilmar7786/marzban-sdk`, workflow `release-mcp.yml`. Only after this does
+   the automated `npm publish --provenance` step in the workflow succeed.
+5. Confirm `marzban-sdk`'s existing Trusted Publisher entry points at
+   `release-sdk.yml`, not the old `publish.yml` — it needs updating after the
+   rename, or the next automated sdk release fails on npm auth.
 
 ## Docs site deploy
 

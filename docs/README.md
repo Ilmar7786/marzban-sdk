@@ -36,17 +36,17 @@ Per-package architecture lives next to the code that implements it, not here:
 Docs rot when nobody knows what to update. Use this table — if you touched the
 left column, touch the right column in the same PR:
 
-| You changed                                                                            | Update                                                            |
-| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `packages/sdk/kubb.config.ts`, `packages/sdk/openapi/openapi.json`                     | [`packages/sdk/ARCHITECTURE.md`](../packages/sdk/ARCHITECTURE.md) |
-| The public export surface in `packages/sdk/src/index.ts`                               | [`packages/sdk/ARCHITECTURE.md`](../packages/sdk/ARCHITECTURE.md) |
-| The MCP tool set or security profiles                                                  | [`packages/mcp/ARCHITECTURE.md`](../packages/mcp/ARCHITECTURE.md) |
-| `turbo.json`, `pnpm-workspace.yaml`, any `tsconfig*.json`                              | [`workspace.md`](./workspace.md)                                  |
-| `.github/workflows/ci.yml`                                                             | [`ci.md`](./ci.md)                                                |
-| `.github/workflows/publish.yml`, `.github/workflows/docs.yml`, `cliff.toml`            | [`release.md`](./release.md)                                      |
-| Any decision with real consequences (a new dependency direction, a discarded approach) | A new [ADR](./adr/README.md)                                      |
-| `local/**`                                                                             | [`local/README.md`](../local/README.md)                           |
-| A newly-observed real Marzban behavior an integration test had to work around          | [`marzban-quirks.md`](./marzban-quirks.md)                        |
+| You changed                                                                                                                       | Update                                                            |
+| --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `packages/sdk/kubb.config.ts`, `packages/sdk/openapi/openapi.json`                                                                | [`packages/sdk/ARCHITECTURE.md`](../packages/sdk/ARCHITECTURE.md) |
+| The public export surface in `packages/sdk/src/index.ts`                                                                          | [`packages/sdk/ARCHITECTURE.md`](../packages/sdk/ARCHITECTURE.md) |
+| The MCP tool set or security profiles                                                                                             | [`packages/mcp/ARCHITECTURE.md`](../packages/mcp/ARCHITECTURE.md) |
+| `turbo.json`, `pnpm-workspace.yaml`, any `tsconfig*.json`                                                                         | [`workspace.md`](./workspace.md)                                  |
+| `.github/workflows/ci.yml`                                                                                                        | [`ci.md`](./ci.md)                                                |
+| `.github/workflows/release-sdk.yml`, `release-mcp.yml`, `docs.yml`, `.github/actions/**`, `packages/mcp/Dockerfile`, `cliff.toml` | [`release.md`](./release.md)                                      |
+| Any decision with real consequences (a new dependency direction, a discarded approach)                                            | A new [ADR](./adr/README.md)                                      |
+| `local/**`                                                                                                                        | [`local/README.md`](../local/README.md)                           |
+| A newly-observed real Marzban behavior an integration test had to work around                                                     | [`marzban-quirks.md`](./marzban-quirks.md)                        |
 
 Each doc file opens with a 3-line block: what it covers, what it deliberately
 excludes, where to go next — so it can be read on its own, without the rest of

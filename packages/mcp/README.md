@@ -10,6 +10,7 @@ Users, subscriptions, nodes, and the core config — through Claude, Cursor, or 
 
 [![npm version](https://img.shields.io/npm/v/marzban-mcp?color=8b5cf6&label=npm)](https://www.npmjs.com/package/marzban-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/marzban-mcp?color=8b5cf6)](https://www.npmjs.com/package/marzban-mcp)
+[![Docker image](https://img.shields.io/docker/v/ilmar7786/marzban-mcp?color=8b5cf6&label=docker&sort=semver)](https://hub.docker.com/r/ilmar7786/marzban-mcp)
 [![license](https://img.shields.io/npm/l/marzban-mcp?color=8b5cf6)](./LICENSE)
 
 [**Documentation**](https://ilmar7786.github.io/marzban-sdk/docs/mcp-server/overview) · [**Client Setup**](https://ilmar7786.github.io/marzban-sdk/docs/mcp-server/client-setup) · [**Tools**](https://ilmar7786.github.io/marzban-sdk/docs/mcp-server/tools)
@@ -27,7 +28,11 @@ about it. No custom integration code, just an entry in your MCP config.
 npm install -g marzban-mcp
 ```
 
-You don't usually need to install it yourself — your MCP client runs it via `npx` (see below).
+You don't usually need to install it yourself — your MCP client runs it via `npx` (see below). Prefer a container? A multi-arch image is published at [`ilmar7786/marzban-mcp`](https://hub.docker.com/r/ilmar7786/marzban-mcp):
+
+```sh
+docker pull ilmar7786/marzban-mcp
+```
 
 ## Quick start
 

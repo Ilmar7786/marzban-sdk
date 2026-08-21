@@ -23,6 +23,10 @@ Almost every MCP client reads the same JSON shape — a `command`/`args`/`env` b
 
 What differs per client is *where* that block goes, and occasionally the key it's nested under. Pick your client below.
 
+<Callout type="info">
+  Every example below uses `npx`. Prefer a container instead? See [Running via Docker](#running-via-docker) — swap the `command`/`args` shown there into any of the client configs below, keeping that client's own `env` block.
+</Callout>
+
 <Tabs items={['Claude Desktop', 'Claude Code', 'Cursor', 'Cline', 'Windsurf', 'Continue.dev', 'VS Code Copilot']}>
   <Tab value="Claude Desktop">
 
@@ -134,6 +138,38 @@ What differs per client is *where* that block goes, and occasionally the key it'
 
   </Tab>
 </Tabs>
+
+## Running via Docker
+
+Every release is also published as a multi-arch (`linux/amd64` + `linux/arm64`) image at [`ilmar7786/marzban-mcp`](https://hub.docker.com/r/ilmar7786/marzban-mcp). Use this instead of `npx` when you'd rather not have Node.js on the host, or want a pinned, reproducible runtime.
+
+The server talks MCP over stdio, so the container needs `-i` (keep stdin open) and `--rm` (don't leave stopped containers around) — no port to publish, nothing to health-check from outside:
+
+```json
+{
+  "mcpServers": {
+    "marzban": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "MARZBAN_BASE_URL",
+        "-e", "MARZBAN_USERNAME",
+        "-e", "MARZBAN_PASSWORD",
+        "ilmar7786/marzban-mcp"
+      ],
+      "env": {
+        "MARZBAN_BASE_URL": "https://panel.example.com",
+        "MARZBAN_USERNAME": "admin",
+        "MARZBAN_PASSWORD": "secret"
+      }
+    }
+  }
+}
+```
+
+`-e MARZBAN_BASE_URL` with no `=value` tells Docker to pass that variable through from the process's own environment — which is exactly what the client's `env` block sets before launching `docker run`. This is the same pattern for any of the [optional configuration variables](/docs/mcp-server/configuration): add another `-e MARZBAN_MCP_...` arg and the matching key under `env`.
+
+Pin a specific version instead of always pulling `latest` with `ilmar7786/marzban-mcp:X.Y.Z` — see the [tags list](https://hub.docker.com/r/ilmar7786/marzban-mcp/tags) or the [GitHub Releases](https://github.com/Ilmar7786/marzban-sdk/releases) for available versions.
 
 ## Common issues
 

@@ -16,8 +16,9 @@ Open an [issue](https://github.com/Ilmar7786/marzban-sdk/issues) and include:
 
 This is a monorepo managed with [pnpm workspaces](https://pnpm.io/workspaces)
 and [Turborepo](https://turbo.build/repo). The SDK lives in
-[`packages/sdk`](./packages/sdk); `packages/cli` and `packages/mcp` are
-unpublished work-in-progress packages built on top of it; the docs site is
+[`packages/sdk`](./packages/sdk); [`packages/mcp`](./packages/mcp) is an MCP
+server built on top of it, published to npm and Docker Hub; `packages/cli` is
+still an unpublished work-in-progress package; the docs site is
 [`apps/docs`](./apps/docs).
 
 ```sh

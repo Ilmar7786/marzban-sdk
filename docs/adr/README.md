@@ -39,15 +39,16 @@ What this enables, what it costs.
 
 ## Index
 
-| #                                                     | Decision                                                           |
-| ----------------------------------------------------- | ------------------------------------------------------------------ |
-| [0001](./0001-pnpm-turborepo-monorepo.md)             | pnpm + Turborepo monorepo with per-package releases                |
-| [0002](./0002-kubb-client-generation.md)              | Generate the API client with kubb                                  |
-| [0003](./0003-vendored-openapi-spec.md)               | Vendor and hand-patch the OpenAPI spec                             |
-| [0004](./0004-classed-generated-api-clients.md)       | Classed generated API clients with injected HTTP client            |
-| [0005](./0005-single-entry-public-api.md)             | Single-entry public API barrier + factory construction             |
-| [0006](./0006-cross-runtime-web-crypto.md)            | Cross-runtime SDK: Web Crypto, native WebSocket, `Uint8Array`      |
-| [0007](./0007-plugin-system-removed.md)               | Plugin system removed                                              |
-| [0008](./0008-100-percent-coverage.md)                | 100% coverage on hand-written code                                 |
-| [0009](./0009-version-bump-triggered-release.md)      | Releases trigger on a version bump, not a manual tag               |
-| [0010](./0010-mcp-stdio-env-config-security-model.md) | MCP: stdio only, env-only config, profile + confirm security model |
+| #                                                                    | Decision                                                            |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [0001](./0001-pnpm-turborepo-monorepo.md)                            | pnpm + Turborepo monorepo with per-package releases                 |
+| [0002](./0002-kubb-client-generation.md)                             | Generate the API client with kubb                                   |
+| [0003](./0003-vendored-openapi-spec.md)                              | Vendor and hand-patch the OpenAPI spec                              |
+| [0004](./0004-classed-generated-api-clients.md)                      | Classed generated API clients with injected HTTP client             |
+| [0005](./0005-single-entry-public-api.md)                            | Single-entry public API barrier + factory construction              |
+| [0006](./0006-cross-runtime-web-crypto.md)                           | Cross-runtime SDK: Web Crypto, native WebSocket, `Uint8Array`       |
+| [0007](./0007-plugin-system-removed.md)                              | Plugin system removed                                               |
+| [0008](./0008-100-percent-coverage.md)                               | 100% coverage on hand-written code                                  |
+| [0009](./0009-version-bump-triggered-release.md)                     | Releases trigger on a version bump, not a manual tag                |
+| [0010](./0010-mcp-stdio-env-config-security-model.md)                | MCP: stdio only, env-only config, profile + confirm security model  |
+| [0011](./0011-per-package-release-workflows-and-mcp-docker-build.md) | Per-package release workflows; mcp's Docker image built from source |

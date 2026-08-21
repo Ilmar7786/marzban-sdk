@@ -1,13 +1,25 @@
 ---
 title: Introduction
-description: The complete TypeScript SDK for Marzban — fully typed API coverage plus auth, retries, WebSocket streaming and webhooks. Node.js, Bun, Deno, and the browser.
+description: The Marzban toolkit — marzban-sdk, a complete typed TypeScript client, and marzban-mcp, an MCP server built on it for AI agents. Node.js, Bun, Deno, and the browser.
 icon: House
 ---
 
-**MarzbanSDK** is a complete, production-grade TypeScript SDK for building [Marzban](https://github.com/Gozargah/Marzban)
-integrations. Beyond fully typed coverage of the entire API, it bundles the infrastructure a real integration
-needs — authentication with transparent token refresh, retries, WebSocket log streaming, webhook verification, and
-runtime validation — and behaves identically in **Node.js**, **Bun**, **Deno**, and the **browser**.
+**MarzbanSDK** is a toolkit for building on [Marzban](https://github.com/Gozargah/Marzban): a complete,
+production-grade TypeScript SDK for your own integrations, and an MCP server built on that same SDK for AI
+agents. Same auth, same retries, same typed errors underneath either one — pick whichever fits how you're
+building.
+
+<Cards>
+  <Card title="marzban-sdk" href="/docs/get-started/quick-start" description="Typed TypeScript client — build your own integration in code" />
+  <Card title="marzban-mcp" href="/docs/mcp-server/overview" description="MCP server — let Claude, Cursor, or any MCP client run your panel" />
+</Cards>
+
+## marzban-sdk
+
+A complete, production-grade TypeScript SDK for building Marzban integrations. Beyond fully typed coverage of the
+entire API, it bundles the infrastructure a real integration needs — authentication with transparent token
+refresh, retries, WebSocket log streaming, webhook verification, and runtime validation — and behaves identically
+in **Node.js**, **Bun**, **Deno**, and the **browser**.
 
 <Cards>
   <Card title="Installation" href="/docs/get-started/installation" description="npm, yarn, pnpm, bun, deno, or CDN" />
@@ -16,9 +28,7 @@ runtime validation — and behaves identically in **Node.js**, **Bun**, **Deno**
   <Card title="Error Handling" href="/docs/advanced/error-handling" description="Typed errors and guards" />
 </Cards>
 
-Building for an AI agent instead of your own code? [`marzban-mcp`](/docs/mcp-server/overview) is a ready-made [MCP](https://modelcontextprotocol.io) server on top of this SDK — Claude, Cursor, or any other MCP client can manage a Marzban panel through it directly.
-
-## Features
+### Features
 
 - **First-class TypeScript** — every request, response, and error is fully typed, [generated directly from the Marzban OpenAPI specification](/docs/get-started/typescript). Matching Zod schemas are exported alongside every model.
 - **Truly cross-runtime** — the same API in [Node.js, Bun, Deno, and the browser](/docs/integrations/node-bun-deno): native `WebSocket` and the Web Crypto API where available, with a transparent `ws` fallback for older Node.js.
@@ -31,7 +41,7 @@ Building for an AI agent instead of your own code? [`marzban-mcp`](/docs/mcp-ser
 - **Webhooks** — [`sdk.webhook`](/docs/webhooks/event-types) handles incoming Marzban events with [HMAC-SHA256 signature verification](/docs/webhooks/signature-verification), typed event subscriptions, wildcard listeners, and batch processing.
 - **Batteries-included utilities** — first-class helpers for [data-size formatting/parsing, datetime calculations, and template variables](/docs/utilities/data-sizes).
 
-## Module overview
+### Module overview
 
 | Module | Access | Description |
 |--------|--------|-------------|
@@ -45,7 +55,7 @@ Building for an AI agent instead of your own code? [`marzban-mcp`](/docs/mcp-ser
 | Webhooks | `sdk.webhook` | Incoming event handling and verification |
 | Logs | `sdk.logs` | Real-time WebSocket log streaming |
 
-## Quick example
+### Quick example
 
 ```ts
 import { createMarzbanSDK, formatBytes, humanRemaining } from 'marzban-sdk'
@@ -66,3 +76,39 @@ for (const user of users) {
   console.log(`${user.username} — ${dataLeft} left, expires ${timeLeft}`)
 }
 ```
+
+## marzban-mcp
+
+An [MCP](https://modelcontextprotocol.io) server built on `marzban-sdk` that gives an AI agent — Claude, Cursor,
+or any other MCP client — a set of tools to manage a Marzban panel directly: users, subscriptions, nodes, and
+the core config. It's a separate, published package (`marzban-mcp`), not a mode of the SDK.
+
+- **21 tools, 3 prompts** — the full user lifecycle plus config, hosts, nodes, system stats, and subscriptions,
+  and ready-made prompts that chain several tools into one investigation.
+- **Profile-gated access** — a tool outside the active profile never appears in `tools/list` at all.
+- **Confirmation on every destructive action** — a first call only describes the consequences and returns a
+  one-time token; nothing runs until a second, explicitly confirmed call repeats it.
+- **Credentials only from environment variables**, masked by default in tool output.
+
+```json title="claude_desktop_config.json / .mcp.json"
+{
+  "mcpServers": {
+    "marzban": {
+      "command": "npx",
+      "args": ["-y", "marzban-mcp"],
+      "env": {
+        "MARZBAN_BASE_URL": "https://panel.example.com",
+        "MARZBAN_USERNAME": "admin",
+        "MARZBAN_PASSWORD": "secret"
+      }
+    }
+  }
+}
+```
+
+<Cards>
+  <Card title="MCP Overview" href="/docs/mcp-server/overview" description="What it is, how it's built, what's at a glance" />
+  <Card title="Client Setup" href="/docs/mcp-server/client-setup" description="Claude, Cursor, Cline, Windsurf, and more" />
+  <Card title="Tools" href="/docs/mcp-server/tools" description="All 21 tools, grouped by area" />
+  <Card title="Security" href="/docs/mcp-server/security" description="Profiles, confirmation, masking" />
+</Cards>

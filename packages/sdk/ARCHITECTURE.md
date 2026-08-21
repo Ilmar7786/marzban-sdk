@@ -86,8 +86,9 @@ patched where the upstream spec is imprecise (see
 [ADR-0003](../../docs/adr/0003-vendored-openapi-spec.md)). Generator: kubb
 (`kubb.config.ts`), driven by `pnpm --filter marzban-sdk codegen`.
 
-```
-edit openapi/openapi.json  →  pnpm --filter marzban-sdk codegen  →  commit the src/gen diff
+```mermaid
+flowchart LR
+    A["edit openapi/openapi.json"] --> B["pnpm --filter marzban-sdk codegen"] --> C["commit the src/gen diff"]
 ```
 
 `clean: true` means every codegen run replaces `src/gen` entirely — hand

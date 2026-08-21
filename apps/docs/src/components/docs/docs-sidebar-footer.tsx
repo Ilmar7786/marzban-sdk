@@ -1,9 +1,9 @@
 import { ThemeSwitch } from 'fumadocs-ui/layouts/shared/slots/theme-switch'
-import { Package } from 'lucide-react'
 
-import { gitConfig, npmPackage } from '@/lib/shared'
+import { gitConfig } from '@/lib/shared'
 
 import { GithubMark } from '../landing/header-github'
+import { PackagesPopover } from '../ui/packages-popover'
 import { Tooltip } from '../ui/tooltip'
 
 /** Ghost icon button matching Fumadocs' own sidebar control styling. */
@@ -11,7 +11,7 @@ const iconButton =
   'inline-flex size-9 items-center justify-center rounded-md text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground [&_svg]:size-4.5'
 
 /**
- * The docs sidebar footer rendered as a single compact control row: npm,
+ * The docs sidebar footer rendered as a single compact control row: packages,
  * GitHub and the theme toggle, all inline inside one `bg-fd-secondary/50` pill
  * — the same treatment Fumadocs gives its default footer. The layout disables
  * the built-in footer controls so this is the only row (see
@@ -20,16 +20,8 @@ const iconButton =
 export function DocsSidebarFooter() {
   return (
     <div className="mt-2 flex items-center rounded-lg border bg-fd-secondary/50 p-0.5 text-fd-muted-foreground">
-      <Tooltip label="View on npm" align="start">
-        <a
-          href={`https://www.npmjs.com/package/${npmPackage}`}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="View on npm"
-          className={iconButton}
-        >
-          <Package />
-        </a>
+      <Tooltip label="Packages" align="start">
+        <PackagesPopover triggerClassName={iconButton} />
       </Tooltip>
       <Tooltip label="View on GitHub">
         <a

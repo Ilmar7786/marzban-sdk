@@ -48,8 +48,9 @@ stderr (`core/logger.ts` writes via `process.stderr.write`, never
 Every registered tool runs through the same wrapper, defined once in
 `core/tool/registry.ts`:
 
-```
-selectTools() filtering  →  confirm (destructive only)  →  handler(args, ctx)  →  render(data, view)  →  error mapping
+```mermaid
+flowchart LR
+    A["selectTools()<br/>filtering"] --> B["confirm<br/>(destructive only)"] --> C["handler(args, ctx)"] --> D["render(data, view)"] --> E["error mapping"]
 ```
 
 - **Filtering** happens once at startup: profile scope first

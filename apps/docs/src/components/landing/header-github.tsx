@@ -4,8 +4,11 @@ import { gitConfig } from '@/lib/shared'
 
 async function fetchStars(): Promise<number | null> {
   try {
+    // No `next: { revalidate }` — this site is a static export (see
+    // `.github/workflows/docs.yml`), which has no server to run ISR. This
+    // fetch runs once per build; the star count only ever refreshes on the
+    // next deploy, which the workflow's `schedule` trigger does periodically.
     const res = await fetch(`https://api.github.com/repos/${gitConfig.user}/${gitConfig.repo}`, {
-      next: { revalidate: 3600 },
       headers: { Accept: 'application/vnd.github+json' },
     })
     if (!res.ok) return null

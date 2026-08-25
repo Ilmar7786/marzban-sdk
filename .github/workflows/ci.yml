@@ -30,5 +30,5 @@ jobs:
           else
             echo "TURBO_FILTER=...[HEAD^1]" >> "$GITHUB_ENV"
           fi
-      - run: pnpm turbo run lint test build --filter="$TURBO_FILTER"
+      - run: pnpm turbo run lint types:check test build --filter="$TURBO_FILTER"
       - run: pnpm format:check

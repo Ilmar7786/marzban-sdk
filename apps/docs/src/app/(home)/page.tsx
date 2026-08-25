@@ -1,33 +1,13 @@
-import {
-  Activity,
-  ArrowRight,
-  Bot,
-  Cpu,
-  EyeOff,
-  FileCheck2,
-  Filter,
-  Globe,
-  KeyRound,
-  LayoutTemplate,
-  ListChecks,
-  PackageCheck,
-  Radio,
-  RefreshCw,
-  RotateCcw,
-  ScrollText,
-  Server,
-  ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  Webhook,
-  Zap,
-} from 'lucide-react'
+import { ArrowRight, Zap } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { CodePreview } from '@/components/landing/code-preview'
 import { InstallSection } from '@/components/landing/install-section'
+import { mcpSample, sdkSample } from '@/config/landing/code-samples'
+import { features } from '@/config/landing/features'
+import { mcpFeatures } from '@/config/landing/mcp-features'
+import { modules } from '@/config/landing/modules'
 import { appName, gitConfig } from '@/lib/shared'
 
 // Only `title`/`description` are overridden here. The Open Graph card (incl.
@@ -41,157 +21,6 @@ export const metadata: Metadata = {
   description:
     'The Marzban toolkit: a complete, production-grade TypeScript SDK — full typed API coverage across users, nodes, subscriptions and admins, plus auto token refresh, retry logic, WebSocket log streaming, Zod validation, webhook verification, and a classified error system, isomorphic for Node.js and the browser — and marzban-mcp, an MCP server built on it so Claude, Cursor, or any MCP client can manage a Marzban panel directly.',
 }
-
-/** Infrastructure-level capabilities that make the SDK an SDK, not a wrapper. */
-const features = [
-  {
-    icon: Sparkles,
-    title: 'End-to-end type safety',
-    desc: 'Every endpoint, parameter and response is fully typed. Autocomplete covers the entire Marzban API surface — typed against the official OpenAPI spec.',
-  },
-  {
-    icon: Globe,
-    title: 'Isomorphic by design',
-    desc: 'One package, identical API in Node.js and the browser. Ships dual ESM + CJS builds, is side-effect free, and tree-shakes cleanly.',
-  },
-  {
-    icon: KeyRound,
-    title: 'Flexible auth control',
-    desc: 'Authenticate automatically on init, pass an existing JWT, or take full manual control. Every mode is fully type-safe.',
-  },
-  {
-    icon: RefreshCw,
-    title: 'Auto token refresh',
-    desc: 'Expired sessions are renewed transparently behind the scenes. Your application code never has to handle a 401.',
-  },
-  {
-    icon: RotateCcw,
-    title: 'Built-in retry logic',
-    desc: 'Configurable exponential back-off for transient network failures and WebSocket reconnects — no boilerplate in your code.',
-  },
-  {
-    icon: ShieldAlert,
-    title: 'Classified error system',
-    desc: 'Errors carry structured codes and are narrowed with type guards, so you handle auth, network and validation failures precisely.',
-  },
-  {
-    icon: FileCheck2,
-    title: 'Runtime Zod validation',
-    desc: 'Configuration and payloads are validated at runtime. Misconfigured clients fail fast with clear, actionable messages.',
-  },
-  {
-    icon: Radio,
-    title: 'Real-time log streaming',
-    desc: 'Stream live logs from the Marzban core or any node over WebSocket, with automatic reconnection built in.',
-  },
-  {
-    icon: Webhook,
-    title: 'Webhooks, batteries included',
-    desc: 'HMAC-SHA256 signature verification, typed event subscriptions and wildcard handlers for inbound Marzban events.',
-  },
-  {
-    icon: ScrollText,
-    title: 'Structured logging',
-    desc: 'Environment-aware logger out of the box — verbose in dev, quiet in production — or plug in your own logging stack.',
-  },
-  {
-    icon: PackageCheck,
-    title: 'Helpful utilities',
-    desc: 'First-class helpers for byte conversions, datetime math and subscription template variables — common chores, solved.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Production-hardened',
-    desc: 'Timeouts, cancellation and defensive defaults are baked in. Built and tested for real workloads, not just demos.',
-  },
-]
-
-/** The typed API modules exposed by the SDK. */
-const modules = [
-  { icon: Users, title: 'Users', desc: 'Create, update, reset and inspect users and their traffic.' },
-  { icon: Server, title: 'Nodes', desc: 'Manage and monitor connected Marzban nodes.' },
-  { icon: Activity, title: 'System', desc: 'Live stats, host info and core configuration.' },
-  { icon: Cpu, title: 'Core', desc: 'Control and restart the Xray core, read its config.' },
-  { icon: PackageCheck, title: 'Subscriptions', desc: 'Resolve subscription links and per-client configs.' },
-  { icon: LayoutTemplate, title: 'User templates', desc: 'Reusable templates for provisioning users.' },
-  { icon: KeyRound, title: 'Admins', desc: 'Manage admin accounts and permissions.' },
-  { icon: Radio, title: 'Logs', desc: 'WebSocket log streams from the core and nodes.' },
-  { icon: Webhook, title: 'Webhooks', desc: 'Verify and handle inbound Marzban events.' },
-]
-
-/** What makes marzban-mcp safe to hand to a model, not just capable. */
-const mcpFeatures = [
-  {
-    icon: KeyRound,
-    title: 'Env-only credentials',
-    desc: 'The panel URL, username and password are never accepted as a tool argument — a compromised or confused model can’t redirect the server elsewhere.',
-  },
-  {
-    icon: Filter,
-    title: 'Profile-gated tools',
-    desc: 'A tool outside the active profile never appears in tools/list at all, not just hidden behind a hint.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Confirmation on destructive actions',
-    desc: 'The first call only describes the consequences and returns a one-time token; nothing runs until a human-approved second call repeats it.',
-  },
-  {
-    icon: EyeOff,
-    title: 'Credentials masked by default',
-    desc: 'proxies, subscription_url and links stay hidden unless you explicitly opt in.',
-  },
-  {
-    icon: ListChecks,
-    title: '21 tools, 3 prompts',
-    desc: 'Full user lifecycle, config, hosts, nodes, system stats and subscriptions, plus ready-made investigations that chain several tools together.',
-  },
-  {
-    icon: Bot,
-    title: 'Built on marzban-sdk',
-    desc: 'The same typed client, auth and retry behavior as the SDK, just exposed as MCP tools — no drift between them.',
-  },
-]
-
-const sdkSample = `import { createMarzbanSDK, isAuthError } from 'marzban-sdk'
-
-// One call authenticates and wires up every API module.
-// Token refresh and retries are handled for you.
-const sdk = await createMarzbanSDK({
-  baseUrl: 'https://panel.example.com',
-  username: 'admin',
-  password: 'secret',
-})
-
-// Fully typed API surface: users · nodes · system · subscriptions · …
-const { users } = await sdk.user.getUsers({ status: 'active', limit: 10 })
-const stats = await sdk.system.getSystemStats()
-
-// Stream real-time logs from the core over WebSocket
-const close = await sdk.logs.connectByCore({
-  onMessage: (data) => console.log(data),
-})
-
-// Typed, narrowable error handling
-try {
-  await sdk.user.getUserByUsername('does-not-exist')
-} catch (err) {
-  if (isAuthError(err)) await sdk.authorize()
-}`
-
-const mcpSample = `{
-  "mcpServers": {
-    "marzban": {
-      "command": "npx",
-      "args": ["-y", "marzban-mcp"],
-      "env": {
-        "MARZBAN_BASE_URL": "https://panel.example.com",
-        "MARZBAN_USERNAME": "admin",
-        "MARZBAN_PASSWORD": "secret"
-      }
-    }
-  }
-}`
 
 function GithubIcon({ className }: { className?: string }) {
   return (

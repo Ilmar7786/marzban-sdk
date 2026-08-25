@@ -10,8 +10,8 @@ interface CodePreviewProps {
 /**
  * Build-time syntax highlighting (Shiki) wrapped in a branded, theme-aware
  * window frame. The Shiki themes supply readable token colours; the `.code-frame`
- * surface (see global.css) gives the block a soft brand-tinted background that
- * blends into the page in both light and dark mode. Zero client-side cost.
+ * surface (see styles/code-frame.css) gives the block a soft brand-tinted background
+ * that blends into the page in both light and dark mode. Zero client-side cost.
  */
 export async function CodePreview({ code, lang = 'ts', title = 'example.ts' }: CodePreviewProps) {
   const rendered = await highlight(code, {

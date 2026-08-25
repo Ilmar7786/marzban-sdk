@@ -10,7 +10,7 @@ One job, Node 24, no matrix. Triggers on `pull_request` and `push` to `main`.
 
 ```
 checkout (full history) → pnpm install --frozen-lockfile
-  → pnpm turbo run lint test build --filter="$TURBO_FILTER"
+  → pnpm turbo run lint types:check test build --filter="$TURBO_FILTER"
   → pnpm format:check
 ```
 
@@ -23,21 +23,20 @@ rebuild the whole monorepo on every PR:
 
 ## What gates a merge
 
-`lint`, `test` (which includes the coverage thresholds from
+`lint`, `types:check`, `test` (which includes the coverage thresholds from
 [testing.md](./testing.md)), `build`, and `format:check` all have to pass.
 
-**`types:check` is not part of this workflow.** It's a real script
-(`pnpm types:check` → `turbo run types:check`), but only `apps/docs` defines
-it — `sdk`/`cli`/`mcp` type-check implicitly through `tsup --dts` at build
-time (and only `sdk` actually emits declarations; `cli`/`mcp` build with
-`dts: false`). This is the current state, not a recommendation — if you're
-relying on `types:check` catching a type error in `packages/sdk` or
-`packages/mcp`, it won't.
+Every package defines its own `types:check` script (`tsc --noEmit`, or for
+`apps/docs`: `fumadocs-mdx && next typegen && tsc --noEmit`). This matters
+for `cli`/`mcp` specifically — they build with `tsup`'s `dts: false` (see
+[workspace.md](./workspace.md)), so unlike `sdk` their `build` step alone
+never ran a type check; `types:check` is what actually catches a type error
+in those two packages.
 
 ## Reproducing locally
 
 ```sh
-pnpm turbo run lint test build
+pnpm turbo run lint types:check test build
 pnpm format:check
 ```
 

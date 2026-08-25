@@ -18,14 +18,16 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint .",
-    "lint:fix": "eslint --fix ."
+    "lint:fix": "eslint --fix .",
+    "types:check": "tsc --noEmit"
   },
   "dependencies": {
     "marzban-sdk": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
-    "tsup": "^8.5.1"
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   },
   "repository": {
     "type": "git",

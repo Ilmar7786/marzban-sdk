@@ -1,0 +1,82 @@
+/* ── Landing code preview ──────────────────────────────────────────────────
+   A branded, theme-aware frame around the hero code sample. The Shiki theme
+   supplies the token colours; we override the block background so the code
+   sits on a soft brand-tinted surface that blends into the page. */
+.code-frame {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklch, var(--color-fd-border), transparent 20%);
+  background: linear-gradient(160deg, var(--code-surface-from), var(--code-surface-to));
+  box-shadow:
+    0 1px 0 0 color-mix(in oklch, white, transparent 92%) inset,
+    0 24px 60px -28px var(--code-glow);
+  overflow: hidden;
+}
+
+/* Soft top sheen — confined to the header area so it never overlays (and
+   washes out) the code below it. */
+.code-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 140px;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 100% at 50% -40%, var(--code-glow), transparent 70%);
+}
+
+/* Keep all real content above the decorative sheen. */
+.code-frame > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Window chrome bar */
+.code-frame-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid color-mix(in oklch, var(--color-fd-border), transparent 35%);
+}
+
+.code-frame-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 9999px;
+}
+
+/* Make the embedded Fumadocs/Shiki code block transparent so the frame
+   surface shows through — token colours come from the Shiki theme. */
+.code-frame figure,
+.code-frame pre,
+.code-frame [data-rehype-pretty-code-figure],
+.code-frame .shiki {
+  background-color: transparent !important;
+  background: transparent !important;
+  margin: 0 !important;
+  border: 0 !important;
+}
+
+.code-frame figure {
+  border-radius: 0 !important;
+}
+
+/* Shiki dual-theme bakes the light token colour inline and relies on a
+   `.dark` rule to swap to the dark palette. That swap must beat the inline
+   style, so override it explicitly for the landing code frame. */
+.dark .code-frame .shiki,
+.dark .code-frame .shiki span {
+  color: var(--shiki-dark) !important;
+}
+
+.code-frame pre {
+  padding: 1.1rem 1.25rem !important;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+.code-figure > div[role='region'] {
+  max-height: none;
+}

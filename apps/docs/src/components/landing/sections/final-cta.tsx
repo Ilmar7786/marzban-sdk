@@ -6,10 +6,7 @@ import { GithubStarLink } from '@/components/landing/github-star-link'
 export function FinalCta() {
   return (
     <section className="relative overflow-hidden border-t border-fd-border">
-      <div
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30 blur-3xl"
-        style={{ background: 'radial-gradient(closest-side, var(--brand-from), transparent)' }}
-      />
+      <div className="glow-brand-from pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30 blur-3xl" />
       <div className="relative mx-auto flex max-w-3xl flex-col items-center px-4 py-24 text-center">
         <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
           Build your Marzban integration <span className="brand-gradient-text">the right way</span>

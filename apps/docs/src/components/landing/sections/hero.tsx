@@ -11,14 +11,8 @@ export function Hero() {
     <section className="relative overflow-hidden border-b border-fd-border">
       {/* Subtle grid + brand glow */}
       <GridBackdrop maskSize="70% 60%" />
-      <div
-        className="pointer-events-none absolute -left-20 top-0 h-[460px] w-[560px] rounded-full opacity-30 blur-[110px] dark:opacity-40"
-        style={{ background: 'radial-gradient(closest-side, var(--brand-from), transparent)' }}
-      />
-      <div
-        className="pointer-events-none absolute -right-20 top-10 h-[460px] w-[560px] rounded-full opacity-25 blur-[110px] dark:opacity-35"
-        style={{ background: 'radial-gradient(closest-side, var(--brand-to), transparent)' }}
-      />
+      <div className="glow-brand-from pointer-events-none absolute -left-20 top-0 h-[460px] w-[560px] rounded-full opacity-30 blur-[110px] dark:opacity-40" />
+      <div className="glow-brand-to pointer-events-none absolute -right-20 top-10 h-[460px] w-[560px] rounded-full opacity-25 blur-[110px] dark:opacity-35" />
 
       <div className="relative mx-auto flex max-w-5xl flex-col items-center px-4 py-24 text-center sm:py-32">
         {/* Badge */}

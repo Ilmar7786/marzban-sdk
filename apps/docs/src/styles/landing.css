@@ -1,0 +1,135 @@
+/* ── Reusable helpers for the landing page ─────────────────────────────── */
+.brand-gradient-text {
+  background-image: linear-gradient(120deg, var(--brand-from), var(--brand-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Primary call-to-action button — brand gradient + guaranteed-white text and
+   a soft coloured glow. Replaces the flat `bg-fd-primary` whose foreground was
+   low-contrast in light mode and read as a "cold blue" out of step with the
+   warm heading gradient. */
+.cta-primary {
+  color: #fff;
+  background-image: linear-gradient(120deg, var(--cta-from), var(--cta-to));
+  box-shadow: 0 10px 30px -12px color-mix(in oklch, var(--cta-to), transparent 30%);
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.cta-primary:hover {
+  filter: brightness(1.08) saturate(1.05);
+  box-shadow: 0 14px 36px -12px color-mix(in oklch, var(--cta-to), transparent 20%);
+}
+
+/* Ambient, blurred brand-colour glow that sits behind the whole landing —
+   soft "aurora" lighting that the frosted cards and frames blend into. */
+.landing-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.landing-ambient::before,
+.landing-ambient::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(100px);
+  will-change: transform;
+}
+
+.landing-ambient::before {
+  top: -14%;
+  left: 50%;
+  width: 64rem;
+  height: 38rem;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, var(--brand-from), transparent 70%);
+  opacity: 0.3;
+  animation: aurora-a 18s ease-in-out infinite alternate;
+}
+
+.landing-ambient::after {
+  top: 26%;
+  right: -12%;
+  width: 46rem;
+  height: 46rem;
+  background: radial-gradient(closest-side, var(--brand-to), transparent 70%);
+  opacity: 0.22;
+  animation: aurora-b 22s ease-in-out infinite alternate;
+}
+
+.dark .landing-ambient::before {
+  opacity: 0.55;
+}
+
+.dark .landing-ambient::after {
+  opacity: 0.45;
+}
+
+@keyframes aurora-a {
+  from {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  to {
+    transform: translateX(-42%) translateY(40px) scale(1.12);
+  }
+}
+
+@keyframes aurora-b {
+  from {
+    transform: translateY(0) scale(1);
+  }
+  to {
+    transform: translateY(-50px) scale(1.15);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Subtle grid behind a section's hero content. The fade mask's ellipse size
+   is section-specific, so it stays an inline style; the grid pattern itself
+   is identical everywhere it's used. */
+.grid-backdrop {
+  background-image:
+    linear-gradient(to right, var(--color-fd-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-fd-border) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Blurred radial glow blobs used behind hero/CTA content — only the gradient
+   colour stop differs between usages, position/size stay Tailwind classes. */
+.glow-brand-from {
+  background: radial-gradient(closest-side, var(--brand-from), transparent);
+}
+
+.glow-brand-to {
+  background: radial-gradient(closest-side, var(--brand-to), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .landing-ambient::before,
+  .landing-ambient::after {
+    animation: none;
+  }
+}

@@ -1,0 +1,49 @@
+/* ── Brand accent ────────────────────────────────────────────────────────
+   The Marzban mark is neutral, so we pair it with a modern indigo/violet
+   accent. Change the hue (275) in one place to re-skin the whole site. */
+/* ── Design system tokens ─────────────────────────────────────────────────
+   One accent family shared by the landing AND the docs: a warm violet that
+   matches the heading/CTA gradient instead of the old "cold blue". The
+   foreground flips per theme so solid accent surfaces always have contrast. */
+:root {
+  --color-fd-primary: oklch(0.52 0.23 292);
+  --color-fd-primary-foreground: oklch(0.99 0.01 292);
+  --brand-from: oklch(0.55 0.24 288);
+  --brand-to: oklch(0.58 0.22 332);
+
+  /* Amber accent for loose/dynamic type references. */
+  --type-loose: oklch(0.56 0.13 65);
+
+  /* CTA gradient — mid-dark stops in BOTH themes so white button text always
+     clears AA contrast. Same gradient is reused for accents in the docs. */
+  --cta-from: oklch(0.53 0.24 288);
+  --cta-to: oklch(0.55 0.21 332);
+
+  /* Surface used behind the landing code preview so it harmonises with the
+     page in both themes regardless of the Shiki token theme. */
+  --code-surface-from: oklch(0.99 0.004 288);
+  --code-surface-to: oklch(0.965 0.014 292);
+  --code-glow: oklch(0.62 0.21 305 / 0.16);
+}
+
+.dark {
+  --color-fd-primary: oklch(0.72 0.17 292);
+  --color-fd-primary-foreground: oklch(0.18 0.03 292);
+  --brand-from: oklch(0.74 0.18 290);
+  --brand-to: oklch(0.76 0.16 332);
+
+  --type-loose: oklch(0.8 0.12 75);
+
+  --code-surface-from: oklch(0.205 0.025 288);
+  --code-surface-to: oklch(0.17 0.03 292);
+  --code-glow: oklch(0.62 0.21 305 / 0.26);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}

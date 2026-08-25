@@ -14,6 +14,31 @@ checkout (full history) → pnpm install --frozen-lockfile
   → pnpm format:check
 ```
 
+The single `turbo run` step is not one flat command — Turborepo fans it out
+per affected package and orders `build` by the `^build` dependency graph
+(`marzban-sdk` builds before anything that depends on it):
+
+```mermaid
+flowchart TB
+    checkout["checkout (full history)"] --> install["pnpm install --frozen-lockfile"]
+    install --> turbo["pnpm turbo run lint types:check test build"]
+    turbo --> fmt["pnpm format:check"]
+    fmt --> gate(("gates the merge"))
+
+    subgraph fanout ["turbo run, per affected package"]
+        direction LR
+        sdk["marzban-sdk<br/>lint · types:check · test · build"]
+        cli["marzban-cli<br/>lint · types:check · build"]
+        mcp["marzban-mcp<br/>lint · types:check · test · build"]
+        docs["apps/docs<br/>lint · types:check · build"]
+        sdk -->|^build| cli
+        sdk -->|^build| mcp
+        sdk -->|^build| docs
+    end
+
+    turbo -.-> fanout
+```
+
 `TURBO_FILTER` scopes the run to what actually changed, so CI doesn't
 rebuild the whole monorepo on every PR:
 

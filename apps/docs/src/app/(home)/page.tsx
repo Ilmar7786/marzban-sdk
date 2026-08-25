@@ -3,12 +3,17 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { CodePreview } from '@/components/landing/code-preview'
+import { FeatureCard } from '@/components/landing/feature-card'
+import { GithubStarLink } from '@/components/landing/github-star-link'
+import { GridBackdrop } from '@/components/landing/grid-backdrop'
 import { InstallSection } from '@/components/landing/install-section'
+import { ModuleCard } from '@/components/landing/module-card'
+import { SectionHeader } from '@/components/landing/section-header'
 import { mcpSample, sdkSample } from '@/config/landing/code-samples'
 import { features } from '@/config/landing/features'
 import { mcpFeatures } from '@/config/landing/mcp-features'
 import { modules } from '@/config/landing/modules'
-import { appName, gitConfig } from '@/lib/shared'
+import { appName, mcpDockerImage, mcpNpmPackage } from '@/lib/shared'
 
 // Only `title`/`description` are overridden here. The Open Graph card (incl.
 // the generated image, site name, locale and canonical URL) is inherited from
@@ -22,23 +27,6 @@ export const metadata: Metadata = {
     'The Marzban toolkit: a complete, production-grade TypeScript SDK — full typed API coverage across users, nodes, subscriptions and admins, plus auto token refresh, retry logic, WebSocket log streaming, Zod validation, webhook verification, and a classified error system, isomorphic for Node.js and the browser — and marzban-mcp, an MCP server built on it so Claude, Cursor, or any MCP client can manage a Marzban panel directly.',
 }
 
-function GithubIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.39 1.24-3.23-.13-.3-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.23 0 4.63-2.81 5.65-5.49 5.95.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5z" />
-    </svg>
-  )
-}
-
-/** Small uppercase pill labelling which product a section belongs to. */
-function Eyebrow({ children }: { children: string }) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-fd-border bg-fd-card px-3 py-1 text-xs font-semibold tracking-wide text-fd-muted-foreground uppercase">
-      {children}
-    </span>
-  )
-}
-
 export default function HomePage() {
   return (
     <main className="relative flex flex-1 flex-col">
@@ -48,16 +36,7 @@ export default function HomePage() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-b border-fd-border">
         {/* Subtle grid + brand glow */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-25"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, var(--color-fd-border) 1px, transparent 1px), linear-gradient(to bottom, var(--color-fd-border) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-            maskImage: 'radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%)',
-            WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%)',
-          }}
-        />
+        <GridBackdrop maskSize="70% 60%" />
         <div
           className="pointer-events-none absolute -left-20 top-0 h-[460px] w-[560px] rounded-full opacity-30 blur-[110px] dark:opacity-40"
           style={{ background: 'radial-gradient(closest-side, var(--brand-from), transparent)' }}
@@ -107,15 +86,7 @@ export default function HomePage() {
             >
               Get Started <ArrowRight className="size-4" />
             </Link>
-            <a
-              href={`https://github.com/${gitConfig.user}/${gitConfig.repo}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-fd-border bg-fd-card px-5 py-2.5 font-medium transition-colors hover:bg-fd-accent"
-            >
-              <GithubIcon className="size-4" />
-              Star on GitHub
-            </a>
+            <GithubStarLink />
           </div>
 
           {/* Install */}
@@ -132,110 +103,82 @@ export default function HomePage() {
 
       {/* ── SDK: code preview ────────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-4xl px-4 py-20">
-        <div className="mb-7 text-center">
-          <Eyebrow>marzban-sdk</Eyebrow>
-          <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
-            From install to <span className="brand-gradient-text">full API access</span> in minutes
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-fd-muted-foreground">
-            A single function authenticates, configures retries, and exposes every typed API module.
-          </p>
+        <div className="mb-7">
+          <SectionHeader
+            eyebrow="marzban-sdk"
+            title={
+              <>
+                From install to <span className="brand-gradient-text">full API access</span> in minutes
+              </>
+            }
+            lead="A single function authenticates, configures retries, and exposes every typed API module."
+          />
         </div>
         <CodePreview code={sdkSample} lang="ts" title="example.ts" />
       </section>
 
       {/* ── SDK: API modules ─────────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-6xl px-4 pb-20">
-        <div className="mb-10 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">The whole API, fully typed</h2>
-          <p className="mx-auto mt-3 max-w-xl text-fd-muted-foreground">
-            Nine ready-to-use modules cover everything Marzban exposes — each with complete TypeScript types and
-            autocomplete.
-          </p>
+        <div className="mb-10">
+          <SectionHeader
+            title="The whole API, fully typed"
+            lead="Nine ready-to-use modules cover everything Marzban exposes — each with complete TypeScript types and autocomplete."
+          />
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {modules.map(({ icon: Icon, title, desc }) => (
-            <div
-              key={title}
-              className="flex items-start gap-3 rounded-xl border border-fd-border bg-fd-card p-4 transition-colors hover:border-fd-primary/50"
-            >
-              <div className="inline-flex shrink-0 rounded-lg border border-fd-border bg-fd-background p-2 text-fd-primary">
-                <Icon className="size-4.5" />
-              </div>
-              <div>
-                <h3 className="font-semibold">{title}</h3>
-                <p className="mt-0.5 text-sm text-fd-muted-foreground">{desc}</p>
-              </div>
-            </div>
+          {modules.map(mod => (
+            <ModuleCard key={mod.title} {...mod} />
           ))}
         </div>
       </section>
 
       {/* ── SDK: features grid ───────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-6xl px-4 pb-20">
-        <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">A real SDK, not just a wrapper</h2>
-          <p className="mx-auto mt-3 max-w-xl text-fd-muted-foreground">
-            {appName} ships the reliability features every production Marzban integration needs — so you focus on
-            product, not plumbing.
-          </p>
+        <div className="mb-12">
+          <SectionHeader
+            title="A real SDK, not just a wrapper"
+            lead={`${appName} ships the reliability features every production Marzban integration needs — so you focus on product, not plumbing.`}
+          />
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map(({ icon: Icon, title, desc }) => (
-            <div
-              key={title}
-              className="group rounded-xl border border-fd-border bg-fd-card p-5 transition-colors hover:border-fd-primary/50"
-            >
-              <div className="mb-4 inline-flex rounded-lg border border-fd-border bg-fd-background p-2.5 text-fd-primary transition-transform group-hover:scale-110">
-                <Icon className="size-5" />
-              </div>
-              <h3 className="font-semibold">{title}</h3>
-              <p className="mt-1.5 text-sm text-fd-muted-foreground">{desc}</p>
-            </div>
+          {features.map(feature => (
+            <FeatureCard key={feature.title} {...feature} />
           ))}
         </div>
       </section>
 
       {/* ── MCP: intro + code preview ────────────────────────────────── */}
       <section className="relative overflow-hidden border-t border-fd-border">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-25"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, var(--color-fd-border) 1px, transparent 1px), linear-gradient(to bottom, var(--color-fd-border) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-            maskImage: 'radial-gradient(ellipse 60% 60% at 50% 0%, #000 40%, transparent 100%)',
-            WebkitMaskImage: 'radial-gradient(ellipse 60% 60% at 50% 0%, #000 40%, transparent 100%)',
-          }}
-        />
+        <GridBackdrop maskSize="60% 60%" />
         <div className="relative mx-auto w-full max-w-4xl px-4 py-20">
-          <div className="mb-7 text-center">
-            <Eyebrow>marzban-mcp</Eyebrow>
-            <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
-              Or hand your panel to <span className="brand-gradient-text">an AI agent</span>
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-fd-muted-foreground">
-              Point Claude, Cursor, or any MCP client at your panel with one config block — no custom integration code,
-              built on the same SDK above.
-            </p>
+          <div className="mb-7">
+            <SectionHeader
+              eyebrow="marzban-mcp"
+              title={
+                <>
+                  Or hand your panel to <span className="brand-gradient-text">an AI agent</span>
+                </>
+              }
+              lead="Point Claude, Cursor, or any MCP client at your panel with one config block — no custom integration code, built on the same SDK above."
+            />
           </div>
           <CodePreview code={mcpSample} lang="json" title="claude_desktop_config.json" />
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-sm text-fd-muted-foreground">
             <a
-              href="https://www.npmjs.com/package/marzban-mcp"
+              href={`https://www.npmjs.com/package/${mcpNpmPackage}`}
               target="_blank"
               rel="noreferrer"
               className="rounded-full border border-fd-border bg-fd-card px-3 py-1 hover:bg-fd-accent"
             >
-              npx -y marzban-mcp
+              npx -y {mcpNpmPackage}
             </a>
             <a
-              href="https://hub.docker.com/r/ilmar7786/marzban-mcp"
+              href={`https://hub.docker.com/r/${mcpDockerImage}`}
               target="_blank"
               rel="noreferrer"
               className="rounded-full border border-fd-border bg-fd-card px-3 py-1 hover:bg-fd-accent"
             >
-              docker pull ilmar7786/marzban-mcp
+              docker pull {mcpDockerImage}
             </a>
           </div>
         </div>
@@ -243,25 +186,15 @@ export default function HomePage() {
 
       {/* ── MCP: features grid ───────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-6xl px-4 py-20">
-        <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">Capable, but never unsupervised</h2>
-          <p className="mx-auto mt-3 max-w-xl text-fd-muted-foreground">
-            Every safety mechanism below is on by default — an agent can only do what its profile allows, and never
-            without your say-so on anything destructive.
-          </p>
+        <div className="mb-12">
+          <SectionHeader
+            title="Capable, but never unsupervised"
+            lead="Every safety mechanism below is on by default — an agent can only do what its profile allows, and never without your say-so on anything destructive."
+          />
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {mcpFeatures.map(({ icon: Icon, title, desc }) => (
-            <div
-              key={title}
-              className="group rounded-xl border border-fd-border bg-fd-card p-5 transition-colors hover:border-fd-primary/50"
-            >
-              <div className="mb-4 inline-flex rounded-lg border border-fd-border bg-fd-background p-2.5 text-fd-primary transition-transform group-hover:scale-110">
-                <Icon className="size-5" />
-              </div>
-              <h3 className="font-semibold">{title}</h3>
-              <p className="mt-1.5 text-sm text-fd-muted-foreground">{desc}</p>
-            </div>
+          {mcpFeatures.map(feature => (
+            <FeatureCard key={feature.title} {...feature} />
           ))}
         </div>
         <div className="mt-8 flex justify-center">
@@ -295,15 +228,7 @@ export default function HomePage() {
             >
               Read the docs <ArrowRight className="size-4" />
             </Link>
-            <a
-              href={`https://github.com/${gitConfig.user}/${gitConfig.repo}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-fd-border bg-fd-card px-5 py-2.5 font-medium transition-colors hover:bg-fd-accent"
-            >
-              <GithubIcon className="size-4" />
-              Star on GitHub
-            </a>
+            <GithubStarLink />
           </div>
         </div>
       </section>

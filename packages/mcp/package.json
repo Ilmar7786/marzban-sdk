@@ -33,6 +33,7 @@
     "dev": "tsup --watch",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
+    "types:check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -49,6 +50,7 @@
     "@types/node": "^26.2.0",
     "@vitest/coverage-v8": "^4.1.10",
     "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"
   },

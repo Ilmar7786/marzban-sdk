@@ -64,6 +64,7 @@
     "codegen": "kubb generate",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
+    "types:check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -88,6 +89,7 @@
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^4.1.10",
     "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"
   },

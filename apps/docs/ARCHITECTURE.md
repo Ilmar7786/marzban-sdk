@@ -22,6 +22,30 @@ top-level section order lives in `content/docs/meta.json`. `source.config.ts`
 defines the MDX collection schema; `fumadocs-mdx` compiles it into `.source/`
 via the package's `postinstall` script.
 
+## Layout of `src/`
+
+Four layers, each with one job:
+
+- `src/config/` — static data and copy (`.ts`, no JSX; a `LucideIcon` value in
+  a data object is fine, a component is not). Landing page text lives here
+  (`config/landing/`), not in the route file — edit `features.ts`/`modules.ts`
+  etc. to change what the landing page says.
+- `src/lib/` — plain logic and shared constants, no React.
+- `src/components/` — presentation only. Data arrives as props or is imported
+  from `config/`, split into `ui/` (generic primitives reused across landing
+  and docs), `landing/` (landing-only pieces, section components under
+  `landing/sections/`), and `docs/` (docs-only pieces).
+- `src/app/` — routes: metadata, layout wiring, composing the above. A page
+  under `app/` should read as a list of section components, not contain their
+  markup.
+
+Styles follow the same split: `src/app/global.css` is just the Tailwind/
+Fumadocs entry `@import`s, the actual rules live in `src/styles/` — one file
+per concern (`tokens.css`, `landing.css`, `code-frame.css`, `docs.css`).
+
+Keep files under ~200 lines. When a file grows past that, it's usually doing
+more than one of the four jobs above — split along that line first.
+
 ## Build and deploy
 
 `next.config.mjs` sets `output: 'export'` (static HTML, no server) and

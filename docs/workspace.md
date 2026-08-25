@@ -64,12 +64,12 @@ TypeScript compiler.
 
 ## Bundlers
 
-| Package       | Bundler                         | Output                               |
-| ------------- | ------------------------------- | ------------------------------------ |
-| `marzban-sdk` | tsup, dual ESM+CJS, `dts: true` | `dist/index.{js,cjs}` + declarations |
-| `marzban-mcp` | tsup, ESM only, shebang banner  | `dist/index.js` (bin)                |
-| `marzban-cli` | tsup, ESM only, shebang banner  | `dist/index.js` (bin)                |
-| `apps/docs`   | Next.js static export           | `out/`                               |
+| Package       | Bundler                                      | Output                               |
+| ------------- | -------------------------------------------- | ------------------------------------ |
+| `marzban-sdk` | tsup, dual ESM+CJS, `dts: true`              | `dist/index.{js,cjs}` + declarations |
+| `marzban-mcp` | tsup, ESM only, shebang banner, `dts: false` | `dist/index.js` (bin)                |
+| `marzban-cli` | tsup, ESM only, shebang banner, `dts: false` | `dist/index.js` (bin)                |
+| `apps/docs`   | Next.js static export                        | `out/`                               |
 
 `marzban-sdk`'s spec generation (`kubb generate`, wired as the `codegen`
 script) is documented in

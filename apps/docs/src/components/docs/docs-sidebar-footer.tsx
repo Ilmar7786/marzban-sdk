@@ -2,7 +2,7 @@ import { ThemeSwitch } from 'fumadocs-ui/layouts/shared/slots/theme-switch'
 
 import { gitConfig } from '@/lib/shared'
 
-import { GithubMark } from '../landing/header-github'
+import { GithubMark } from '../ui/github-mark'
 import { PackagesPopover } from '../ui/packages-popover'
 import { Tooltip } from '../ui/tooltip'
 

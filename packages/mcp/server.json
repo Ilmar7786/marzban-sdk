@@ -1,0 +1,75 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ilmar7786/marzban-mcp",
+  "title": "Marzban MCP",
+  "description": "Manage Marzban panels through the Model Context Protocol.",
+  "repository": {
+    "url": "https://github.com/Ilmar7786/marzban-sdk",
+    "source": "github"
+  },
+  "version": "0.0.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "marzban-mcp",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "MARZBAN_BASE_URL",
+          "description": "URL of the Marzban panel.",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MARZBAN_USERNAME",
+          "description": "Marzban administrator username.",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MARZBAN_PASSWORD",
+          "description": "Marzban administrator password.",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true
+        }
+      ]
+    },
+    {
+      "registryType": "oci",
+      "identifier": "docker.io/ilmar7786/marzban-mcp:0.0.0",
+      "runtimeHint": "docker",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "MARZBAN_BASE_URL",
+          "description": "URL of the Marzban panel.",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MARZBAN_USERNAME",
+          "description": "Marzban administrator username.",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MARZBAN_PASSWORD",
+          "description": "Marzban administrator password.",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

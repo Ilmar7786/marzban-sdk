@@ -1,6 +1,7 @@
 {
   "name": "marzban-mcp",
   "version": "0.2.0",
+  "mcpName": "io.github.ilmar7786/marzban-mcp",
   "description": "MCP server for the Marzban API, built on marzban-sdk.",
   "keywords": [
     "marzban-mcp",

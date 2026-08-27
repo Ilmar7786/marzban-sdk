@@ -54,19 +54,19 @@ pnpm --filter marzban-sdk test:coverage
   suites had to
   work around — 500s that should succeed, fields that normalize on the wire,
   etc. — is centralized in [marzban-quirks.md](./marzban-quirks.md) rather
-  than commented inline everywhere it's relevant. The `core` and `system`
-  suites additionally mutate live, panel-wide state (the xray core config,
-  the proxy host map) — each takes a snapshot in `beforeAll` and restores +
-  deep-equal-asserts it in `afterAll`, so a failure fails loudly in its own
-  file instead of silently breaking the files that run after it
-  (`fileParallelism: false`). If a run is ever interrupted mid-mutation,
-  `pnpm local:reset` gets the panel back to a known state.
+  than commented inline everywhere it's relevant. The `core`, `system`, and
+  `node-hosts` suites additionally mutate live, panel-wide state (the xray
+  core config, the proxy host map) — each takes a snapshot in `beforeAll`
+  and restores + deep-equal-asserts it in `afterAll`, so a failure fails
+  loudly in its own file instead of silently breaking the files that run
+  after it (`fileParallelism: false`). If a run is ever interrupted
+  mid-mutation, `pnpm local:reset` gets the panel back to a known state.
 
   `sdk` module coverage:
   - [x] User
   - [x] Admin
   - [x] Core
-  - [ ] Node
+  - [x] Node
   - [x] Subscription
   - [x] System
   - [x] UserTemplate

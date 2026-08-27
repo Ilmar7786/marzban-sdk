@@ -252,3 +252,77 @@ after a revoke.
 invalidates a previously-issued subscription link; it doesn't, by design.
 See
 [`subscription.integration.test.ts`](../packages/sdk/test/integration/subscription.integration.test.ts).
+
+## `removeNode` deletes the node but leaves its auto-added host behind
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+`addNode({ add_as_new_host: true })` (the default) adds a proxy host entry
+for the node under its inbound tag, with `remark` containing the node's
+name and `address` set to the node's address. `removeNode` deletes the node
+row but does not remove that host entry — it's left in the host map,
+pointing at an address that no longer resolves to any node, until removed
+manually via `modifyHosts`.
+
+**Workaround:** none needed at the SDK level — a caller that creates a node
+with `add_as_new_host: true` and later removes it should also clean up the
+corresponding host entry itself. See
+[`node-hosts.integration.test.ts`](../packages/sdk/test/integration/node-hosts.integration.test.ts),
+which restores the host map from a snapshot in `afterAll` rather than
+relying on `removeNode` to have cleaned up after itself.
+
+**Open:** not tested against a panel with more than one inbound tag, or
+against `add_as_new_host: false` followed by a separate manual host add —
+only the default create-then-remove path was verified.
+
+## `addNode` fires an async connection attempt immediately, which can race a follow-up `modifyNode`
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`, panel
+container logs (`INFO: Connecting to "<name>" node` /
+`INFO: Unable to connect to "<name>" node`).
+
+`addNode` schedules a background task that tries to connect to the node's
+`api_port` right away — not on a delay or a periodic cycle. Against an
+address nothing is listening on, that task fails fast (sub-millisecond on
+loopback) and writes `status: 'error'` plus a `message`. If a `modifyNode`
+call — including one that explicitly sets `status: 'disabled'` — lands
+while that task is still in flight, the two writes race: depending on
+ordering, the task's failure write can land _after_ the disable and silently
+overwrite both `status` (back to `'error'`) and `message`, even though the
+`modifyNode` call itself returned `status: 'disabled'`. Reproduced via the
+SDK's own back-to-back calls (curl invocations, with their extra
+process-spawn latency between requests, consistently missed the window and
+never showed it).
+
+**Workaround:** poll `getNode` until `status` is no longer `'connecting'`
+before modifying a freshly created node — `waitForNodeSettled()` in
+[`nodeFixture.ts`](../packages/sdk/test/integration/helpers/nodeFixture.ts),
+used by
+[`node.integration.test.ts`](../packages/sdk/test/integration/node.integration.test.ts)'s
+disable test. Once the connection attempt has resolved, there's nothing
+left to race.
+
+**Open:** the SDK itself doesn't special-case this — a real caller that
+disables a node right after creating it can observe the same lost update.
+Whether `modifyNode` on an _existing, already-settled_ node ever re-triggers
+this same async check (as opposed to only on create) wasn't characterized.
+
+## `addNode` ignores `usage_coefficient` on create — always stores `1.0`
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+`NodeCreate.usage_coefficient` type-checks and the request accepts any
+value `> 0`, but the panel always stores `1.0` for a newly created node
+regardless of what was sent — the field is silently dropped on the create
+path only. `modifyNode({ usage_coefficient })` on an existing node works as
+documented: the value is stored and echoed back.
+
+**Workaround:** none needed once known — set `usage_coefficient` with a
+follow-up `modifyNode` call if it needs to be anything other than the
+default. See
+[`node.integration.test.ts`](../packages/sdk/test/integration/node.integration.test.ts),
+which asserts the create response always has `usage_coefficient: 1` and
+verifies the field only through `modifyNode`.
+
+**Open:** whether this is intentional or a panel bug wasn't investigated
+further.

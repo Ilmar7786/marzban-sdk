@@ -127,6 +127,41 @@ this fixture as those behaviors are implemented — see
 [issue #85](https://github.com/Ilmar7786/marzban-sdk/issues/85) for the
 fixture itself and the issues it unblocks.
 
+### LogsStream internals (issue #87)
+
+`logs-stream.ts` only orchestrates: validate `interval`, authenticate, build
+the URL, create and track the socket, wire it up, open it. The 403-retry
+state machine lives in its own
+[`logs-stream-retry.ts`](../packages/sdk/src/core/ws/logs-stream-retry.ts)
+(`LogsStreamRetryHandler`), constructed with plain injected functions
+(`closeTracked`, `reconnect`) instead of reaching into `LogsStream`'s
+internals — so [`logs-stream-retry.test.ts`](../packages/sdk/src/core/ws/logs-stream-retry.test.ts)
+exercises the whole retry/give-up/re-auth-fails matrix as fast, deterministic
+unit tests with no socket at all. Small pure pieces live in `core/ws/utils/`
+next to `configuration-url-ws.ts` — `log-interval.ts` (validates `interval`
+against the panel's `0`–`10` range, throwing `WsOptionsError`),
+`close-quietly.ts` (closes a socket, collecting rather than propagating a
+throw from `close()` itself), and `ws-error.ts` (extracts a WS error
+event's message and classifies a 403). None of these are re-exported from
+`utils/index.ts` — only `configurationUrlWs` is; everything else is
+imported by its own file path so it stays out of the package's public API.
+
+`logs-stream.server.test.ts` also covers, on both transports: a throwing
+`onMessage`/`onError` is logged rather than crashing the process (asserted
+via a scoped `process.on('unhandledRejection')` listener) and doesn't block
+later messages; `closeAllConnections()` and the returned close handle both
+still close every other tracked socket and clear their entry when one
+client's `close()` itself throws; and `connectByCore({ interval: 11 })`
+rejects before a socket is even opened. One transport-specific finding
+surfaced while writing these: Node's native `WebSocket` global's `error`
+event carries no message text at all (verified on Node 24), so the
+existing substring-of-the-error-message 403 classification silently never
+recognizes a 403 as retryable on that transport — only the `ws`-package
+fallback's error text contains "403". See
+[marzban-quirks.md](./marzban-quirks.md) and
+[issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88), which
+replaces the classification itself.
+
 ## Coverage
 
 `packages/sdk` and `packages/mcp` both enforce **100%** statements,

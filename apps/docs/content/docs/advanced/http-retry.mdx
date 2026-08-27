@@ -50,15 +50,19 @@ const sdk = await createMarzbanSDK({
 
 ## What gets retried
 
-`axios-retry` retries requests that fail due to:
+Only safe methods — **GET, HEAD, OPTIONS** — are retried, and only for:
 
-- **Network errors** (connection refused, DNS failure, etc.)
-- **Idempotent 5xx responses** (500, 502, 503, 504) for safe HTTP methods (GET, HEAD, OPTIONS)
+- Network errors (e.g. a dropped connection with no response)
+- **5xx** and **429** responses
 
-It does **not** retry:
+The method check always comes first: `POST`, `PUT`, `PATCH`, and `DELETE` are
+never retried, not even on a network error — re-sending a request whose
+outcome is unknown could duplicate a write (e.g. `restartCore`).
 
-- `4xx` client errors (except 429 if configured separately)
-- Non-idempotent methods (POST, PUT, PATCH, DELETE) on 5xx — to avoid duplicate writes
+The one exception is the login request, which is retried on network errors
+since re-issuing a token has no side effects.
+
+Other `4xx` responses are never retried.
 
 ## 401 re-auth retry
 

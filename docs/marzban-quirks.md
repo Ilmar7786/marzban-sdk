@@ -53,11 +53,16 @@ a one-off `httpsAgent` per call for any request made immediately after
 `removeUser`/`removeUserTolerantly`, so it can't draw the poisoned socket
 from the shared pool.
 
-**Open:** only worked around at the test level. Not something the SDK can
-reasonably detect and self-heal from (an `ECONNRESET` is indistinguishable
-from any other transient network failure). `axios-retry`'s default retries
-did not recover it in practice — worth understanding why, if this turns out
-to affect real deployments and not just this dev image.
+Only worked around at the test level — not something the SDK can reasonably
+detect and self-heal from (an `ECONNRESET` is indistinguishable from any
+other transient network failure).
+
+`axios-retry`'s default retries didn't recover it because they weren't
+running at all: a since-fixed bug had retries on the authenticated client
+silently never fire for any method or error (see the SDK changelog, v3.2.0).
+Now that they do, a `GET` hitting this can be retried — though a retry may
+still draw the same poisoned connection from the pool, so
+`freshConnectionConfig()` stays necessary.
 
 ## `addUser` requires a non-empty `proxies`
 

@@ -16,6 +16,20 @@ function once<T = void>(client: WsClient, event: string): Promise<T> {
   return new Promise(resolve => client.once(event, ((...args: AnyType[]) => resolve(args[0])) as AnyType))
 }
 
+// `ws` throws an uncaught exception when `terminate()`/`close()` is called
+// while the socket is still CONNECTING (see `abortHandshake` in
+// `ws/lib/websocket.js`) unless something is listening for `error`. Every
+// client in this file goes through here so afterEach can always clean up,
+// even mid-handshake, without crashing the run.
+let clients: WsClient[] = []
+
+function connect(panel: MockPanel, path: string): WsClient {
+  const client = new WsClient(wsUrl(panel, path))
+  client.on('error', () => {})
+  clients.push(client)
+  return client
+}
+
 function postLogin(
   panel: MockPanel,
   body = 'username=admin&password=secret'
@@ -45,6 +59,8 @@ describe('mock-panel', () => {
   })
 
   afterEach(async () => {
+    clients.forEach(client => client.terminate())
+    clients = []
     await panel.stop()
   })
 
@@ -124,19 +140,17 @@ describe('mock-panel', () => {
 
   describe('handshake', () => {
     it('accepts a connection and records the handshake', async () => {
-      const client = new WsClient(wsUrl(panel, '/api/core/logs?token=abc&interval=5'))
+      const client = connect(panel, '/api/core/logs?token=abc&interval=5')
       await once(client, 'open')
 
       expect(panel.handshakes).toEqual([
         expect.objectContaining({ pathname: '/api/core/logs', token: 'abc', interval: '5' }),
       ])
       expect(panel.sockets.size).toBe(1)
-
-      client.terminate()
     })
 
     it('delivers broadcast messages to open sockets', async () => {
-      const client = new WsClient(wsUrl(panel, '/api/core/logs'))
+      const client = connect(panel, '/api/core/logs')
       await once(client, 'open')
 
       const messageArrived = once<Buffer>(client, 'message')
@@ -144,12 +158,11 @@ describe('mock-panel', () => {
       const data = await messageArrived
 
       expect(data.toString('utf8')).toBe('hello from panel')
-      client.terminate()
     })
 
     it('rejects the handshake with the default status before accept()', async () => {
       panel.setHandshake({ mode: 'reject' })
-      const client = new WsClient(wsUrl(panel, '/api/core/logs'))
+      const client = connect(panel, '/api/core/logs')
 
       const err = await once<Error>(client, 'error')
 
@@ -159,7 +172,7 @@ describe('mock-panel', () => {
 
     it('rejects the handshake with a configured status', async () => {
       panel.setHandshake({ mode: 'reject', status: 401 })
-      const client = new WsClient(wsUrl(panel, '/api/core/logs'))
+      const client = connect(panel, '/api/core/logs')
 
       const err = await once<Error>(client, 'error')
 
@@ -168,7 +181,7 @@ describe('mock-panel', () => {
 
     it('hangs the handshake until stop() tears it down', async () => {
       panel.setHandshake({ mode: 'hang' })
-      const client = new WsClient(wsUrl(panel, '/api/core/logs'))
+      const client = connect(panel, '/api/core/logs')
 
       let settled = false
       client.once('open', () => (settled = true))
@@ -176,23 +189,20 @@ describe('mock-panel', () => {
 
       await new Promise(resolve => setTimeout(resolve, 50))
       expect(settled).toBe(false)
-
-      client.terminate()
     })
 
     it('accepts after a delay', async () => {
       panel.setHandshake({ mode: 'delay', ms: 40 })
-      const client = new WsClient(wsUrl(panel, '/api/core/logs'))
+      const client = connect(panel, '/api/core/logs')
 
       const start = Date.now()
       await once(client, 'open')
 
       expect(Date.now() - start).toBeGreaterThanOrEqual(35)
-      client.terminate()
     })
 
     it('drops connections abruptly with dropAll()', async () => {
-      const client = new WsClient(wsUrl(panel, '/api/core/logs'))
+      const client = connect(panel, '/api/core/logs')
       await once(client, 'open')
 
       const closed = once(client, 'close')
@@ -201,7 +211,7 @@ describe('mock-panel', () => {
     })
 
     it('closes connections cleanly with closeAll()', async () => {
-      const client = new WsClient(wsUrl(panel, '/api/core/logs'))
+      const client = connect(panel, '/api/core/logs')
       await once(client, 'open')
 
       const closed = new Promise<[number, Buffer]>(resolve => {
@@ -217,41 +227,35 @@ describe('mock-panel', () => {
 
   describe('waiting helpers', () => {
     it('waitForConnection resolves once a socket is open', async () => {
-      const client = new WsClient(wsUrl(panel, '/api/core/logs'))
+      connect(panel, '/api/core/logs')
       const socket = await panel.waitForConnection()
 
       expect(socket.readyState).toBe(socket.OPEN)
-      client.terminate()
     })
 
     it('waitForConnections resolves once enough sockets have connected', async () => {
-      const first = new WsClient(wsUrl(panel, '/api/core/logs'))
-      const second = new WsClient(wsUrl(panel, '/api/core/logs'))
+      const first = connect(panel, '/api/core/logs')
+      const second = connect(panel, '/api/core/logs')
       const opened = Promise.all([once(first, 'open'), once(second, 'open')])
 
       const sockets = await panel.waitForConnections(2)
       await opened
 
       expect(sockets).toHaveLength(2)
-      first.terminate()
-      second.terminate()
     })
 
     it('waitForConnections rejects once the timeout elapses', async () => {
       panel.setHandshake({ mode: 'hang' })
-      const client = new WsClient(wsUrl(panel, '/api/core/logs'))
-      client.on('error', () => {})
+      connect(panel, '/api/core/logs')
 
       await expect(panel.waitForConnections(1, 40)).rejects.toThrow(/waitForConnections/)
-      client.terminate()
     })
 
     it('waitForHandshakes resolves once enough handshakes have been recorded', async () => {
-      const client = new WsClient(wsUrl(panel, '/api/core/logs'))
+      connect(panel, '/api/core/logs')
       const handshakes = await panel.waitForHandshakes(1)
 
       expect(handshakes).toHaveLength(1)
-      client.terminate()
     })
   })
 

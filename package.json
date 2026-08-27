@@ -43,7 +43,7 @@
     "local:reset": "docker compose -f local/marzban/docker-compose.yml down -v && rm -rf local/marzban/data",
     "changelog:sdk": "git-cliff --tag sdk-v$(node -p \"require('./packages/sdk/package.json').version\") --tag-pattern '^(sdk-)?v[0-9].*' --include-path 'packages/sdk/**' --latest --prepend packages/sdk/CHANGELOG.md",
     "changelog:cli": "git-cliff --tag cli-v$(node -p \"require('./packages/cli/package.json').version\") --tag-pattern '^cli-v.*' --include-path 'packages/cli/**' --latest --prepend packages/cli/CHANGELOG.md",
-    "changelog:mcp": "git-cliff --tag mcp-v$(node -p \"require('./packages/mcp/package.json').version\") --tag-pattern '^mcp-v.*' --include-path 'packages/mcp/**' --latest --prepend packages/mcp/CHANGELOG.md"
+    "changelog:mcp": "git-cliff --tag mcp-v$(node -p \"require('./packages/mcp/package.json').version\") --tag-pattern '^mcp-v.*' --include-path 'packages/mcp/**' --with-tag-message \"$(node scripts/downstream-notes.mjs mcp)\" --latest --prepend packages/mcp/CHANGELOG.md"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",

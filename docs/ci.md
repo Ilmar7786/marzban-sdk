@@ -6,7 +6,8 @@
 
 ## What runs
 
-One job, Node 24, no matrix. Triggers on `pull_request` and `push` to `main`.
+One job, Node 24, no matrix. Triggers on `pull_request` and `push` to `main`
+and `dev`.
 
 ```
 checkout (full history) → pnpm install --frozen-lockfile
@@ -79,11 +80,11 @@ torn down afterward. No external hosting, no secrets: the panel never leaves
 the runner and its credentials are the throwaway ones from
 `local/marzban/.env.example`.
 
-Triggers: `pull_request` targeting `main` (default `opened` +
+Triggers: `pull_request` targeting `main` or `dev` (default `opened` +
 `synchronize` + `reopened` — reruns on every push to the PR branch, same as
-`ci.yml`), `push` to `main`, and `workflow_dispatch` (manual). Runs on real
-change, not on a timer — no scheduled run that fires regardless of whether
-anything changed.
+`ci.yml`), `push` to `main` or `dev`, and `workflow_dispatch` (manual). Runs
+on real change, not on a timer — no scheduled run that fires regardless of
+whether anything changed.
 
 Not a required check — `ci.yml` is what gates a merge (see "What gates a
 merge" above); this workflow surfaces its result on the PR (and via

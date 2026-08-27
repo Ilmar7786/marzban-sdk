@@ -1,3 +1,11 @@
+// This file mocks `WebSocketClient.create` with a synchronous fake that
+// registers handlers immediately and closes only on command — it pins
+// branch coverage (which callback fires for which input), not timing. It
+// cannot reproduce microtask-gap or transport-level races (see issue #85);
+// new WS timing/lifecycle tests belong in `logs-stream.server.test.ts`,
+// built on the real `ws.Server` fixture in `src/testing/mock-panel.ts`.
+// This file is slated for replacement once #88 changes LogsStream's
+// public contract.
 import type { Mock } from 'vitest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 

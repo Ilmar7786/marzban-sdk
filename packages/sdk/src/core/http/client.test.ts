@@ -95,6 +95,15 @@ describe('configureHttpClient', () => {
     expect(retryDelay(10)).toBe(30_000) // capped at MAX_RETRY_DELAY_MS
   })
 
+  it('installs axios-retry before the auth interceptors, so retry sees the raw AxiosError', () => {
+    configureHttpClient('https://x', authService, makeConfig(), logger)
+
+    // See client.ts: reversing this order makes retries silently no-op.
+    const retryCallOrder = axiosRetryMock.mock.invocationCallOrder[0]
+    const authInterceptorCallOrder = created[0].interceptors.response.use.mock.invocationCallOrder[0]
+    expect(retryCallOrder).toBeLessThan(authInterceptorCallOrder)
+  })
+
   describe('custom agents', () => {
     const httpAgent = { destroy: vi.fn() }
     const httpsAgent = { destroy: vi.fn() }

@@ -57,9 +57,6 @@ export const configureHttpClient = (
   const instanceAxios = axios.create({ baseURL: baseUrl, timeout: config.timeout, ...agentOptions })
   const instancePublic = axios.create({ baseURL: baseUrl, timeout: config.timeout, ...agentOptions })
 
-  logger.debug('Setting up authentication interceptors', 'HttpClient')
-  setupAuthInterceptors(instanceAxios, authService, config, logger)
-
   const retries = config.retries
   // Exponential backoff capped at MAX_RETRY_DELAY_MS: 1s, 2s, 4s, 8s, ...
   const retryDelay = (retryCount: number): number => {
@@ -68,9 +65,16 @@ export const configureHttpClient = (
     return delay
   }
 
+  // Must run before setupAuthInterceptors: axios-retry needs the raw
+  // AxiosError (error.config) to decide whether to retry. Auth wraps errors
+  // into HttpError, which has no .config — registering it first would make
+  // axios-retry silently no-op.
   logger.debug(`Configuring retry logic: ${retries} retries with exponential backoff`, 'HttpClient')
   axiosRetry(instanceAxios, { retries, retryDelay })
   axiosRetry(instancePublic, { retries, retryDelay })
+
+  logger.debug('Setting up authentication interceptors', 'HttpClient')
+  setupAuthInterceptors(instanceAxios, authService, config, logger)
 
   return {
     client: createClientFromAxios(instanceAxios),

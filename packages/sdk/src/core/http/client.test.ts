@@ -95,6 +95,17 @@ describe('configureHttpClient', () => {
     expect(retryDelay(10)).toBe(30_000) // capped at MAX_RETRY_DELAY_MS
   })
 
+  it('scopes retries to safe methods on the authenticated client, plus POST on the public client', () => {
+    configureHttpClient('https://x', authService, makeConfig(), logger)
+
+    const { retryCondition: authCondition } = axiosRetryMock.mock.calls[0][1]
+    const { retryCondition: publicCondition } = axiosRetryMock.mock.calls[1][1]
+
+    expect(authCondition({ config: { method: 'post' }, response: { status: 500 } })).toBe(false)
+    expect(authCondition({ config: { method: 'get' }, response: { status: 500 } })).toBe(true)
+    expect(publicCondition({ config: { method: 'post' }, response: { status: 500 } })).toBe(true)
+  })
+
   it('installs axios-retry before the auth interceptors, so retry sees the raw AxiosError', () => {
     configureHttpClient('https://x', authService, makeConfig(), logger)
 

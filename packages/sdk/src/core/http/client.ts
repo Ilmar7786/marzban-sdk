@@ -8,6 +8,7 @@ import { MAX_RETRY_DELAY_MS, RETRY_BASE_DELAY_MS, ValidatedConfig } from '@/conf
 import { AuthManager } from '../auth'
 import { Logger } from '../logger'
 import { setupAuthInterceptors } from './interceptors'
+import { createRetryCondition, LOGIN_RETRYABLE_METHODS, SAFE_HTTP_METHODS } from './retry'
 
 function createClientFromAxios(instance: AxiosInstance): Client {
   return requestConfig => instance.request(requestConfig)
@@ -70,8 +71,8 @@ export const configureHttpClient = (
   // into HttpError, which has no .config — registering it first would make
   // axios-retry silently no-op.
   logger.debug(`Configuring retry logic: ${retries} retries with exponential backoff`, 'HttpClient')
-  axiosRetry(instanceAxios, { retries, retryDelay })
-  axiosRetry(instancePublic, { retries, retryDelay })
+  axiosRetry(instanceAxios, { retries, retryDelay, retryCondition: createRetryCondition(SAFE_HTTP_METHODS) })
+  axiosRetry(instancePublic, { retries, retryDelay, retryCondition: createRetryCondition(LOGIN_RETRYABLE_METHODS) })
 
   logger.debug('Setting up authentication interceptors', 'HttpClient')
   setupAuthInterceptors(instanceAxios, authService, config, logger)

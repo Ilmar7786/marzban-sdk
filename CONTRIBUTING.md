@@ -53,7 +53,10 @@ this file only covers the mechanics of sending a patch.
    fix: handle missing token in AuthManager
    docs: add NestJS integration example
    ```
-5. Push to your fork and open a PR against the `main` branch.
+5. Push to your fork and open a PR against the `dev` branch — that's the
+   integration branch; it merges into `main` periodically. Both branches
+   require the `ci` check to pass before merging (see
+   [`docs/adr/0012-gate-dev-with-ci.md`](./docs/adr/0012-gate-dev-with-ci.md)).
 
 ## Code style
 

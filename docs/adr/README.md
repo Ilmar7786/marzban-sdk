@@ -52,3 +52,4 @@ What this enables, what it costs.
 | [0009](./0009-version-bump-triggered-release.md)                     | Releases trigger on a version bump, not a manual tag                |
 | [0010](./0010-mcp-stdio-env-config-security-model.md)                | MCP: stdio only, env-only config, profile + confirm security model  |
 | [0011](./0011-per-package-release-workflows-and-mcp-docker-build.md) | Per-package release workflows; mcp's Docker image built from source |
+| [0012](./0012-gate-dev-with-ci.md)                                   | Gate `dev`, not just `main`, with CI and branch protection          |

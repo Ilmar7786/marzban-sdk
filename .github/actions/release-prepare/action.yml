@@ -26,6 +26,13 @@ inputs:
       succeeded (see release-mcp.yml's force_publish input).
     required: false
     default: 'false'
+  tag-message-file:
+    description: >-
+      Path to a file whose contents are passed to git-cliff as
+      --with-tag-message (available in the template as {{ message }}). Empty
+      or missing file means no extra message. See docs/release.md.
+    required: false
+    default: ''
 
 outputs:
   changed:
@@ -69,17 +76,23 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
+        TAG_MESSAGE_FILE: ${{ inputs.tag-message-file }}
       run: |
         # --latest (rather than a full regenerate) is required here: git-cliff
         # cannot correctly bucket commits per historical tag once --include-path
         # is applied across the full multi-tag history — it collapses every
         # release into one. Scoped to a single tag boundary, --include-path
         # works correctly, so each release prepends just its own section.
+        extra=()
+        if [ -n "$TAG_MESSAGE_FILE" ] && [ -s "$TAG_MESSAGE_FILE" ]; then
+          extra+=(--with-tag-message "$(cat "$TAG_MESSAGE_FILE")")
+        fi
         pnpm exec git-cliff \
           --tag "${{ inputs.tag-prefix }}${{ steps.npm-dry-run.outputs.version }}" \
           --tag-pattern '${{ inputs.tag-pattern }}' \
           --github-repo '${{ github.repository }}' \
           ${{ inputs.include-path-args }} \
+          "${extra[@]}" \
           --latest --prepend '${{ inputs.package-dir }}/CHANGELOG.md'
 
     - name: Render release notes
@@ -87,10 +100,16 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
+        TAG_MESSAGE_FILE: ${{ inputs.tag-message-file }}
       run: |
+        extra=()
+        if [ -n "$TAG_MESSAGE_FILE" ] && [ -s "$TAG_MESSAGE_FILE" ]; then
+          extra+=(--with-tag-message "$(cat "$TAG_MESSAGE_FILE")")
+        fi
         pnpm exec git-cliff \
           --tag "${{ inputs.tag-prefix }}${{ steps.npm-dry-run.outputs.version }}" \
           --tag-pattern '${{ inputs.tag-pattern }}' \
           --github-repo '${{ github.repository }}' \
           ${{ inputs.include-path-args }} \
+          "${extra[@]}" \
           --latest --strip all > /tmp/release-notes.md

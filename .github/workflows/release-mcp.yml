@@ -61,6 +61,9 @@ jobs:
       - name: Build MCP
         run: pnpm turbo run build --filter=marzban-mcp
 
+      - name: Build downstream notes
+        run: node scripts/downstream-notes.mjs mcp > /tmp/downstream-note.md
+
       - name: Prepare release
         uses: ./.github/actions/release-prepare
         id: prepare
@@ -71,6 +74,7 @@ jobs:
           include-path-args: "--include-path 'packages/mcp/**'"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           force: ${{ inputs.force_publish || false }}
+          tag-message-file: /tmp/downstream-note.md
 
       # ---------------------------------------------------------------
       # Docker
@@ -219,13 +223,19 @@ jobs:
       # Changelog
       # ---------------------------------------------------------------
 
+      - name: Clear downstream notes
+        if: >-
+          steps.prepare.outputs.changed == 'true' &&
+          !(inputs.dry_run || false)
+        run: node scripts/downstream-notes.mjs mcp --clear
+
       - name: Commit updated changelog
         if: >-
           steps.prepare.outputs.changed == 'true' &&
           !(inputs.dry_run || false)
         uses: ./.github/actions/commit-changelog
         with:
-          paths: packages/mcp/CHANGELOG.md
+          paths: packages/mcp/CHANGELOG.md .changelog/mcp-downstream.md
           message: >-
             chore(changelog): marzban-mcp
             ${{ steps.prepare.outputs.version }} [skip ci]

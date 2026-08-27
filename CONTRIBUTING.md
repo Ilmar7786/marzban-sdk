@@ -53,6 +53,9 @@ this file only covers the mechanics of sending a patch.
    fix: handle missing token in AuthManager
    docs: add NestJS integration example
    ```
+   Fixing something in `packages/sdk` that also changes `marzban-mcp`'s
+   behavior? Scope it `fix(sdk,mcp): ...` so it surfaces in mcp's changelog
+   too — see [`docs/conventions.md`](./docs/conventions.md#commits).
 5. Push to your fork and open a PR against the `dev` branch — that's the
    integration branch; it merges into `main` periodically. Both branches
    require the `ci` check to pass before merging (see

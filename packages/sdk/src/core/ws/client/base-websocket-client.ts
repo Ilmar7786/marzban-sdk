@@ -29,11 +29,16 @@ export interface WebSocketClientOptions {
   agent?: HttpAgentLike
 }
 
+type BufferedListener = { event: keyof WebSocketEventMap; listener: (event: AnyType) => void }
+
 export abstract class BaseWebSocketClient {
-  protected socket!: WebSocketLike
+  protected socket?: WebSocketLike
   protected url: string
   protected protocols?: string | string[]
   protected agent?: HttpAgentLike
+
+  private pendingListeners: BufferedListener[] = []
+  private pendingClose?: { code?: number; reason?: string }
 
   constructor(url: string, protocols?: string | string[], options?: WebSocketClientOptions) {
     this.url = url
@@ -41,25 +46,60 @@ export abstract class BaseWebSocketClient {
     this.agent = options?.agent
   }
 
-  protected abstract createWebSocket(): Promise<WebSocketLike>
+  /** Override to await whatever the transport needs before construction (e.g. a lazy `import`). */
+  protected async prepare(): Promise<void> {}
+
+  /**
+   * Synchronous by contract: `init()` attaches every buffered listener in the
+   * same tick the socket is constructed, so nothing the transport dispatches
+   * immediately (a connection-refused `error`, an instant handshake `close`)
+   * is missed.
+   */
+  protected abstract createWebSocket(): WebSocketLike
 
   async init(): Promise<void> {
-    this.socket = await this.createWebSocket()
+    await this.prepare()
+    this.socket = this.createWebSocket()
+
+    for (const { event, listener } of this.pendingListeners) {
+      this.socket.addEventListener(event, listener)
+    }
+    this.pendingListeners = []
+
+    if (this.pendingClose) {
+      this.socket.close(this.pendingClose.code, this.pendingClose.reason)
+    }
+  }
+
+  private get activeSocket(): WebSocketLike {
+    if (!this.socket) {
+      throw new TypeError('WebSocket is not initialized yet — call init() first')
+    }
+    return this.socket
   }
 
   on<K extends keyof WebSocketEventMap>(event: K, listener: (event: WebSocketEventMap[K]) => void): void {
+    if (!this.socket) {
+      this.pendingListeners.push({ event, listener: listener as (event: AnyType) => void })
+      return
+    }
     this.socket.addEventListener(event, listener as (event: AnyType) => void)
   }
 
   send(data: string | ArrayBuffer | Blob | ArrayBufferView): void {
-    this.socket.send(data)
+    this.activeSocket.send(data)
   }
 
+  /** Before `init()`, closes the socket as soon as it exists instead of throwing. */
   close(code?: number, reason?: string): void {
+    if (!this.socket) {
+      this.pendingClose = { code, reason }
+      return
+    }
     this.socket.close(code, reason)
   }
 
   get readyState(): number {
-    return this.socket.readyState
+    return this.activeSocket.readyState
   }
 }

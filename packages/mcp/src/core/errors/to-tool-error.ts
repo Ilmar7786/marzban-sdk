@@ -6,18 +6,6 @@ import { redactText } from '@/shared/redact-text'
 
 import { ToolError } from './mcp.error'
 
-// HttpError.details wraps a raw axios error (redacted, but still `unknown` —
-// marzban-sdk doesn't type it yet, tracked as P3). Duck-typing the status out
-// of it is the same best-effort every other current consumer of the SDK has
-// to do; there's no safer option until P3 lands.
-function extractHttpStatus(details: unknown): number | undefined {
-  if (typeof details !== 'object' || details === null) return undefined
-  const response = (details as { response?: unknown }).response
-  if (typeof response !== 'object' || response === null) return undefined
-  const status = (response as { status?: unknown }).status
-  return typeof status === 'number' ? status : undefined
-}
-
 function textResult(text: string): CallToolResult {
   return { content: [{ type: 'text', text: redactText(text) }], isError: true }
 }
@@ -41,9 +29,8 @@ export function toToolError(error: unknown): CallToolResult {
   }
 
   if (isHttpError(error)) {
-    const status = extractHttpStatus(error.details)
-    const statusText = status ? ` (HTTP ${status})` : ''
-    return textResult(`Marzban API request failed${statusText}: ${error.message}`)
+    const suffix = error.status === undefined ? '' : ` (HTTP ${error.status})`
+    return textResult(`Marzban API request failed${suffix}: ${error.message}`)
   }
 
   if (isConfigurationError(error)) {

@@ -67,7 +67,7 @@ try {
   if (isAuthError(err)) {
     console.error('Authentication failed:', err.message)
   } else if (isHttpError(err)) {
-    console.error('HTTP error:', err.message, err.details)
+    console.error('HTTP error:', err.status, err.message)
   } else {
     throw err
   }

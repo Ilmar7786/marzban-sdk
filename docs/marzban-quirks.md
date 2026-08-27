@@ -326,3 +326,32 @@ verifies the field only through `modifyNode`.
 
 **Open:** whether this is intentional or a panel bug wasn't investigated
 further.
+
+## WebSocket log handshake rejections collapse into a generic HTTP 403
+
+**Verified against:** `gozargah/marzban:v0.8.4`, `local/marzban/`.
+
+The panel authorizes a `/api/core/logs`/`/api/node/{id}/logs` connection
+before calling `websocket.accept()` — an expired token, a non-sudo admin
+token, and an `interval` outside the accepted range (`> 10`) are all
+rejected at this stage. uvicorn collapses whatever close code the
+application logic intended (4401/4403/4400) into one generic HTTP 403 on the
+handshake response; the client sees only "403", never which of those three
+conditions caused it.
+
+**Workaround:** none at the panel level — a client can't distinguish "token
+expired" from "interval too large" from the handshake response alone.
+[`logs.integration.test.ts`](../packages/sdk/test/integration/logs.integration.test.ts)
+exercises this with `interval: 11` since it's the one variant reproducible
+without a real expired token. The synchronous mock fixture in
+[`packages/sdk/src/testing/mock-panel.ts`](../packages/sdk/src/testing/mock-panel.ts)
+models the same collapse: its `reject` handshake policy always closes before
+`websocket.accept()`, regardless of the reason a real caller configures it
+to simulate.
+
+**Open:** `LogsStream` currently treats every 403 as an expired token and
+retries with re-authentication — including the `interval` and non-sudo
+cases, where retrying can never succeed. Tracked in
+[issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88), which
+replaces this substring-of-the-error-message classification with one based
+on connection phase instead.

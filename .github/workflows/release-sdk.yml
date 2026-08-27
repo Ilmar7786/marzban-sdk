@@ -31,20 +31,33 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success')
+
     steps:
-      - uses: actions/checkout@v6
+      # ---------------------------------------------------------------
+      # Pre-release
+      # ---------------------------------------------------------------
+
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
 
-      - run: pnpm turbo run build --filter=marzban-sdk
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build SDK
+        run: pnpm turbo run build --filter=marzban-sdk
 
       - name: Prepare release
         uses: ./.github/actions/release-prepare
@@ -54,9 +67,15 @@ jobs:
           tag-prefix: sdk-v
           tag-pattern: '^(sdk-)?v[0-9].*'
           include-path-args: >-
-            --include-path 'packages/sdk/**' --include-path 'src/**' --include-path 'openapi/**'
+            --include-path 'packages/sdk/**'
+            --include-path 'src/**'
+            --include-path 'openapi/**'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           force: ${{ inputs.force_publish || false }}
+
+      # ---------------------------------------------------------------
+      # npm
+      # ---------------------------------------------------------------
 
       - name: Publish to npm
         if: steps.prepare.outputs.changed == 'true'
@@ -65,6 +84,10 @@ jobs:
           package: packages/sdk/package.json
           provenance: true
           dry-run: ${{ inputs.dry_run || false }}
+
+      # ---------------------------------------------------------------
+      # GitHub Release
+      # ---------------------------------------------------------------
 
       - name: Add artifact links to release notes
         if: steps.prepare.outputs.changed == 'true'
@@ -89,9 +112,17 @@ jobs:
           body_path: ${{ steps.prepare.outputs.notes-path }}
           draft: ${{ inputs.dry_run || false }}
 
+      # ---------------------------------------------------------------
+      # Changelog
+      # ---------------------------------------------------------------
+
       - name: Commit updated changelog
-        if: steps.prepare.outputs.changed == 'true' && !(inputs.dry_run || false)
+        if: >-
+          steps.prepare.outputs.changed == 'true' &&
+          !(inputs.dry_run || false)
         uses: ./.github/actions/commit-changelog
         with:
           paths: packages/sdk/CHANGELOG.md
-          message: 'chore(changelog): marzban-sdk ${{ steps.prepare.outputs.version }} [skip ci]'
+          message: >-
+            chore(changelog): marzban-sdk
+            ${{ steps.prepare.outputs.version }} [skip ci]

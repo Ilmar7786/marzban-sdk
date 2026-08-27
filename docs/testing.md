@@ -54,22 +54,113 @@ pnpm --filter marzban-sdk test:coverage
   suites had to
   work around — 500s that should succeed, fields that normalize on the wire,
   etc. — is centralized in [marzban-quirks.md](./marzban-quirks.md) rather
-  than commented inline everywhere it's relevant. The `core` and `system`
-  suites additionally mutate live, panel-wide state (the xray core config,
-  the proxy host map) — each takes a snapshot in `beforeAll` and restores +
-  deep-equal-asserts it in `afterAll`, so a failure fails loudly in its own
-  file instead of silently breaking the files that run after it
-  (`fileParallelism: false`). If a run is ever interrupted mid-mutation,
-  `pnpm local:reset` gets the panel back to a known state.
+  than commented inline everywhere it's relevant. The `core`, `system`, and
+  `node-hosts` suites additionally mutate live, panel-wide state (the xray
+  core config, the proxy host map) — each takes a snapshot in `beforeAll`
+  and restores + deep-equal-asserts it in `afterAll`, so a failure fails
+  loudly in its own file instead of silently breaking the files that run
+  after it (`fileParallelism: false`). If a run is ever interrupted
+  mid-mutation, `pnpm local:reset` gets the panel back to a known state.
 
   `sdk` module coverage:
   - [x] User
   - [x] Admin
   - [x] Core
-  - [ ] Node
+  - [x] Node
   - [x] Subscription
   - [x] System
   - [x] UserTemplate
+  - [x] Logs (WebSocket) — smoke only, see "WS module" below for the detailed
+        timing coverage
+
+## WS module
+
+`core/ws` is the one module whose unit tests don't mock the transport with
+`vi.mock` (see "Network isolation" below) — `logs-stream.test.ts` mocks
+`WebSocketClient.resolve` itself with a synchronous fake instead, which
+cannot reproduce timing bugs that only show up with a real socket (an
+unsolicited `close`, a shutdown racing a reconnect). `packages/sdk/src/testing/`
+fixes that gap with a real `ws.Server` on loopback.
+
+`BaseWebSocketClient` itself used to have a microtask gap between socket
+construction and listener attachment — `createWebSocket()` was `async`, so
+`init()` only attached `on()` handlers after at least one `await`, and a
+connection that failed inside that window dispatched `error`/`close` to
+nobody ([issue #86](https://github.com/Ilmar7786/marzban-sdk/issues/86)).
+Fixed by making `createWebSocket()` synchronous and buffering `on()`/`close()`
+calls made before `init()`, so listeners attach in the same tick the socket
+is constructed. `logs-stream.server.test.ts` (below) pins the regression —
+it needs a real socket, since a synchronous fake can't reproduce a race that
+only exists because of real event-loop timing.
+
+- [`mock-panel.ts`](../packages/sdk/src/testing/mock-panel.ts) — one
+  `http.Server` standing in for the panel: serves `POST /api/admin/token`
+  and handles the WebSocket upgrade for everything else, mirroring how the
+  real panel authorizes a connection before `websocket.accept()` (see
+  [marzban-quirks.md](./marzban-quirks.md)). Handshakes can be configured to
+  accept, reject (with a status), delay, or hang; logins to succeed,
+  fail, or stall until released — enough to drive the real-socket timing
+  scenarios `logs-stream.test.ts`'s fake can't.
+- [`transports.ts`](../packages/sdk/src/testing/transports.ts) — forces
+  `WebSocketClient.create` onto the `ws`-package fallback for a test, so WS
+  behavior can be asserted on both transports it can resolve to.
+- Lives under `src/` rather than `test/`: `packages/sdk/tsconfig.json` sets
+  `rootDir: "./src"`, so a unit test under `src/core/ws/` importing a helper
+  from `test/` fails `tsc --noEmit` (`TS6059`) even though Vitest itself
+  would run it fine. Being under `src/` means it's covered by the 100%
+  threshold too — `mock-panel.test.ts`/`transports.test.ts` test the fixture
+  itself. It isn't exported from `src/index.ts`, so it never reaches the
+  published package (`tsup`'s only entry is `index.ts`; `files: ["dist"]`
+  in `package.json` ships only the build output regardless).
+- `logs-stream.server.test.ts` (next to `logs-stream.test.ts`) is where WS
+  timing/lifecycle tests belong, built on this fixture instead of a
+  hand-rolled fake — including #86's own regression scenarios (a rejected
+  handshake, a panel that goes unreachable after login) that assert
+  `onError` fires and `activeConnections` ends up empty, on both transports
+  (`describe.each(WS_TRANSPORTS)`). `logs-stream.test.ts` itself stays — it
+  still pins `LogsStream`'s branch behavior efficiently — until it's
+  replaced outright once a public-API change lands (tracked alongside the
+  reconnect rework in [issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88)).
+
+Reconnect, connect-timeout, and shutdown-race scenarios are exercised on
+this fixture as those behaviors are implemented — see
+[issue #85](https://github.com/Ilmar7786/marzban-sdk/issues/85) for the
+fixture itself and the issues it unblocks.
+
+### LogsStream internals (issue #87)
+
+`logs-stream.ts` only orchestrates: validate `interval`, authenticate, build
+the URL, create and track the socket, wire it up, open it. The 403-retry
+state machine lives in its own
+[`logs-stream-retry.ts`](../packages/sdk/src/core/ws/logs-stream-retry.ts)
+(`LogsStreamRetryHandler`), constructed with plain injected functions
+(`closeTracked`, `reconnect`) instead of reaching into `LogsStream`'s
+internals — so [`logs-stream-retry.test.ts`](../packages/sdk/src/core/ws/logs-stream-retry.test.ts)
+exercises the whole retry/give-up/re-auth-fails matrix as fast, deterministic
+unit tests with no socket at all. Small pure pieces live in `core/ws/utils/`
+next to `configuration-url-ws.ts` — `log-interval.ts` (validates `interval`
+against the panel's `0`–`10` range, throwing `WsOptionsError`),
+`close-quietly.ts` (closes a socket, collecting rather than propagating a
+throw from `close()` itself), and `ws-error.ts` (extracts a WS error
+event's message and classifies a 403). None of these are re-exported from
+`utils/index.ts` — only `configurationUrlWs` is; everything else is
+imported by its own file path so it stays out of the package's public API.
+
+`logs-stream.server.test.ts` also covers, on both transports: a throwing
+`onMessage`/`onError` is logged rather than crashing the process (asserted
+via a scoped `process.on('unhandledRejection')` listener) and doesn't block
+later messages; `closeAllConnections()` and the returned close handle both
+still close every other tracked socket and clear their entry when one
+client's `close()` itself throws; and `connectByCore({ interval: 11 })`
+rejects before a socket is even opened. One transport-specific finding
+surfaced while writing these: Node's native `WebSocket` global's `error`
+event carries no message text at all (verified on Node 24), so the
+existing substring-of-the-error-message 403 classification silently never
+recognizes a 403 as retryable on that transport — only the `ws`-package
+fallback's error text contains "403". See
+[marzban-quirks.md](./marzban-quirks.md) and
+[issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88), which
+replaces the classification itself.
 
 ## Coverage
 
@@ -88,9 +179,12 @@ A PR that drops coverage below 100% on either package fails
 There's no HTTP mock library (no msw, no nock) in this repo. The transport
 itself is mocked — `vi.mock('axios')` / `vi.mock('axios-retry')` — so tests
 exercise real request-building and error-handling logic against a fake
-client. [`local/marzban/README.md`](../local/marzban/README.md) has a disposable
-Docker panel for the "Integration" level above — and for ad hoc manual
-poking, which is still the faster loop for one-off checks.
+client. The WS module is the exception: `logs-stream.server.test.ts` and the
+fixture's own self-tests run against a real (loopback-only) `ws.Server`
+rather than a mocked transport — see "WS module" above for why a mock
+couldn't do the job there. [`local/marzban/README.md`](../local/marzban/README.md)
+has a disposable Docker panel for the "Integration" level above — and for ad
+hoc manual poking, which is still the faster loop for one-off checks.
 
 ```sh
 pnpm local:up && pnpm local:logs   # wait for it to report ready, then Ctrl+C

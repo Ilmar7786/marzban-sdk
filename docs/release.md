@@ -108,9 +108,48 @@ user-facing. This is why the commit format in
 [conventions.md](./conventions.md) matters beyond `git log` readability.
 
 One consequence of scoping git-cliff to `packages/mcp/**`: a fix that lands
-in `packages/sdk` and changes mcp's runtime behavior never shows up in mcp's
-own changelog. There's no automated fix for this — it's a known gap, not a
-bug.
+in `packages/sdk` and changes mcp's runtime behavior would never show up in
+mcp's own changelog, since the path filter drops the sdk commit before
+`commit_parsers` ever sees it.
+
+### Surfacing sdk changes in mcp's changelog
+
+[`scripts/downstream-notes.mjs`](../scripts/downstream-notes.mjs) builds a
+`### 🔗 From marzban-sdk` section and passes it to git-cliff via
+`--with-tag-message`; `cliff.toml`'s body template inserts it verbatim when
+present (guarded by a `### 🔗` sentinel so an unrelated lightweight-tag
+message can't leak in). `release-mcp.yml` runs it before **Prepare release**
+and clears the pending-notes file after a real (non-dry-run) publish. Three
+sources feed the section:
+
+- **The sdk version bump**, always. The script diffs
+  `packages/sdk/package.json`'s version against what it was at the previous
+  `mcp-v*` tag and adds a "Bundles marzban-sdk X.Y.Z (was A.B.C)" bullet
+  linking to the sdk release notes whenever it changed. This is the floor —
+  it can't be forgotten, but it doesn't say _what_ changed.
+- **Commits scoped `fix(sdk,mcp): ...`** (or any type — commitlint's
+  `scope-enum` already accepts a comma-separated scope list, no config
+  change needed). Use this scope when an sdk commit changes mcp's observable
+  behavior; the script picks up every such commit between the previous
+  `mcp-v*` tag and the release and includes its description verbatim.
+- **[`.changelog/mcp-downstream.md`](../.changelog/mcp-downstream.md)**, a
+  hand-maintained escape hatch for sdk changes that can't be marked on the
+  commit — already merged without the scope, or whose effect on mcp only
+  became clear afterward. Add one bullet per line; the next mcp release
+  folds them in and clears the file. Deliberately kept outside
+  `packages/sdk/**` and `packages/mcp/**` so it isn't itself caught by
+  either package's path filter.
+
+Preview the section before a release: `node scripts/downstream-notes.mjs
+mcp` (also wired into `pnpm changelog:mcp`).
+
+One thing this mechanism does _not_ cover: after
+[`scripts/resolve-workspace-deps.mjs`](../scripts/resolve-workspace-deps.mjs)
+rewrites `marzban-mcp`'s dependency range, npm installs of `marzban-mcp` can
+pick up a newer `marzban-sdk` **without an mcp release happening at all** —
+the changelog section above only fires when mcp itself releases. The Docker
+image doesn't have this problem since it vendors a specific sdk version at
+build time.
 
 ## mcp's Docker image
 

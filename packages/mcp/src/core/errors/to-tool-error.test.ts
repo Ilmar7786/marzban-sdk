@@ -32,33 +32,28 @@ describe('toToolError', () => {
     expect(text).toContain('MARZBAN_USERNAME/MARZBAN_PASSWORD')
   })
 
-  it('renders an HttpError with the extracted HTTP status when present', () => {
+  it('renders an HttpError with its HTTP status when present', () => {
     const result = toToolError(new HttpError({ response: { status: 404 } }))
     const text = (result.content[0] as { text: string }).text
     expect(text).toContain('HTTP 404')
   })
 
-  it('renders an HttpError without a status suffix when none can be extracted', () => {
+  it('renders an HttpError without a status suffix when none is available', () => {
     const result = toToolError(new HttpError('network down'))
     const text = (result.content[0] as { text: string }).text
     expect(text).not.toMatch(/\(HTTP \d+\)/)
     expect(text).toContain('Marzban API request failed')
   })
 
-  it('does not crash extracting a status from a non-object details value', () => {
-    const result = toToolError(new HttpError('just a string'))
+  it.each([
+    ['a non-object details value', 'just a string'],
+    ['a details.response that is not an object', { response: 'nope' }],
+    ['a non-numeric response.status', { response: { status: 'nope' } }],
+  ])('does not crash and omits the status suffix for %s', (_label, details) => {
+    const result = toToolError(new HttpError(details))
     expect(result.isError).toBe(true)
-  })
-
-  it('omits the status suffix when response.status is present but not a number', () => {
-    const result = toToolError(new HttpError({ response: { status: 'nope' } }))
     const text = (result.content[0] as { text: string }).text
     expect(text).not.toMatch(/\(HTTP /)
-  })
-
-  it('does not crash extracting a status from a details.response that is not an object', () => {
-    const result = toToolError(new HttpError({ response: 'nope' }))
-    expect(result.isError).toBe(true)
   })
 
   it('renders a ConfigurationError with an actionable hint', () => {

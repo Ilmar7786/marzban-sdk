@@ -24,11 +24,20 @@ its own on top of HTTP.
 | `src/common/`  | Runtime-agnostic utilities with no domain knowledge (redaction, byte/buffer helpers, event emitter, environment detection). |
 | `src/gen/`     | Fully generated from OpenAPI via kubb — `api/`, `models/`, `schemas/`. Committed to git, never hand-edited.                 |
 | `src/helpers/` | Convenience utilities for SDK consumers (bytes, datetime, pagination) — not used by `core/`.                                |
+| `src/testing/` | Test-only fixtures — see below.                                                                                             |
 
 Dependency direction is one-way and acyclic: `index.ts → core/MarzbanSDK.ts →
 {config, core/*, gen/api}`. `common/` sits below everything and depends on
 nothing else in the package. `helpers/` is isolated on purpose — it's for
 consumers, not for `core/`.
+
+`src/testing/` holds fixtures used only by this package's own tests —
+currently the real-`ws.Server` harness for `core/ws` (see
+[`docs/testing.md`](../../docs/testing.md) "WS module"). It lives under
+`src/` rather than `test/` only because `rootDir: "./src"` in
+`tsconfig.json` breaks `types:check` for a unit test importing from outside
+`src/`; it isn't exported from `src/index.ts` and never reaches the built
+package (`tsup`'s only entry is `index.ts`).
 
 ## Public API barrier
 
@@ -61,10 +70,13 @@ with a named export — don't have the consumer reach past it.
    is assigned to a facade field by hand in `MarzbanSDK.ts` (e.g.
    `this.node = new nodeApi({ client: http.client })`) — this wiring is the
    one place per module that isn't generated.
-3. Request interceptor waits for any in-flight auth (`authService.waitForCurrentAuth()`),
-   then attaches `Authorization`. Response interceptor retries once on `401`
-   after a re-login. `axios-retry` is layered on both instances for transient
-   network failures with exponential backoff.
+3. `axios-retry` is installed on both instances _before_ the auth
+   interceptors — it needs the raw `AxiosError`, which auth wraps into
+   `HttpError`. Each instance gets its own `retryCondition`: `client` retries
+   only GET/HEAD/OPTIONS, `publicClient` (login) also retries POST. Request
+   interceptor then waits for any in-flight auth (`authService.waitForCurrentAuth()`)
+   and attaches `Authorization`; response interceptor retries once on `401`
+   after a re-login.
 4. Every error is wrapped into `SdkError` (or a subclass) **before** it
    reaches the logger — `redactSecrets()` runs inside the `SdkError`
    constructor and again in the default logger, so a raw `AxiosError`

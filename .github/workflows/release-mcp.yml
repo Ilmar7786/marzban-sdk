@@ -11,15 +11,16 @@ on:
       dry_run:
         description: >-
           Dry run — npm publish stays --dry-run, the Docker image is built
-          but not pushed, the GitHub Release is created as a draft (no real
-          tag), and the changelog is not committed back.
+          but not pushed, MCP Registry metadata is validated but not published,
+          the GitHub Release is created as a draft, and the changelog is not
+          committed back.
         type: boolean
         default: true
       force_publish:
         description: >-
           Release even if the dry-run check says the version already matches
           npm. Only needed to resume a release that failed after npm publish
-          (and/or the Docker push) already succeeded — see docs/release.md.
+          and/or the Docker push already succeeded — see docs/release.md.
         type: boolean
         default: false
 
@@ -32,20 +33,36 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success')
+
     steps:
-      - uses: actions/checkout@v6
+      # ---------------------------------------------------------------
+      # Pre-release
+      # ---------------------------------------------------------------
+
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
 
-      - run: pnpm turbo run build --filter=marzban-mcp
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build MCP
+        run: pnpm turbo run build --filter=marzban-mcp
+
+      - name: Build downstream notes
+        run: node scripts/downstream-notes.mjs mcp > /tmp/downstream-note.md
 
       - name: Prepare release
         uses: ./.github/actions/release-prepare
@@ -57,15 +74,12 @@ jobs:
           include-path-args: "--include-path 'packages/mcp/**'"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           force: ${{ inputs.force_publish || false }}
+          tag-message-file: /tmp/downstream-note.md
 
-      # Docker build/push runs BEFORE the workspace-range rewrite below on
-      # purpose: the Dockerfile's own `pnpm install --frozen-lockfile` needs
-      # packages/mcp/package.json to still say `workspace:^`, matching what
-      # pnpm-lock.yaml was actually generated against. Rewriting it first
-      # (as an earlier version of this workflow did) desyncs the two and
-      # `--frozen-lockfile` fails inside the build. `pnpm deploy` in the
-      # Dockerfile resolves the workspace protocol correctly on its own —
-      # this rewrite is only needed for the npm publish step further down.
+      # ---------------------------------------------------------------
+      # Docker
+      # ---------------------------------------------------------------
+
       - name: Set up QEMU
         if: steps.prepare.outputs.changed == 'true'
         uses: docker/setup-qemu-action@v3
@@ -75,7 +89,9 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
-        if: steps.prepare.outputs.changed == 'true' && !(inputs.dry_run || false)
+        if: >-
+          steps.prepare.outputs.changed == 'true' &&
+          !(inputs.dry_run || false)
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -88,13 +104,6 @@ jobs:
           version='${{ steps.prepare.outputs.version }}'
           echo "value=${version%.*}" >> "$GITHUB_OUTPUT"
 
-      # Also produces the org.opencontainers.image.* labels (source, revision,
-      # created, licenses, …) from the repo/git context — worth keeping this
-      # action around for that alone, even with hand-picked tags below.
-      # title/description are overridden explicitly: metadata-action's own
-      # defaults for those two come from the GitHub *repository's* name and
-      # About description ("marzban-sdk" / the repo's blurb), not from this
-      # specific package — left alone, the image ends up labeled as sdk.
       - name: Docker image metadata
         if: steps.prepare.outputs.changed == 'true'
         id: meta
@@ -105,13 +114,7 @@ jobs:
             type=raw,value=${{ steps.prepare.outputs.version }}
             type=raw,value=${{ steps.minor.outputs.value }}
             type=raw,value=latest
-          labels: |
-            org.opencontainers.image.title=marzban-mcp
-            org.opencontainers.image.description=MCP server for the Marzban API, built on marzban-sdk
 
-      # provenance/sbom attestations require an actual registry push to
-      # attach to — in a dry run (push: false) they're left off entirely
-      # rather than erroring, since there's nowhere for them to attach.
       - name: Build and push Docker image
         if: steps.prepare.outputs.changed == 'true'
         id: docker
@@ -128,13 +131,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # npm can only rewrite `workspace:*` protocol deps for workspaces it
-      # manages itself — this repo uses pnpm workspaces, so the root
-      # package.json has no `workspaces` field and npm leaves the range
-      # untouched. Left as-is, the published package.json would still say
-      # `workspace:^`, which `npm install` outside this repo cannot resolve.
-      # Runs after the Docker build (see the comment above it) so the
-      # rewrite never leaks into that build's context.
+      # ---------------------------------------------------------------
+      # npm
+      # ---------------------------------------------------------------
+
       - name: Resolve workspace dependency ranges
         if: steps.prepare.outputs.changed == 'true'
         run: node scripts/resolve-workspace-deps.mjs packages/mcp
@@ -147,10 +147,52 @@ jobs:
           provenance: true
           dry-run: ${{ inputs.dry_run || false }}
 
+      # ---------------------------------------------------------------
+      # MCP Registry
+      # ---------------------------------------------------------------
+
+      - name: Install MCP Publisher
+        if: steps.prepare.outputs.changed == 'true'
+        run: |
+          curl -fsSL \
+            "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
+            -o /tmp/mcp-publisher.tar.gz
+          tar -xzf /tmp/mcp-publisher.tar.gz -C /tmp
+          install -m 0755 /tmp/mcp-publisher /usr/local/bin/mcp-publisher
+
+      - name: Prepare MCP Registry
+        if: steps.prepare.outputs.changed == 'true'
+        run: |
+          node scripts/prepare-mcp-registry.mjs \
+            packages/mcp/server.json \
+            "${{ steps.prepare.outputs.version }}"
+
+      - name: Validate MCP Registry
+        if: steps.prepare.outputs.changed == 'true'
+        working-directory: packages/mcp
+        run: mcp-publisher validate
+
+      - name: Authenticate to MCP Registry
+        if: >-
+          steps.prepare.outputs.changed == 'true' &&
+          !(inputs.dry_run || false)
+        run: mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        if: >-
+          steps.prepare.outputs.changed == 'true' &&
+          !(inputs.dry_run || false)
+        working-directory: packages/mcp
+        run: mcp-publisher publish
+
+      # ---------------------------------------------------------------
+      # GitHub Release
+      # ---------------------------------------------------------------
+
       - name: Add artifact links to release notes
         if: steps.prepare.outputs.changed == 'true'
         run: |
-          cat >> ${{ steps.prepare.outputs.notes-path }} << EOF
+          cat >> "${{ steps.prepare.outputs.notes-path }}" << EOF
 
           ## Artifacts
 
@@ -161,6 +203,8 @@ jobs:
           \`docker pull ilmar7786/marzban-mcp:${{ steps.prepare.outputs.version }}\`
           Digest: \`${{ steps.docker.outputs.digest }}\`
           Platforms: \`linux/amd64\`, \`linux/arm64\`
+
+          **MCP Registry** — \`io.github.ilmar7786/marzban-mcp@${{ steps.prepare.outputs.version }}\`
           EOF
 
       # A draft release is not tied to a real tag in the repo — GitHub only
@@ -175,9 +219,23 @@ jobs:
           body_path: ${{ steps.prepare.outputs.notes-path }}
           draft: ${{ inputs.dry_run || false }}
 
+      # ---------------------------------------------------------------
+      # Changelog
+      # ---------------------------------------------------------------
+
+      - name: Clear downstream notes
+        if: >-
+          steps.prepare.outputs.changed == 'true' &&
+          !(inputs.dry_run || false)
+        run: node scripts/downstream-notes.mjs mcp --clear
+
       - name: Commit updated changelog
-        if: steps.prepare.outputs.changed == 'true' && !(inputs.dry_run || false)
+        if: >-
+          steps.prepare.outputs.changed == 'true' &&
+          !(inputs.dry_run || false)
         uses: ./.github/actions/commit-changelog
         with:
-          paths: packages/mcp/CHANGELOG.md
-          message: 'chore(changelog): marzban-mcp ${{ steps.prepare.outputs.version }} [skip ci]'
+          paths: packages/mcp/CHANGELOG.md .changelog/mcp-downstream.md
+          message: >-
+            chore(changelog): marzban-mcp
+            ${{ steps.prepare.outputs.version }} [skip ci]

@@ -49,6 +49,13 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `build`,
 `ci`. Scope is enforced by `commitlint.config.js`'s `scope-enum`:
 `sdk | cli | mcp | docs | deps | ci | release | changelog`.
 
+Scope can be a comma-separated list. Use `fix(sdk,mcp): ...` (or any other
+type) for an sdk commit that also changes marzban-mcp's observable behavior
+— [`scripts/downstream-notes.mjs`](../scripts/downstream-notes.mjs) picks up
+commits scoped this way and surfaces them in mcp's changelog too, since
+mcp's changelog is otherwise generated only from `packages/mcp/**` commits.
+See [release.md](./release.md) for the full mechanism.
+
 ## Pre-commit
 
 Husky + lint-staged (`.husky/pre-commit`): staged `.ts`/`.tsx`/`.js` files run

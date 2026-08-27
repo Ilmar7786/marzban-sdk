@@ -53,11 +53,16 @@ a one-off `httpsAgent` per call for any request made immediately after
 `removeUser`/`removeUserTolerantly`, so it can't draw the poisoned socket
 from the shared pool.
 
-**Open:** only worked around at the test level. Not something the SDK can
-reasonably detect and self-heal from (an `ECONNRESET` is indistinguishable
-from any other transient network failure). `axios-retry`'s default retries
-did not recover it in practice — worth understanding why, if this turns out
-to affect real deployments and not just this dev image.
+Only worked around at the test level — not something the SDK can reasonably
+detect and self-heal from (an `ECONNRESET` is indistinguishable from any
+other transient network failure).
+
+`axios-retry`'s default retries didn't recover it because they weren't
+running at all: a since-fixed bug had retries on the authenticated client
+silently never fire for any method or error (see the SDK changelog, v3.2.0).
+Now that they do, a `GET` hitting this can be retried — though a retry may
+still draw the same poisoned connection from the pool, so
+`freshConnectionConfig()` stays necessary.
 
 ## `addUser` requires a non-empty `proxies`
 
@@ -247,3 +252,119 @@ after a revoke.
 invalidates a previously-issued subscription link; it doesn't, by design.
 See
 [`subscription.integration.test.ts`](../packages/sdk/test/integration/subscription.integration.test.ts).
+
+## `removeNode` deletes the node but leaves its auto-added host behind
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+`addNode({ add_as_new_host: true })` (the default) adds a proxy host entry
+for the node under its inbound tag, with `remark` containing the node's
+name and `address` set to the node's address. `removeNode` deletes the node
+row but does not remove that host entry — it's left in the host map,
+pointing at an address that no longer resolves to any node, until removed
+manually via `modifyHosts`.
+
+**Workaround:** none needed at the SDK level — a caller that creates a node
+with `add_as_new_host: true` and later removes it should also clean up the
+corresponding host entry itself. See
+[`node-hosts.integration.test.ts`](../packages/sdk/test/integration/node-hosts.integration.test.ts),
+which restores the host map from a snapshot in `afterAll` rather than
+relying on `removeNode` to have cleaned up after itself.
+
+**Open:** not tested against a panel with more than one inbound tag, or
+against `add_as_new_host: false` followed by a separate manual host add —
+only the default create-then-remove path was verified.
+
+## `addNode` fires an async connection attempt immediately, which can race a follow-up `modifyNode`
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`, panel
+container logs (`INFO: Connecting to "<name>" node` /
+`INFO: Unable to connect to "<name>" node`).
+
+`addNode` schedules a background task that tries to connect to the node's
+`api_port` right away — not on a delay or a periodic cycle. Against an
+address nothing is listening on, that task fails fast (sub-millisecond on
+loopback) and writes `status: 'error'` plus a `message`. If a `modifyNode`
+call — including one that explicitly sets `status: 'disabled'` — lands
+while that task is still in flight, the two writes race: depending on
+ordering, the task's failure write can land _after_ the disable and silently
+overwrite both `status` (back to `'error'`) and `message`, even though the
+`modifyNode` call itself returned `status: 'disabled'`. Reproduced via the
+SDK's own back-to-back calls (curl invocations, with their extra
+process-spawn latency between requests, consistently missed the window and
+never showed it).
+
+**Workaround:** poll `getNode` until `status` is no longer `'connecting'`
+before modifying a freshly created node — `waitForNodeSettled()` in
+[`nodeFixture.ts`](../packages/sdk/test/integration/helpers/nodeFixture.ts),
+used by
+[`node.integration.test.ts`](../packages/sdk/test/integration/node.integration.test.ts)'s
+disable test. Once the connection attempt has resolved, there's nothing
+left to race.
+
+**Open:** the SDK itself doesn't special-case this — a real caller that
+disables a node right after creating it can observe the same lost update.
+Whether `modifyNode` on an _existing, already-settled_ node ever re-triggers
+this same async check (as opposed to only on create) wasn't characterized.
+
+## `addNode` ignores `usage_coefficient` on create — always stores `1.0`
+
+**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+
+`NodeCreate.usage_coefficient` type-checks and the request accepts any
+value `> 0`, but the panel always stores `1.0` for a newly created node
+regardless of what was sent — the field is silently dropped on the create
+path only. `modifyNode({ usage_coefficient })` on an existing node works as
+documented: the value is stored and echoed back.
+
+**Workaround:** none needed once known — set `usage_coefficient` with a
+follow-up `modifyNode` call if it needs to be anything other than the
+default. See
+[`node.integration.test.ts`](../packages/sdk/test/integration/node.integration.test.ts),
+which asserts the create response always has `usage_coefficient: 1` and
+verifies the field only through `modifyNode`.
+
+**Open:** whether this is intentional or a panel bug wasn't investigated
+further.
+
+## WebSocket log handshake rejections collapse into a generic HTTP 403
+
+**Verified against:** `gozargah/marzban:v0.8.4`, `local/marzban/`.
+
+The panel authorizes a `/api/core/logs`/`/api/node/{id}/logs` connection
+before calling `websocket.accept()` — an expired token, a non-sudo admin
+token, and an `interval` outside the accepted range are all rejected at this
+stage. uvicorn collapses whatever close code the application logic intended
+(4401/4403/4400) into one generic HTTP 403 on the handshake response; the
+client sees only "403", never which of those three conditions caused it.
+
+The panel's own `interval` contract (`app/routers/core.py`/`node.py`) is
+looser than its error message suggests: the value is parsed as a `float`
+(fractional intervals like `0.5` are accepted), only `> 10` or a
+non-numeric value is rejected, and `0` is accepted and treated as "no
+batching — send every line immediately".
+
+**Workaround:** none at the panel level for the non-sudo/expired-token
+cases — a client can't distinguish "token expired" from "not sudo" from the
+handshake response alone. `LogsStream` validates `interval` against the
+panel's own `0`–`10` range client-side before opening a socket (throwing
+`WsOptionsError`), so an out-of-range `interval` no longer round-trips into
+this 403 collapse at all.
+[`logs.integration.test.ts`](../packages/sdk/test/integration/logs.integration.test.ts)
+asserts that client-side rejection directly. The real-socket fixture in
+[`packages/sdk/src/testing/mock-panel.ts`](../packages/sdk/src/testing/mock-panel.ts)
+models the panel-side collapse for the remaining cases: its `reject`
+handshake policy always closes before `websocket.accept()`, regardless of
+the reason a real caller configures it to simulate.
+
+**Open:** `LogsStream` still treats every remaining 403 (expired token,
+non-sudo) as an expired token and retries with re-authentication, including
+the non-sudo case where retrying can never succeed. Separately, the native
+`WebSocket` global's `error` event carries no message text in Node
+(verified on Node 24) — only the `ws`-package fallback's error includes
+"403" — so today's substring-of-the-error-message classification silently
+never recognizes a 403 as retryable on the native transport at all; it
+falls straight through to `onError` with no retry attempt. Both are
+tracked in [issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88),
+which replaces this classification with one based on connection phase
+instead.

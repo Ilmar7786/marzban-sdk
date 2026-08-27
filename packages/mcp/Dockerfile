@@ -17,11 +17,12 @@ RUN pnpm --filter=marzban-mcp deploy --prod --legacy /out
 
 FROM node:24-alpine AS runtime
 
-# Static defaults for anyone running `docker build` directly, outside the
-# release workflow — CI overrides/adds to these via `docker/metadata-action`
-# (version, revision, created date), which passes its own --label flags.
+# Static image metadata, including the MCP Registry ownership annotation.
+# The release workflow adds dynamic OCI metadata such as version, revision
+# and creation timestamp via docker/metadata-action.
 LABEL org.opencontainers.image.title="marzban-mcp" \
       org.opencontainers.image.description="MCP server for the Marzban API, built on marzban-sdk" \
+      io.modelcontextprotocol.server.name="io.github.ilmar7786/marzban-mcp" \
       org.opencontainers.image.source="https://github.com/Ilmar7786/marzban-sdk" \
       org.opencontainers.image.url="https://github.com/Ilmar7786/marzban-sdk/tree/main/packages/mcp" \
       org.opencontainers.image.documentation="https://ilmar7786.github.io/marzban-sdk/docs/mcp-server/overview" \

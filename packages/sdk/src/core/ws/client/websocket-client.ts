@@ -6,7 +6,10 @@ import { NodeWebSocketClient } from './node-websocket-client'
 
 export class WebSocketClient {
   /**
-   * Creates a WebSocket client appropriate for the current runtime.
+   * Picks the WebSocket client appropriate for the current runtime, without
+   * initializing it — callers that need to register listeners before the
+   * socket connects (e.g. `LogsStream`) call `init()` themselves once those
+   * listeners are attached, so nothing dispatched immediately is missed.
    *
    * Prefers the native global `WebSocket` when available — this covers
    * browsers, Web Workers, Deno, Bun, and Node.js 21+. Only older Node.js
@@ -21,18 +24,21 @@ export class WebSocketClient {
    * ignored here — this class has no logger of its own, so callers that want
    * to warn their users do so themselves (see `LogsStream`).
    */
+  static resolve(url: string, protocols?: string | string[], options?: WebSocketClientOptions): BaseWebSocketClient {
+    const needsAgentCapableClient = Boolean(options?.agent) && !isBrowser()
+
+    return needsAgentCapableClient || !hasNativeWebSocket()
+      ? new NodeWebSocketClient(url, protocols, options)
+      : new BrowserWebSocketClient(url, protocols, options)
+  }
+
+  /** {@link resolve} followed by `init()` — for callers with nothing to attach before connecting. */
   static async create(
     url: string,
     protocols?: string | string[],
     options?: WebSocketClientOptions
   ): Promise<BaseWebSocketClient> {
-    const needsAgentCapableClient = Boolean(options?.agent) && !isBrowser()
-
-    const client: BaseWebSocketClient =
-      needsAgentCapableClient || !hasNativeWebSocket()
-        ? new NodeWebSocketClient(url, protocols, options)
-        : new BrowserWebSocketClient(url, protocols, options)
-
+    const client = WebSocketClient.resolve(url, protocols, options)
     await client.init()
     return client
   }

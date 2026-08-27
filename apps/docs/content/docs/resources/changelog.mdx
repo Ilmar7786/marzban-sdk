@@ -3,6 +3,18 @@ title: Changelog
 description: MarzbanSDK release history, version compatibility, breaking changes, and migration notes — including the v3.0.0 async webhook and Web Crypto updates.
 ---
 
+## v3.2.0
+
+**Behavioral change:**
+
+- **HTTP retries now actually run.** A bug had retries on the authenticated
+  client (`instanceAxios`) silently never firing for any method or error —
+  `axios-retry` was reading the request config off an already-wrapped
+  `HttpError`, which has none. Fixed, and scoped deliberately: only `GET`,
+  `HEAD`, `OPTIONS`, and the login request are retried. `POST`, `PUT`,
+  `PATCH`, and `DELETE` are never retried, including on network errors — see
+  [HTTP & Retry](/docs/advanced/http-retry).
+
 ## v3.0.0
 
 **Breaking changes:**

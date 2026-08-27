@@ -107,6 +107,9 @@ When `retries > 0`, failed HTTP requests are retried with **exponential backoff*
 | 3 | 4 s |
 | … | … (capped at 30 s) |
 
+Only safe methods (GET, HEAD, OPTIONS) are retried — see
+[HTTP & Retry](/docs/advanced/http-retry) for the full method/status breakdown.
+
 WebSocket reconnections after `403 Forbidden` also use the same `retries` limit.
 
 Set `retries: 0` to disable automatic retries.

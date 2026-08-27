@@ -61,10 +61,13 @@ with a named export — don't have the consumer reach past it.
    is assigned to a facade field by hand in `MarzbanSDK.ts` (e.g.
    `this.node = new nodeApi({ client: http.client })`) — this wiring is the
    one place per module that isn't generated.
-3. Request interceptor waits for any in-flight auth (`authService.waitForCurrentAuth()`),
-   then attaches `Authorization`. Response interceptor retries once on `401`
-   after a re-login. `axios-retry` is layered on both instances for transient
-   network failures with exponential backoff.
+3. `axios-retry` is installed on both instances _before_ the auth
+   interceptors — it needs the raw `AxiosError`, which auth wraps into
+   `HttpError`. Each instance gets its own `retryCondition`: `client` retries
+   only GET/HEAD/OPTIONS, `publicClient` (login) also retries POST. Request
+   interceptor then waits for any in-flight auth (`authService.waitForCurrentAuth()`)
+   and attaches `Authorization`; response interceptor retries once on `401`
+   after a re-login.
 4. Every error is wrapped into `SdkError` (or a subclass) **before** it
    reaches the logger — `redactSecrets()` runs inside the `SdkError`
    constructor and again in the default logger, so a raw `AxiosError`

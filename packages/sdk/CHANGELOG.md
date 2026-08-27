@@ -4,6 +4,42 @@
 
 ### <!-- 0 -->🚀 Features
 
+- Add paginateAll for walking paginated endpoints by @Ilmar7786
+- Add typed HTTP status/data/method/url to HttpError by @Ilmar7786
+- Export logger types, error codes, secret redaction, config validation by @Ilmar7786
+- Add stderr output stream option to the built-in logger by @Ilmar7786
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Stop zod from stripping core config and proxies fields by @Ilmar7786
+- Redact secrets from logged/thrown errors, verify AbortSignal wiring by @Ilmar7786
+
+### <!-- 10 -->💼 Other
+
+- Merge pull request #68 from Ilmar7786/chore/sdk-release-verify by @Ilmar7786 in [#68](https://github.com/Ilmar7786/marzban-sdk/pull/68)
+- Merge pull request #66 from Ilmar7786/dev by @Ilmar7786 in [#66](https://github.com/Ilmar7786/marzban-sdk/pull/66)
+- Potential fix for pull request finding 'CodeQL / Disabling certificate validation' by @Ilmar7786
+- Merge pull request #64 from Ilmar7786/feat/monorepo-migration by @Ilmar7786 in [#64](https://github.com/Ilmar7786/marzban-sdk/pull/64)
+
+### <!-- 2 -->🚜 Refactor
+
+- Convert repository to a pnpm + turborepo monorepo by @Ilmar7786
+
+### <!-- 6 -->🧪 Testing
+
+- Cover user template and subscription modules in integration suite by @Ilmar7786
+- Cover core and system modules in integration suite by @Ilmar7786
+- Cover admin module and remaining users edge cases in integration suite by @Ilmar7786
+- Add integration test suite against a live Marzban panel by @Ilmar7786
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Bump marzban-sdk to 3.0.2 to verify npm publish by @Ilmar7786
+
+## [sdk-v3.0.2] - 2026-08-21
+
+### <!-- 0 -->🚀 Features
+
 - Environment-aware default + consistent logging across layers by @Ilmar7786
 
 ### <!-- 1 -->🐛 Bug Fixes

@@ -14,6 +14,7 @@ Error
     │   └── AuthTokenError   (code: AUTH_TOKEN_FAILED)
     ├── ConfigurationError   (code: CONFIG_INVALID)
     ├── HttpError            (code: NETWORK_HTTP_ERROR)
+    ├── WsOptionsError       (code: WS_OPTIONS_INVALID)
     └── WebhookError
         ├── WebhookSignatureError     (code: WEBHOOK_SIGNATURE_ERROR)
         ├── WebhookValidationError    (code: WEBHOOK_VALIDATION_ERROR)
@@ -46,6 +47,7 @@ class SdkError extends Error {
 | `AUTH_TOKEN_FAILED` | `AuthTokenError` | Server responded but returned no `access_token` |
 | `CONFIG_INVALID` | `ConfigurationError` | Config fails Zod schema validation |
 | `NETWORK_HTTP_ERROR` | `HttpError` | HTTP request failed (4xx, 5xx, network timeout) |
+| `WS_OPTIONS_INVALID` | `WsOptionsError` | `LogOptions.interval` is outside the `0`–`10` range the panel accepts |
 | `WEBHOOK_SIGNATURE_ERROR` | `WebhookSignatureError` | Missing signature or HMAC mismatch |
 | `WEBHOOK_VALIDATION_ERROR` | `WebhookValidationError` | Webhook payload doesn't match expected schema |
 | `WEBHOOK_ENVIRONMENT_ERROR` | `WebhookEnvironmentError` | Signature verification called in a browser context |

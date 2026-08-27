@@ -222,6 +222,11 @@ export const typeGlossary: Record<string, TypeInfo> = {
     description: 'An HTTP request failed — 4xx/5xx or a network timeout (code NETWORK_HTTP_ERROR).',
     href: '/docs/advanced/error-handling#error-codes-reference',
   },
+  WsOptionsError: {
+    description:
+      "A WebSocket log stream's interval was outside the 0-10 range the panel accepts (code WS_OPTIONS_INVALID).",
+    href: '/docs/advanced/error-handling#error-codes-reference',
+  },
   WebhookSignatureError: {
     description: 'A webhook signature was missing or the HMAC did not match (code WEBHOOK_SIGNATURE_ERROR).',
     href: '/docs/advanced/error-handling#error-codes-reference',

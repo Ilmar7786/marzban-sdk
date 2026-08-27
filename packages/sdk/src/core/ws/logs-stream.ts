@@ -87,6 +87,34 @@ export class LogsStream {
     }
   }
 
+  private buildWsUrl(endpoint: string, options: LogOptions): string {
+    const wsUrl = configurationUrlWs({
+      basePath: this.basePath,
+      endpoint,
+      token: this.authService.accessToken,
+      interval: options?.interval ?? DEFAULT_WS_INTERVAL,
+    })
+
+    // Redact the token query param so JWTs never leak into logs.
+    const redactedUrl = wsUrl.replace(/(token=)[^&]+/i, '$1***')
+    this.logger.debug(`WebSocket URL generated: ${redactedUrl}`, 'LogsStream')
+
+    return wsUrl
+  }
+
+  /**
+   * Connects `wsClient`'s socket, undoing the `activeConnections` tracking on
+   * failure — a connect that never opens must not leave a dead entry behind.
+   */
+  private async openConnection(wsClient: BaseWebSocketClient): Promise<void> {
+    try {
+      await wsClient.init()
+    } catch (error) {
+      this.activeConnections.delete(wsClient)
+      throw error
+    }
+  }
+
   /**
    * Establishes a WebSocket connection to a specified endpoint.
    * @private
@@ -99,17 +127,12 @@ export class LogsStream {
     this.logger.debug(`Establishing WebSocket connection to: ${endpoint}`, 'LogsStream')
     await this.ensureAuthenticated()
 
-    const wsUrl = configurationUrlWs({
-      basePath: this.basePath,
-      endpoint,
-      token: this.authService.accessToken,
-      interval: options?.interval ?? DEFAULT_WS_INTERVAL,
-    })
+    const wsUrl = this.buildWsUrl(endpoint, options)
 
-    // Redact the token query param so JWTs never leak into logs.
-    const redactedUrl = wsUrl.replace(/(token=)[^&]+/i, '$1***')
-    this.logger.debug(`WebSocket URL generated: ${redactedUrl}`, 'LogsStream')
-    const wsClient: BaseWebSocketClient = await WebSocketClient.create(wsUrl, undefined, { agent: this.httpsAgent })
+    // Resolved (not yet connected) so every listener below is attached before
+    // `init()` constructs the socket — a connect that fails before the first
+    // microtask still reaches `on('error')`/`on('close')` instead of nobody.
+    const wsClient: BaseWebSocketClient = WebSocketClient.resolve(wsUrl, undefined, { agent: this.httpsAgent })
     this.activeConnections.add(wsClient)
 
     // Mutable ref so the close handle returned to the caller always points to
@@ -162,6 +185,8 @@ export class LogsStream {
       this.activeConnections.delete(wsClient)
       this.logger.info(`WebSocket connection closed: ${endpoint}`, 'LogsStream')
     })
+
+    await this.openConnection(wsClient)
 
     return () => closeActive()
   }

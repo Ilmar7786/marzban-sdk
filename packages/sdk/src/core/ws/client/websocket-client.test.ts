@@ -147,4 +147,21 @@ describe('WebSocketClient', () => {
 
     expect(client.constructor.name).toBe('BrowserWebSocketClient')
   })
+
+  it('resolve() picks the client without connecting it, leaving create() as resolve() + init()', async () => {
+    class FakeWebSocket {
+      public readyState = 1
+      addEventListener = vi.fn()
+    }
+    ;(globalThis as AnyType).WebSocket = FakeWebSocket
+
+    const { WebSocketClient } = await import('./websocket-client')
+    const client = WebSocketClient.resolve('wss://example.com')
+
+    expect(client.constructor.name).toBe('BrowserWebSocketClient')
+    expect(() => client.readyState).toThrow(TypeError)
+
+    await client.init()
+    expect(client.readyState).toBe(1)
+  })
 })

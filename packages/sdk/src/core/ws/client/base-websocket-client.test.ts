@@ -1,18 +1,52 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { BaseWebSocketClient } from './base-websocket-client'
+import type { AnyType } from '@/common'
 
-class FakeSocket {
-  public readyState = 5
-  public addEventListener = vi.fn()
-  public send = vi.fn()
-  public close = vi.fn()
+import { BaseWebSocketClient, type WebSocketClientOptions, type WebSocketLike } from './base-websocket-client'
+
+class FakeSocket implements WebSocketLike {
+  readyState = 5
+  send = vi.fn()
+  close = vi.fn()
+
+  private listeners = new Map<string, Set<(event: AnyType) => void>>()
+
+  constructor(dispatchOnConstruct?: { type: string; event: AnyType }) {
+    if (dispatchOnConstruct) {
+      // Real transports never dispatch synchronously from their own
+      // constructor — networking is inherently async — but they dispatch as
+      // early as the very next microtask. That's exactly what a listener
+      // attached after an `await` between construction and registration
+      // would miss (see issue #86).
+      queueMicrotask(() => this.dispatch(dispatchOnConstruct.type, dispatchOnConstruct.event))
+    }
+  }
+
+  addEventListener(type: string, listener: (event: AnyType) => void): void {
+    const listenersForType = this.listeners.get(type) ?? new Set()
+    listenersForType.add(listener)
+    this.listeners.set(type, listenersForType)
+  }
+
+  private dispatch(type: string, event: AnyType): void {
+    this.listeners.get(type)?.forEach(listener => listener(event))
+  }
 }
 
 class TestWebSocketClient extends BaseWebSocketClient {
-  private socketInstance = new FakeSocket()
+  private socketInstance?: FakeSocket
 
-  protected async createWebSocket() {
+  constructor(
+    url: string,
+    protocols?: string | string[],
+    options?: WebSocketClientOptions,
+    private readonly dispatchOnConstruct?: { type: string; event: AnyType }
+  ) {
+    super(url, protocols, options)
+  }
+
+  protected createWebSocket(): WebSocketLike {
+    this.socketInstance = new FakeSocket(this.dispatchOnConstruct)
     return this.socketInstance
   }
 
@@ -25,28 +59,76 @@ class TestWebSocketClient extends BaseWebSocketClient {
   }
 }
 
-describe('BaseWebSocketClient', () => {
-  it('initializes socket via createWebSocket and proxies methods', async () => {
-    const client = new TestWebSocketClient('wss://example.com', ['proto'])
+class PrepareOrderWebSocketClient extends BaseWebSocketClient {
+  calls: string[] = []
 
-    // Accessing readyState before init should throw because socket is not set yet.
-    expect(() => client.readyState).toThrow()
+  protected async prepare(): Promise<void> {
+    this.calls.push('prepare')
+  }
+
+  protected createWebSocket(): WebSocketLike {
+    this.calls.push('createWebSocket')
+    return new FakeSocket()
+  }
+}
+
+describe('BaseWebSocketClient', () => {
+  it('throws when send/readyState is accessed before init()', () => {
+    const client = new TestWebSocketClient('wss://example.com')
+
+    expect(() => client.readyState).toThrow(TypeError)
+    expect(() => client.send('hello')).toThrow(TypeError)
+  })
+
+  it('awaits prepare() before constructing the socket', async () => {
+    const client = new PrepareOrderWebSocketClient('wss://example.com')
 
     await client.init()
 
-    // `on` should call addEventListener with typed args
-    const listener = vi.fn()
-    client.on('open', listener)
-    expect(client.getSocket().addEventListener).toHaveBeenCalledWith('open', listener)
+    expect(client.calls).toEqual(['prepare', 'createWebSocket'])
+  })
 
-    // send/close should forward to the underlying socket
-    client.send('hello')
-    expect(client.getSocket().send).toHaveBeenCalledWith('hello')
+  it('delivers an event dispatched right after construction to a listener registered before init()', async () => {
+    const event = { type: 'error' }
+    const client = new TestWebSocketClient('wss://example.com', undefined, undefined, { type: 'error', event })
+    const listener = vi.fn()
+
+    client.on('error', listener)
+    await client.init()
+
+    expect(listener).toHaveBeenCalledWith(event)
+  })
+
+  it('attaches a listener registered after init() directly, without buffering', async () => {
+    const client = new TestWebSocketClient('wss://example.com')
+    await client.init()
+
+    const addEventListener = vi.spyOn(client.getSocket()!, 'addEventListener')
+    const listener = vi.fn()
+    client.on('message', listener)
+
+    expect(addEventListener).toHaveBeenCalledWith('message', listener)
+  })
+
+  it('defers close() called before init() and applies it once the socket exists', async () => {
+    const client = new TestWebSocketClient('wss://example.com')
 
     client.close(1000, 'bye')
-    expect(client.getSocket().close).toHaveBeenCalledWith(1000, 'bye')
+    await client.init()
 
-    // readyState should still be reflected
+    expect(client.getSocket()!.close).toHaveBeenCalledWith(1000, 'bye')
+  })
+
+  it('proxies send/close and reflects readyState once initialized', async () => {
+    const client = new TestWebSocketClient('wss://example.com', ['proto'])
+    await client.init()
+
+    client.send('hello')
+    expect(client.getSocket()!.send).toHaveBeenCalledWith('hello')
+
+    client.close(1000, 'bye')
+    expect(client.getSocket()!.close).toHaveBeenCalledWith(1000, 'bye')
+
     expect(client.readyState).toBe(5)
   })
 

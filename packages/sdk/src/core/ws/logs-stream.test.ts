@@ -18,20 +18,19 @@ import { configurationUrlWs } from './utils'
 
 vi.mock('./client', () => ({
   WebSocketClient: {
-    create: vi.fn(),
+    resolve: vi.fn(),
   },
 }))
 
-const mockCreate = (
+const mockResolve = (
   WebSocketClient as unknown as {
-    create: Mock<
-      (url: string, protocols?: string | string[], options?: WebSocketClientOptions) => Promise<BaseWebSocketClient>
-    >
+    resolve: Mock<(url: string, protocols?: string | string[], options?: WebSocketClientOptions) => BaseWebSocketClient>
   }
-).create
+).resolve
 
 type FakeWebSocketClient = {
   on: (event: string, listener: (payload: AnyType) => AnyType) => void
+  init: ReturnType<typeof vi.fn>
   close: ReturnType<typeof vi.fn>
   trigger: (event: string, payload?: AnyType) => Promise<AnyType> | AnyType
 }
@@ -43,6 +42,7 @@ function createFakeWebSocketClient(): FakeWebSocketClient {
     on(event, listener) {
       handlers.set(event, listener)
     },
+    init: vi.fn().mockResolvedValue(undefined),
     close: vi.fn(() => {
       const handler = handlers.get('close')
       if (handler) {
@@ -68,7 +68,7 @@ describe('LogsStream', () => {
   let logger: AnyType
 
   beforeEach(() => {
-    mockCreate.mockReset()
+    mockResolve.mockReset()
 
     authService = {
       waitForCurrentAuth: vi.fn().mockResolvedValue(undefined),
@@ -86,7 +86,7 @@ describe('LogsStream', () => {
 
   it('sends messages from WebSocket to the provided callback', async () => {
     const wsClient = createFakeWebSocketClient()
-    mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
+    mockResolve.mockReturnValueOnce(wsClient as unknown as BaseWebSocketClient)
 
     const stream = new LogsStream({ basePath, authService, logger })
     const onMessage = vi.fn()
@@ -101,7 +101,7 @@ describe('LogsStream', () => {
       interval: 1,
     })
 
-    expect(mockCreate).toHaveBeenCalledWith(expectedUrl, undefined, { agent: undefined })
+    expect(mockResolve).toHaveBeenCalledWith(expectedUrl, undefined, { agent: undefined })
 
     const payload = { foo: 'bar' }
     await wsClient.trigger('message', { data: payload })
@@ -119,9 +119,9 @@ describe('LogsStream', () => {
     const firstWsClient = createFakeWebSocketClient()
     const secondWsClient = createFakeWebSocketClient()
 
-    mockCreate
-      .mockResolvedValueOnce(firstWsClient as unknown as BaseWebSocketClient)
-      .mockResolvedValueOnce(secondWsClient as unknown as BaseWebSocketClient)
+    mockResolve
+      .mockReturnValueOnce(firstWsClient as unknown as BaseWebSocketClient)
+      .mockReturnValueOnce(secondWsClient as unknown as BaseWebSocketClient)
 
     authService.retryAuth.mockImplementation(async () => {
       authService.accessToken = 'refreshed-token'
@@ -146,7 +146,7 @@ describe('LogsStream', () => {
       token: 'refreshed-token',
       interval: 1,
     })
-    expect(mockCreate).toHaveBeenLastCalledWith(expectedUrl, undefined, { agent: undefined })
+    expect(mockResolve).toHaveBeenLastCalledWith(expectedUrl, undefined, { agent: undefined })
 
     // Verify we don't keep around the failing connection.
     expect((stream as AnyType).activeConnections.size).toBe(1)
@@ -154,7 +154,7 @@ describe('LogsStream', () => {
 
   it('calls onError when re-authentication fails during a 403 retry', async () => {
     const wsClient = createFakeWebSocketClient()
-    mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
+    mockResolve.mockReturnValueOnce(wsClient as unknown as BaseWebSocketClient)
 
     // Token is present, so the initial connect succeeds; the retry's retryAuth fails.
     authService.retryAuth.mockRejectedValueOnce(new Error('re-auth failed'))
@@ -171,16 +171,16 @@ describe('LogsStream', () => {
     expect(onError).toHaveBeenCalled()
     // The failing connection was removed and no new one was established.
     expect((stream as AnyType).activeConnections.size).toBe(0)
-    expect(mockCreate).toHaveBeenCalledTimes(1)
+    expect(mockResolve).toHaveBeenCalledTimes(1)
   })
 
   it('calls onError after reaching max retry attempts', async () => {
     const firstWsClient = createFakeWebSocketClient()
     const secondWsClient = createFakeWebSocketClient()
 
-    mockCreate
-      .mockResolvedValueOnce(firstWsClient as unknown as BaseWebSocketClient)
-      .mockResolvedValueOnce(secondWsClient as unknown as BaseWebSocketClient)
+    mockResolve
+      .mockReturnValueOnce(firstWsClient as unknown as BaseWebSocketClient)
+      .mockReturnValueOnce(secondWsClient as unknown as BaseWebSocketClient)
 
     const stream = new LogsStream({ basePath, authService, logger })
 
@@ -204,7 +204,7 @@ describe('LogsStream', () => {
 
   it('re-authenticates when token is missing before connecting', async () => {
     const wsClient = createFakeWebSocketClient()
-    mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
+    mockResolve.mockReturnValueOnce(wsClient as unknown as BaseWebSocketClient)
 
     authService.accessToken = ''
     authService.retryAuth.mockImplementation(async () => {
@@ -225,12 +225,12 @@ describe('LogsStream', () => {
       token: 'new-token',
       interval: 1,
     })
-    expect(mockCreate).toHaveBeenCalledWith(expectedUrl, undefined, { agent: undefined })
+    expect(mockResolve).toHaveBeenCalledWith(expectedUrl, undefined, { agent: undefined })
   })
 
   it('forwards non-403 errors through onError and does not reconnect', async () => {
     const wsClient = createFakeWebSocketClient()
-    mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
+    mockResolve.mockReturnValueOnce(wsClient as unknown as BaseWebSocketClient)
 
     const stream = new LogsStream({ basePath, authService, logger })
     const onMessage = vi.fn()
@@ -242,13 +242,13 @@ describe('LogsStream', () => {
 
     expect(onError).toHaveBeenCalled()
     // Should not attempt to reconnect.
-    expect(mockCreate).toHaveBeenCalledTimes(1)
+    expect(mockResolve).toHaveBeenCalledTimes(1)
     expect((stream as AnyType).activeConnections.size).toBe(1)
   })
 
   it('works when onError is not provided and uses default interval', async () => {
     const wsClient = createFakeWebSocketClient()
-    mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
+    mockResolve.mockReturnValueOnce(wsClient as unknown as BaseWebSocketClient)
 
     const stream = new LogsStream({ basePath, authService, logger })
     const onMessage = vi.fn()
@@ -262,16 +262,16 @@ describe('LogsStream', () => {
       interval: 1,
     })
 
-    expect(mockCreate).toHaveBeenCalledWith(expectedUrl, undefined, { agent: undefined })
+    expect(mockResolve).toHaveBeenCalledWith(expectedUrl, undefined, { agent: undefined })
 
     await wsClient.trigger('error', { message: 'Network error' })
     // No error handler provided, so no throw and no reconnect.
-    expect(mockCreate).toHaveBeenCalledTimes(1)
+    expect(mockResolve).toHaveBeenCalledTimes(1)
   })
 
   it('handles error events without a message property', async () => {
     const wsClient = createFakeWebSocketClient()
-    mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
+    mockResolve.mockReturnValueOnce(wsClient as unknown as BaseWebSocketClient)
 
     const stream = new LogsStream({ basePath, authService, logger })
     const onMessage = vi.fn()
@@ -282,16 +282,27 @@ describe('LogsStream', () => {
     await wsClient.trigger('error', {})
 
     expect(onError).toHaveBeenCalled()
-    expect(mockCreate).toHaveBeenCalledTimes(1)
+    expect(mockResolve).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects and leaves no tracked connection when init() fails (issue #86)', async () => {
+    const wsClient = createFakeWebSocketClient()
+    wsClient.init.mockRejectedValueOnce(new Error('connection refused'))
+    mockResolve.mockReturnValueOnce(wsClient as unknown as BaseWebSocketClient)
+
+    const stream = new LogsStream({ basePath, authService, logger })
+
+    await expect(stream.connectByCore({ onMessage: vi.fn() })).rejects.toThrow('connection refused')
+    expect((stream as AnyType).activeConnections.size).toBe(0)
   })
 
   it('removes connections when closed and supports closeAllConnections', async () => {
     const wsClient1 = createFakeWebSocketClient()
     const wsClient2 = createFakeWebSocketClient()
 
-    mockCreate
-      .mockResolvedValueOnce(wsClient1 as unknown as BaseWebSocketClient)
-      .mockResolvedValueOnce(wsClient2 as unknown as BaseWebSocketClient)
+    mockResolve
+      .mockReturnValueOnce(wsClient1 as unknown as BaseWebSocketClient)
+      .mockReturnValueOnce(wsClient2 as unknown as BaseWebSocketClient)
 
     const stream = new LogsStream({ basePath, authService, logger })
 
@@ -317,13 +328,13 @@ describe('LogsStream', () => {
 
     it('forwards httpsAgent to WebSocketClient.create for each connection', async () => {
       const wsClient = createFakeWebSocketClient()
-      mockCreate.mockResolvedValueOnce(wsClient as unknown as BaseWebSocketClient)
+      mockResolve.mockReturnValueOnce(wsClient as unknown as BaseWebSocketClient)
       const httpsAgent = { destroy: vi.fn() }
 
       const stream = new LogsStream({ basePath, authService, logger, httpsAgent })
       await stream.connectByCore({ onMessage: vi.fn() })
 
-      expect(mockCreate).toHaveBeenCalledWith(expect.any(String), undefined, { agent: httpsAgent })
+      expect(mockResolve).toHaveBeenCalledWith(expect.any(String), undefined, { agent: httpsAgent })
     })
 
     it('does not warn when no httpsAgent is configured', () => {

@@ -227,8 +227,10 @@ describe('mock-panel', () => {
     it('waitForConnections resolves once enough sockets have connected', async () => {
       const first = new WsClient(wsUrl(panel, '/api/core/logs'))
       const second = new WsClient(wsUrl(panel, '/api/core/logs'))
+      const opened = Promise.all([once(first, 'open'), once(second, 'open')])
 
       const sockets = await panel.waitForConnections(2)
+      await opened
 
       expect(sockets).toHaveLength(2)
       first.terminate()

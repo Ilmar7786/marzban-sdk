@@ -77,11 +77,21 @@ pnpm --filter marzban-sdk test:coverage
 
 `core/ws` is the one module whose unit tests don't mock the transport with
 `vi.mock` (see "Network isolation" below) — `logs-stream.test.ts` mocks
-`WebSocketClient.create` itself with a synchronous fake instead, which
-cannot reproduce timing bugs that only show up with a real socket (a
-microtask gap between socket construction and listener attachment, an
+`WebSocketClient.resolve` itself with a synchronous fake instead, which
+cannot reproduce timing bugs that only show up with a real socket (an
 unsolicited `close`, a shutdown racing a reconnect). `packages/sdk/src/testing/`
-fixes that gap with a real `ws.Server` on loopback:
+fixes that gap with a real `ws.Server` on loopback.
+
+`BaseWebSocketClient` itself used to have a microtask gap between socket
+construction and listener attachment — `createWebSocket()` was `async`, so
+`init()` only attached `on()` handlers after at least one `await`, and a
+connection that failed inside that window dispatched `error`/`close` to
+nobody ([issue #86](https://github.com/Ilmar7786/marzban-sdk/issues/86)).
+Fixed by making `createWebSocket()` synchronous and buffering `on()`/`close()`
+calls made before `init()`, so listeners attach in the same tick the socket
+is constructed. `logs-stream.server.test.ts` (below) pins the regression —
+it needs a real socket, since a synchronous fake can't reproduce a race that
+only exists because of real event-loop timing.
 
 - [`mock-panel.ts`](../packages/sdk/src/testing/mock-panel.ts) — one
   `http.Server` standing in for the panel: serves `POST /api/admin/token`
@@ -102,12 +112,15 @@ fixes that gap with a real `ws.Server` on loopback:
   itself. It isn't exported from `src/index.ts`, so it never reaches the
   published package (`tsup`'s only entry is `index.ts`; `files: ["dist"]`
   in `package.json` ships only the build output regardless).
-- `logs-stream.server.test.ts` (next to `logs-stream.test.ts`) is where new
-  WS timing/lifecycle tests belong, built on this fixture instead of a
-  hand-rolled fake. `logs-stream.test.ts` itself stays — it still pins
-  `LogsStream`'s branch behavior efficiently — until it's replaced outright
-  once a public-API change lands (tracked alongside the reconnect rework in
-  [issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88)).
+- `logs-stream.server.test.ts` (next to `logs-stream.test.ts`) is where WS
+  timing/lifecycle tests belong, built on this fixture instead of a
+  hand-rolled fake — including #86's own regression scenarios (a rejected
+  handshake, a panel that goes unreachable after login) that assert
+  `onError` fires and `activeConnections` ends up empty, on both transports
+  (`describe.each(WS_TRANSPORTS)`). `logs-stream.test.ts` itself stays — it
+  still pins `LogsStream`'s branch behavior efficiently — until it's
+  replaced outright once a public-API change lands (tracked alongside the
+  reconnect rework in [issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88)).
 
 Reconnect, connect-timeout, and shutdown-race scenarios are exercised on
 this fixture as those behaviors are implemented — see

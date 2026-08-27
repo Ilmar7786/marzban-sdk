@@ -22,10 +22,11 @@ caused it.
 
 ## Decision
 
-- Extend `ci.yml` and `integration.yml` triggers to `dev` in addition to
-  `main`, so every PR into `dev` gets the same `lint` / `types:check` /
-  `test` / `build` / `format:check` run and the same integration-suite
-  signal that `main` already had.
+- Extend `ci.yml` and `integration.yml` `pull_request` triggers to `dev` in
+  addition to `main`, so every PR into `dev` gets the same `lint` /
+  `types:check` / `test` / `build` / `format:check` run and the same
+  integration-suite signal that `main` already had. The `push` trigger stays
+  on `main` only — see the note below on why `dev` isn't also a push branch.
 - Add GitHub branch protection to both `main` and `dev`, requiring the `ci`
   status check to pass (and the branch to be up to date) before a PR can
   merge. `integration` stays informational on both branches, same as it
@@ -36,6 +37,15 @@ caused it.
 - `CONTRIBUTING.md` is updated to describe the actual flow (PR into `dev`,
   `dev` merges into `main` periodically) instead of the stale "PR against
   `main`" instruction.
+- `push` stays scoped to `main` on both workflows — it is not added for
+  `dev`. `dev` is protected the same way `main` is (direct pushes are
+  blocked), so its only path in is a PR, which the `pull_request` trigger
+  already covers. Adding `push: [main, dev]` as well would double-run every
+  `dev`-bound PR (once as `pull_request`, once as `push` on the PR's head
+  branch, since that branch is also listed) — both runs get the same
+  `Required` status, so a flake in either one blocks the merge even when
+  the other is green. A `concurrency` group per workflow additionally
+  cancels a superseded run when the PR branch is pushed again quickly.
 
 ## Consequences
 

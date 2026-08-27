@@ -26,3 +26,14 @@ export const MAX_RETRY_DELAY_MS = 30_000
 
 /** Default interval (seconds) for WebSocket log streaming. */
 export const DEFAULT_WS_INTERVAL = 1
+
+/**
+ * Bounds (seconds) the Marzban panel itself enforces for the WS log
+ * `interval` — it accepts any finite value in this range, including
+ * fractional ones, and rejects `> 10` before `websocket.accept()` (see
+ * docs/marzban-quirks.md). Validating client-side against these same bounds
+ * turns that rejection into a synchronous client error instead of a
+ * round-tripped, generic HTTP 403.
+ */
+export const MIN_WS_INTERVAL = 0
+export const MAX_WS_INTERVAL = 10

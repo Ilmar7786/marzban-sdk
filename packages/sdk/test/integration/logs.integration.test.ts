@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import type { MarzbanSDK } from '../../src/index'
+import { WsOptionsError } from '../../src/index'
 import { createTestSdk } from './helpers/client'
 
 // The only smoke coverage of the WS module against a real panel — the
@@ -38,19 +39,11 @@ describe('logs integration (WebSocket log streaming)', () => {
     expect(errors).toEqual([])
   })
 
-  it('rejects a handshake with interval > 10 before the panel accepts the socket', async () => {
-    const errors: unknown[] = []
-
-    await sdk.logs.connectByCore({
-      interval: 11,
-      onMessage: () => {},
-      onError: err => errors.push(err),
-    })
-
+  it('rejects an interval > 10 client-side, without ever reaching the panel', async () => {
     // Marzban authorizes before websocket.accept() and rejects interval > 10
     // with a close uvicorn collapses into a generic HTTP 403 (see
-    // docs/marzban-quirks.md) — the SDK retries it as an auth failure and
-    // eventually gives up, calling onError once the retry budget is spent.
-    await expect.poll(() => errors.length, { timeout: 15_000, interval: 250 }).toBeGreaterThan(0)
+    // docs/marzban-quirks.md) — LogsStream now validates interval itself, so
+    // this never round-trips to the panel at all.
+    await expect(sdk.logs.connectByCore({ interval: 11, onMessage: () => {} })).rejects.toBeInstanceOf(WsOptionsError)
   })
 })

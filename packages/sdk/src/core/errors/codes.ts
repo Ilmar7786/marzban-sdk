@@ -16,6 +16,8 @@ export const ERROR_CODES = {
     message: 'Invalid logger option: must be false, LoggerOptions, or Logger instance',
   },
 
+  WS_OPTIONS_INVALID: { code: 'WS_OPTIONS_INVALID', message: 'Invalid WebSocket log stream options' },
+
   WEBHOOK_SIGNATURE_ERROR: { code: 'WEBHOOK_SIGNATURE_ERROR', message: 'Invalid webhook signature' },
   WEBHOOK_VALIDATION_ERROR: { code: 'WEBHOOK_VALIDATION_ERROR', message: 'Invalid webhook payload' },
   WEBHOOK_ENVIRONMENT_ERROR: {

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { AnyType } from '@/common'
+import { WsOptionsError } from '@/core/errors'
 import { createMarzbanSDK, type MarzbanSDK } from '@/core/MarzbanSDK'
 import type { MockPanel } from '@/testing'
 import { selectWsTransport, startMockPanel, WS_TRANSPORTS } from '@/testing'
@@ -138,5 +139,104 @@ describe.each(WS_TRANSPORTS)('LogsStream over the %s transport', transportName =
     panel.dropAll()
 
     await vi.waitFor(() => expect((instance.logs as AnyType).activeConnections.size).toBe(0))
+  })
+
+  it('rejects an out-of-range interval before opening a socket (issue #87)', async () => {
+    const instance = await connectSdk()
+
+    await expect(instance.logs.connectByCore({ interval: 11, onMessage: () => {} })).rejects.toBeInstanceOf(
+      WsOptionsError
+    )
+
+    expect(panel.handshakes).toEqual([])
+    expect((instance.logs as AnyType).activeConnections.size).toBe(0)
+  })
+
+  it('a throwing onMessage is logged, not thrown, and does not block later messages (issue #87)', async () => {
+    const instance = await connectSdk()
+    const received: unknown[] = []
+    const unhandledRejections: unknown[] = []
+    const onUnhandledRejection = (reason: unknown) => unhandledRejections.push(reason)
+    process.on('unhandledRejection', onUnhandledRejection)
+
+    try {
+      await instance.logs.connectByCore({
+        onMessage: data => {
+          received.push(data)
+          throw new Error('onMessage boom')
+        },
+      })
+      await panel.waitForConnection()
+
+      panel.broadcast('line 1')
+      panel.broadcast('line 2')
+
+      await vi.waitFor(() => expect(received).toEqual(['line 1', 'line 2']))
+      // Let a microtask/macrotask turn pass so a would-be unhandled rejection surfaces.
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(unhandledRejections).toEqual([])
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection)
+    }
+  })
+
+  it('a throwing onError is logged, not thrown, and never produces an unhandled rejection (issue #87)', async () => {
+    const instance = await connectSdk()
+    panel.setHandshake({ mode: 'reject', status: 403 })
+    const unhandledRejections: unknown[] = []
+    const onUnhandledRejection = (reason: unknown) => unhandledRejections.push(reason)
+    process.on('unhandledRejection', onUnhandledRejection)
+
+    try {
+      const onError = vi.fn(() => {
+        throw new Error('onError boom')
+      })
+      await instance.logs.connectByCore({ onMessage: () => {}, onError })
+
+      await vi.waitFor(() => expect(onError).toHaveBeenCalled())
+      await new Promise(resolve => setTimeout(resolve, 0))
+      expect(unhandledRejections).toEqual([])
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection)
+    }
+  })
+
+  it('closeAllConnections() closes every socket and clears the set even when one client throws on close() (issue #87)', async () => {
+    const instance = await connectSdk()
+
+    await instance.logs.connectByCore({ onMessage: () => {} })
+    await instance.logs.connectByNode('node-1', { onMessage: () => {} })
+    const sockets = await panel.waitForConnections(2)
+
+    const activeConnections = (instance.logs as AnyType).activeConnections as Set<{ close: () => void }>
+    const [sabotagedClient] = activeConnections
+    sabotagedClient!.close = () => {
+      throw new Error('close failed')
+    }
+
+    expect(() => instance.logs.closeAllConnections()).not.toThrow()
+    expect((instance.logs as AnyType).activeConnections.size).toBe(0)
+
+    // The sabotaged client's own close() never really closed its socket, but
+    // the other one must have — a partial cleanup must not look like a full one.
+    await vi.waitFor(() => {
+      const closedCount = sockets.filter(socket => socket.readyState === socket.CLOSED).length
+      expect(closedCount).toBe(1)
+    })
+  })
+
+  it('the returned close handle never throws and still untracks the connection, even if close() itself fails (issue #87)', async () => {
+    const instance = await connectSdk()
+
+    const close = await instance.logs.connectByCore({ onMessage: () => {} })
+    await panel.waitForConnection()
+
+    const [wsClient] = (instance.logs as AnyType).activeConnections as Set<{ close: () => void }>
+    wsClient!.close = () => {
+      throw new Error('close failed')
+    }
+
+    expect(() => close()).not.toThrow()
+    expect((instance.logs as AnyType).activeConnections.size).toBe(0)
   })
 })

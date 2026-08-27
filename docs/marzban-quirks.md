@@ -333,25 +333,38 @@ further.
 
 The panel authorizes a `/api/core/logs`/`/api/node/{id}/logs` connection
 before calling `websocket.accept()` — an expired token, a non-sudo admin
-token, and an `interval` outside the accepted range (`> 10`) are all
-rejected at this stage. uvicorn collapses whatever close code the
-application logic intended (4401/4403/4400) into one generic HTTP 403 on the
-handshake response; the client sees only "403", never which of those three
-conditions caused it.
+token, and an `interval` outside the accepted range are all rejected at this
+stage. uvicorn collapses whatever close code the application logic intended
+(4401/4403/4400) into one generic HTTP 403 on the handshake response; the
+client sees only "403", never which of those three conditions caused it.
 
-**Workaround:** none at the panel level — a client can't distinguish "token
-expired" from "interval too large" from the handshake response alone.
+The panel's own `interval` contract (`app/routers/core.py`/`node.py`) is
+looser than its error message suggests: the value is parsed as a `float`
+(fractional intervals like `0.5` are accepted), only `> 10` or a
+non-numeric value is rejected, and `0` is accepted and treated as "no
+batching — send every line immediately".
+
+**Workaround:** none at the panel level for the non-sudo/expired-token
+cases — a client can't distinguish "token expired" from "not sudo" from the
+handshake response alone. `LogsStream` validates `interval` against the
+panel's own `0`–`10` range client-side before opening a socket (throwing
+`WsOptionsError`), so an out-of-range `interval` no longer round-trips into
+this 403 collapse at all.
 [`logs.integration.test.ts`](../packages/sdk/test/integration/logs.integration.test.ts)
-exercises this with `interval: 11` since it's the one variant reproducible
-without a real expired token. The synchronous mock fixture in
+asserts that client-side rejection directly. The real-socket fixture in
 [`packages/sdk/src/testing/mock-panel.ts`](../packages/sdk/src/testing/mock-panel.ts)
-models the same collapse: its `reject` handshake policy always closes before
-`websocket.accept()`, regardless of the reason a real caller configures it
-to simulate.
+models the panel-side collapse for the remaining cases: its `reject`
+handshake policy always closes before `websocket.accept()`, regardless of
+the reason a real caller configures it to simulate.
 
-**Open:** `LogsStream` currently treats every 403 as an expired token and
-retries with re-authentication — including the `interval` and non-sudo
-cases, where retrying can never succeed. Tracked in
-[issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88), which
-replaces this substring-of-the-error-message classification with one based
-on connection phase instead.
+**Open:** `LogsStream` still treats every remaining 403 (expired token,
+non-sudo) as an expired token and retries with re-authentication, including
+the non-sudo case where retrying can never succeed. Separately, the native
+`WebSocket` global's `error` event carries no message text in Node
+(verified on Node 24) — only the `ws`-package fallback's error includes
+"403" — so today's substring-of-the-error-message classification silently
+never recognizes a 403 as retryable on the native transport at all; it
+falls straight through to `onError` with no retry attempt. Both are
+tracked in [issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88),
+which replaces this classification with one based on connection phase
+instead.

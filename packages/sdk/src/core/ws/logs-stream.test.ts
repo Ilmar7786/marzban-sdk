@@ -182,10 +182,7 @@ describe('LogsStream', () => {
       .mockReturnValueOnce(firstWsClient as unknown as BaseWebSocketClient)
       .mockReturnValueOnce(secondWsClient as unknown as BaseWebSocketClient)
 
-    const stream = new LogsStream({ basePath, authService, logger })
-
-    // Force max retries to 1 so we can assert behavior deterministically.
-    ;(stream as AnyType).maxRetries = 1
+    const stream = new LogsStream({ basePath, authService, logger, maxRetries: 1 })
 
     const onMessage = vi.fn()
     const onError = vi.fn()

@@ -17,13 +17,44 @@ are Marzban's behavior; we document and work around them defensively.
 
 ## `DELETE /api/user/{username}` 500s despite deleting the user
 
-**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+**Verified against:** `gozargah/marzban:v0.8.4` (both the pinned tag and
+current `master` on GitHub have byte-identical code — this is not fixed
+upstream), `local/marzban/` (reproduced from a freshly recreated container,
+empty DB).
 
 The server removes the user row, then crashes building the deletion report —
-`Admin.model_validate(dbuser.admin)` on `None` (the user has no owning
-admin), in Marzban's `app/routers/user.py` `remove_user` — before it can
-send a response. The delete is not lost; only the HTTP response is. Confirm
-the outcome with a follow-up `GET` (404), not by the delete call resolving.
+`Admin.model_validate(dbuser.admin)` on `None` — in Marzban's
+`app/routers/user.py` `remove_user`, before it can send a response:
+
+```python
+def remove_user(...):
+    crud.remove_user(db, dbuser)                       # delete already committed
+    bg.add_task(xray.operations.remove_user, dbuser=dbuser)
+    bg.add_task(
+        report.user_deleted, username=dbuser.username,
+        user_admin=Admin.model_validate(dbuser.admin),  # raises here, synchronously
+        by=admin
+    )
+    return {"detail": "User successfully deleted"}      # never reached
+```
+
+`bg.add_task(fn, *args)`'s arguments are evaluated immediately (it's a plain
+function call) — the crash happens inside the endpoint body itself, not in
+the deferred background task. The delete is not lost; only the HTTP response
+is. Confirm the outcome with a follow-up `GET` (404), not by the delete call
+resolving.
+
+**Concrete repro:** `dbuser.admin` is `None` whenever the user's `admin_id`
+no longer resolves to a live `Admin` row. Reproduced end-to-end: a non-sudo
+admin (`owner1`) creates a user → the user's `admin_id` points at `owner1`;
+a sudo admin then deletes `owner1` (`DELETE /api/admin/owner1`) — there's no
+`ON DELETE SET NULL`/cascade, so `dbuser.admin` simply stops resolving on
+the next read (confirmed via `GET /api/user/{username}` showing `"admin":
+null` right after the admin delete); any subsequent `DELETE
+/api/user/{username}` for that user then 500s as above. Marzban supports
+multiple admins and multiple users per panel — this isn't an edge case
+limited to a single-admin setup, just one that needs a second admin in the
+picture to trigger.
 
 **Workaround:** `removeUserTolerantly()` in
 [`packages/sdk/test/integration/helpers/quirks.ts`](../packages/sdk/test/integration/helpers/quirks.ts)
@@ -33,9 +64,12 @@ and the mirrored helper in
 
 **Open:** the SDK itself does not currently special-case this — a real
 caller of `sdk.user.removeUser()` against an affected Marzban version still
-sees an `HttpError` on a successful delete. Worth deciding whether that
-tolerance belongs in the SDK proper (and, if so, how narrowly to scope it so
-a _genuine_ 500 elsewhere isn't silently swallowed) or stays test-only.
+sees an `HttpError` on a successful delete, and hitting it only requires a
+panel with more than one admin. Tracked in
+[issue #103](https://github.com/Ilmar7786/marzban-sdk/issues/103): whether
+that tolerance belongs in the SDK proper (and, if so, how narrowly to scope
+it so a _genuine_ 500 elsewhere isn't silently swallowed) or stays
+test-only.
 
 ## The 500 above can poison the next request on the same connection
 

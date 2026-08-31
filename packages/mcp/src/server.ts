@@ -20,6 +20,7 @@ const SERVER_INSTRUCTIONS = `This server manages a Marzban VPN panel. A few rule
 - \`proxies\`, \`subscription_url\`, and \`links\` are access credentials, not display data. Don't paste them into chat unless the user explicitly asks to see them and the server has been configured to reveal them (they're masked by default).
 - Before a real marzban_config_update, call it once with \`dryRun: true\` and show the user the diff. Only send the real write after they've seen it and agreed — it restarts the core and drops every connection.
 - A destructive tool's first response describes what it would do and includes a confirmToken. Only repeat the call with that token after the user has given their own, unprompted "yes" — the token being available is not itself permission.
+- Confirming a destructive call only covers that exact tool and those exact arguments. A different target, or a wider version of the same call (e.g. adding \`all: true\`), needs its own confirmation.
 - For multi-step investigations (expiring subscriptions, node health, bandwidth), check whether a prompt already covers it (expiring_users_audit, node_diagnostics, traffic_report) before improvising a tool sequence by hand.`
 
 // tools/list is fully determined by MARZBAN_MCP_PROFILE/_TOOLS_ALLOW/_TOOLS_DENY,

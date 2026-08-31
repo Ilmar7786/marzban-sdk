@@ -201,6 +201,13 @@ Permanently delete a user.
 await sdk.user.removeUser('alice')
 ```
 
+<Callout type="info">
+  Some Marzban panels 500 on this endpoint even though the delete succeeded (a
+  panel-side bug building its response). `removeUser` detects exactly that
+  case — confirming via a follow-up lookup — and resolves normally instead of
+  throwing. A genuine failure still throws.
+</Callout>
+
 ---
 
 ### `resetUserDataUsage(username)`

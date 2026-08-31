@@ -62,7 +62,7 @@ and the tools below become available.
 
 - 🔒 **Env-only credentials** — the panel URL, username and password are never accepted as a tool argument, so a compromised or confused model can't redirect the server elsewhere.
 - 🎯 **Profile-gated tools** — a tool outside the active profile never appears in `tools/list` at all, not just hidden behind a hint.
-- ✅ **Confirmation on every destructive action** — the first call only describes the consequences and returns a one-time token; nothing runs until a human-approved second call repeats it.
+- ✅ **Confirmation on every destructive call** — the first call only describes the consequences and returns a one-time token; nothing runs until a human-approved second call repeats it, and confirming one call never authorizes a different target or a wider version of the same call.
 - 🙈 **Credentials masked by default** — `proxies`, `subscription_url` and `links` stay hidden unless you explicitly opt in.
 - 🧭 **21 tools, 3 prompts** — full user lifecycle, config, hosts, nodes, system stats and subscriptions, plus ready-made investigations that chain several tools together.
 - 🛠️ **Built on `marzban-sdk`** — the same typed client, auth and retry behavior as the SDK, just exposed as MCP tools.
@@ -99,9 +99,10 @@ config, restart the core.
 Destructive tools also gate on confirmation: the first call never runs
 anything — it describes exactly what would happen and returns a one-time
 token. Only a second call, with that token attached, executes. `MARZBAN_MCP_CONFIRM`
-controls how often this is required: `auto` (default, once per tool per
-session), `always` (every call), or `off` (unattended environments only —
-no safety net once set).
+controls how often this is required: `auto` (default, once per tool _and_
+exact arguments, for 5 minutes — a different target or a wider call always
+needs its own confirmation), `always` (every call), or `off` (unattended
+environments only — no safety net once set).
 
 ## Documentation
 

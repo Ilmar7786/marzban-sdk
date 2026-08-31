@@ -17,25 +17,76 @@ are Marzban's behavior; we document and work around them defensively.
 
 ## `DELETE /api/user/{username}` 500s despite deleting the user
 
-**Verified against:** `gozargah/marzban:latest`, `local/marzban/`.
+**Verified against:** `gozargah/marzban:v0.8.4` (both the pinned tag and
+current `master` on GitHub have byte-identical code — this is not fixed
+upstream), `local/marzban/` (reproduced from a freshly recreated container,
+empty DB).
 
 The server removes the user row, then crashes building the deletion report —
-`Admin.model_validate(dbuser.admin)` on `None` (the user has no owning
-admin), in Marzban's `app/routers/user.py` `remove_user` — before it can
-send a response. The delete is not lost; only the HTTP response is. Confirm
-the outcome with a follow-up `GET` (404), not by the delete call resolving.
+`Admin.model_validate(dbuser.admin)` on `None` — in Marzban's
+`app/routers/user.py` `remove_user`, before it can send a response:
 
-**Workaround:** `removeUserTolerantly()` in
+```python
+def remove_user(...):
+    crud.remove_user(db, dbuser)                       # delete already committed
+    bg.add_task(xray.operations.remove_user, dbuser=dbuser)
+    bg.add_task(
+        report.user_deleted, username=dbuser.username,
+        user_admin=Admin.model_validate(dbuser.admin),  # raises here, synchronously
+        by=admin
+    )
+    return {"detail": "User successfully deleted"}      # never reached
+```
+
+`bg.add_task(fn, *args)`'s arguments are evaluated immediately (it's a plain
+function call) — the crash happens inside the endpoint body itself, not in
+the deferred background task. The delete is not lost; only the HTTP response
+is. Confirm the outcome with a follow-up `GET` (404), not by the delete call
+resolving.
+
+**Concrete repro (primary path — no second admin needed):** `dbuser.admin`
+is `None` whenever the user's `admin_id` doesn't resolve to a live `Admin`
+row. The most common way to land there: the env-configured sudo admin
+(`SUDO_USERNAME`/`SUDO_PASSWORD`) has **no row in the `admins` table at
+all** — `Admin.get_admin()` (`app/models/admin.py`) short-circuits and
+builds a Pydantic `Admin` straight from the JWT payload when the token's
+username is in `SUDOERS`, never touching the DB. `add_user`
+(`app/routers/user.py`) then does `admin=crud.get_admin(db,
+admin.username)` — a plain DB lookup by username — which returns `None` for
+that admin. So **any user created by the default env sudo login already has
+`admin_id: null` from the moment it's created** (confirmed via `GET
+/api/user/{username}` showing `"admin": null` right after creation, no
+extra step). `DELETE`ing it then 500s as above. This is why the bug is
+"reliable" in the integration suite: it authenticates as exactly that env
+sudo admin.
+
+**Secondary path (also verified, needs two admins):** a non-sudo admin
+(created through the API, so it _does_ have an `admins` row) creates a
+user → the user's `admin_id` points at that admin; a sudo admin later
+deletes it (`DELETE /api/admin/{username}`) — there's no `ON DELETE SET
+NULL`/cascade, so `dbuser.admin` stops resolving on the next read. Same
+symptom, different route to it. Either way, this isn't an edge case scoped
+to unusual setups — it's the default outcome of the single most common
+setup (one env-configured sudo admin managing its own users directly).
+
+**Workaround:** `sdk.user.removeUser()` in `packages/sdk` catches exactly a
+500 from this endpoint and confirms the delete via a follow-up `getUser`
+(expecting 404) before treating it as success — see
+[`TolerantUserApi`](../packages/sdk/src/core/quirks/tolerant-user-api.ts). A
+genuine failure (the follow-up `getUser` shows the user still exists, or
+the confirmation itself can't be made) still throws. The integration
+suite's own `removeUserTolerantly()` in
 [`packages/sdk/test/integration/helpers/quirks.ts`](../packages/sdk/test/integration/helpers/quirks.ts)
 and the mirrored helper in
 [`packages/mcp/test/integration/helpers/quirks.ts`](../packages/mcp/test/integration/helpers/quirks.ts)
-— catches exactly a 500 from `removeUser` and treats it as success.
+now just call `sdk.user.removeUser()` directly — the tolerance itself moved
+into the SDK, and the wrapper only remains to add
+[`freshConnectionConfig()`](../packages/sdk/test/integration/helpers/quirks.ts)
+(a one-off connection), so that the SDK's own internal confirmation call
+doesn't draw the poisoned socket left behind by the crash.
 
-**Open:** the SDK itself does not currently special-case this — a real
-caller of `sdk.user.removeUser()` against an affected Marzban version still
-sees an `HttpError` on a successful delete. Worth deciding whether that
-tolerance belongs in the SDK proper (and, if so, how narrowly to scope it so
-a _genuine_ 500 elsewhere isn't silently swallowed) or stays test-only.
+Resolved in [issue #103](https://github.com/Ilmar7786/marzban-sdk/issues/103),
+shipping in `sdk-v3.3.0`.
 
 ## The 500 above can poison the next request on the same connection
 

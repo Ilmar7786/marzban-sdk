@@ -1,4 +1,5 @@
 import type { ConfirmDecision, ConfirmFn } from '../tool'
+import { hashCallArgs } from './canonical'
 import { CONFIRM_TOKEN_TTL_SECONDS, createConfirmTokenCodec } from './token'
 
 function extractConfirmToken(args: unknown): string | undefined {
@@ -27,30 +28,57 @@ function buildConfirmationMessage(consequences: string, token: string): string {
   ].join(' ')
 }
 
+function callKey(toolName: string, args: unknown): string {
+  return `${toolName}:${hashCallArgs(args)}`
+}
+
 /**
  * Builds the real confirm strategy (plan §6.1–§6.2, confirm_token branch
  * only — native MRTR elicitation is left for a later iteration, see the
  * step-5 commit message for why). One instance owns one signing key and one
- * `trustedTools` set, both scoped to the server instance's lifetime — a
+ * `trustedCalls` map, both scoped to the server instance's lifetime — a
  * fresh `createMarzbanMcpServer()` call (i.e. a restart) starts over, which
  * is the intended behavior (plan §6.1/§6.6).
+ *
+ * `trustedCalls` keys trust by tool name *and* the exact call arguments
+ * (see issue #74) — confirming `marzban_users_delete` for "alice" must not
+ * silently authorise deleting "bob", or resetting *every* user's traffic
+ * once `{ username }` was confirmed. Each entry also carries the same TTL as
+ * a confirm token (`CONFIRM_TOKEN_TTL_SECONDS`): without an expiry, a tool
+ * whose arguments never vary (`marzban_core_restart` always takes `{}`)
+ * would get an unlimited number of free re-runs from a single confirmation.
  */
 export function createConfirmFn(): ConfirmFn {
   const codec = createConfirmTokenCodec(crypto.getRandomValues(new Uint8Array(32)))
-  const trustedTools = new Set<string>()
+  const trustedCalls = new Map<string, number>()
+
+  function pruneExpired(now: number): void {
+    for (const [key, expiresAt] of trustedCalls) {
+      if (expiresAt <= now) trustedCalls.delete(key)
+    }
+  }
 
   return async function confirm({ tool, args, ctx, serverCtx }): Promise<ConfirmDecision> {
     if (ctx.config.confirm === 'off') return { proceed: true }
 
-    if (ctx.config.confirm === 'auto' && trustedTools.has(tool.name)) {
-      return { proceed: true }
+    const key = callKey(tool.name, args)
+
+    if (ctx.config.confirm === 'auto') {
+      const now = Date.now()
+      pruneExpired(now)
+      if (trustedCalls.has(key)) {
+        ctx.logger.info(`Proceeding on accumulated confirm trust for ${tool.name} (same call, still within TTL).`)
+        return { proceed: true }
+      }
     }
 
     const token = extractConfirmToken(args)
     if (token) {
       const result = await codec.verify(token, tool.name, args, serverCtx)
       if (result.ok) {
-        if (ctx.config.confirm === 'auto') trustedTools.add(tool.name)
+        if (ctx.config.confirm === 'auto') {
+          trustedCalls.set(key, Date.now() + CONFIRM_TOKEN_TTL_SECONDS * 1000)
+        }
         return { proceed: true }
       }
       ctx.logger.warn(`Rejected confirmToken for ${tool.name}: ${result.reason}`)

@@ -1,8 +1,8 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 
 import { createRequestStateCodec, type ServerContext } from '@modelcontextprotocol/server'
 
-import { canonicalize } from './canonical'
+import { hashCallArgs } from './canonical'
 
 /** How long a minted confirm_token stays valid (plan §6.1). */
 export const CONFIRM_TOKEN_TTL_SECONDS = 300
@@ -22,12 +22,6 @@ export type ConfirmVerifyResult =
 export interface ConfirmTokenCodec {
   mint(tool: string, args: unknown, ctx: ServerContext): Promise<string>
   verify(token: string, tool: string, args: unknown, ctx: ServerContext): Promise<ConfirmVerifyResult>
-}
-
-function hashArgs(args: unknown): string {
-  const rest: Record<string, unknown> = { ...(args as Record<string, unknown> | undefined) }
-  delete rest.confirmToken
-  return createHash('sha256').update(canonicalize(rest)).digest('hex')
 }
 
 /**
@@ -52,7 +46,7 @@ export function createConfirmTokenCodec(key: Uint8Array): ConfirmTokenCodec {
 
   return {
     async mint(tool, args, ctx) {
-      return codec.mint({ jti: randomUUID(), tool, argsHash: hashArgs(args) }, ctx)
+      return codec.mint({ jti: randomUUID(), tool, argsHash: hashCallArgs(args) }, ctx)
     },
 
     async verify(token, tool, args, ctx) {
@@ -64,7 +58,7 @@ export function createConfirmTokenCodec(key: Uint8Array): ConfirmTokenCodec {
       }
 
       if (payload.tool !== tool) return { ok: false, reason: 'tool-mismatch' }
-      if (payload.argsHash !== hashArgs(args)) return { ok: false, reason: 'args-mismatch' }
+      if (payload.argsHash !== hashCallArgs(args)) return { ok: false, reason: 'args-mismatch' }
 
       const now = Date.now()
       pruneExpired(now)

@@ -106,7 +106,7 @@ describe('createConfirmFn', () => {
     expect(ctx.logger.warn).toHaveBeenCalledWith(expect.stringContaining('Rejected confirmToken'))
   })
 
-  it('auto: trusts the tool after one confirmed call, so a later call with no token proceeds', async () => {
+  it('auto: a confirmed call does not authorize the same tool with different arguments', async () => {
     const confirm = createConfirmFn()
     const tool = makeTool()
     const ctx = makeContext('auto')
@@ -117,7 +117,59 @@ describe('createConfirmFn', () => {
     await confirm({ tool, args: { ...args, confirmToken: token }, ctx, serverCtx: fakeServerCtx })
 
     const third = await confirm({ tool, args: { username: 'bob' }, ctx, serverCtx: fakeServerCtx })
-    expect(third).toEqual({ proceed: true })
+    expect(third.proceed).toBe(false)
+  })
+
+  it('auto: a confirmed call does not authorize a wider version of the same call', async () => {
+    const confirm = createConfirmFn()
+    const tool = makeTool({
+      inputSchema: z.object({ all: z.boolean().optional(), confirmToken: z.string().optional() }),
+    })
+    const ctx = makeContext('auto')
+    const args = { all: false }
+
+    const first = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
+    const token = first.message!.match(/confirmToken: "([^"]+)"/)![1]
+    await confirm({ tool, args: { ...args, confirmToken: token }, ctx, serverCtx: fakeServerCtx })
+
+    const wider = await confirm({ tool, args: { all: true }, ctx, serverCtx: fakeServerCtx })
+    expect(wider.proceed).toBe(false)
+  })
+
+  it('auto: a confirmed call proceeds again with the same arguments, within the TTL', async () => {
+    const confirm = createConfirmFn()
+    const tool = makeTool()
+    const ctx = makeContext('auto')
+    const args = { username: 'alice' }
+
+    const first = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
+    const token = first.message!.match(/confirmToken: "([^"]+)"/)![1]
+    await confirm({ tool, args: { ...args, confirmToken: token }, ctx, serverCtx: fakeServerCtx })
+
+    const again = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
+    expect(again).toEqual({ proceed: true })
+    expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('accumulated confirm trust'))
+  })
+
+  it('auto: trust for the same arguments expires after the confirm-token TTL', async () => {
+    vi.useFakeTimers()
+    try {
+      const confirm = createConfirmFn()
+      const tool = makeTool()
+      const ctx = makeContext('auto')
+      const args = { username: 'alice' }
+
+      const first = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
+      const token = first.message!.match(/confirmToken: "([^"]+)"/)![1]
+      await confirm({ tool, args: { ...args, confirmToken: token }, ctx, serverCtx: fakeServerCtx })
+
+      vi.advanceTimersByTime(301_000)
+
+      const again = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
+      expect(again.proceed).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('always: never trusts the tool, so every call needs its own confirmation', async () => {

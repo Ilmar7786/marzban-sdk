@@ -1,4 +1,4 @@
-import { isHttpError, type MarzbanSDK } from '../../../src/index'
+import type { MarzbanSDK } from '../../../src/index'
 import { tlsAgent } from './tls'
 
 // Real Marzban panel behavior worked around below — see
@@ -19,18 +19,15 @@ export function freshConnectionConfig(): Record<string, unknown> {
 }
 
 /**
- * `removeUser` reliably rejects with a 500 even when the delete succeeded
- * (docs/marzban-quirks.md: "DELETE /api/user/{username} 500s despite
- * deleting the user"). Use this wherever a test needs to actually remove a
- * user (cleanup or the delete test itself); verify the outcome via a
- * follow-up `getUser` 404 (with {@link freshConnectionConfig}), not via
- * this resolving.
+ * `sdk.user.removeUser()` itself now absorbs the panel's 500-despite-success
+ * quirk (docs/marzban-quirks.md: "DELETE /api/user/{username} 500s despite
+ * deleting the user"), confirming via its own follow-up `getUser` before
+ * treating a 500 as success. This wrapper only adds
+ * {@link freshConnectionConfig} — a one-off connection, so that internal
+ * confirmation (and any later call reusing the pool) doesn't draw the
+ * poisoned socket the crash can leave behind. Use this wherever a test needs
+ * to actually remove a user (cleanup or the delete test itself).
  */
 export async function removeUserTolerantly(sdk: MarzbanSDK, username: string): Promise<void> {
-  try {
-    await sdk.user.removeUser(username, freshConnectionConfig())
-  } catch (err) {
-    if (isHttpError(err) && err.status === 500) return
-    throw err
-  }
+  await sdk.user.removeUser(username, freshConnectionConfig())
 }

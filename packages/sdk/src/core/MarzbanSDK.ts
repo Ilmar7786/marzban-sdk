@@ -5,6 +5,7 @@ import { AuthManager } from './auth'
 import { SdkError } from './errors'
 import { configureHttpClient } from './http'
 import { createLogger, Logger } from './logger'
+import { TolerantUserApi } from './quirks/tolerant-user-api'
 import { WebhookManager } from './webhook'
 import { LogsStream } from './ws'
 
@@ -35,6 +36,9 @@ export class MarzbanSDK {
 
   /**
    * User management API endpoints.
+   *
+   * `removeUser` tolerates the Marzban panel-side 500 that follows a
+   * successful delete — see docs/marzban-quirks.md.
    */
   readonly user: userApi
 
@@ -137,7 +141,7 @@ export class MarzbanSDK {
     this.admin = new adminApi({ client: http.client })
     this.core = new coreApi({ client: http.client })
     this.node = new nodeApi({ client: http.client })
-    this.user = new userApi({ client: http.client })
+    this.user = new TolerantUserApi({ client: http.client })
     this.system = new systemApi({ client: http.client })
     this.subscription = new subscriptionApi({ client: http.client })
     this.userTemplate = new userTemplateApi({ client: http.client })

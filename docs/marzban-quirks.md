@@ -44,32 +44,49 @@ the deferred background task. The delete is not lost; only the HTTP response
 is. Confirm the outcome with a follow-up `GET` (404), not by the delete call
 resolving.
 
-**Concrete repro:** `dbuser.admin` is `None` whenever the user's `admin_id`
-no longer resolves to a live `Admin` row. Reproduced end-to-end: a non-sudo
-admin (`owner1`) creates a user → the user's `admin_id` points at `owner1`;
-a sudo admin then deletes `owner1` (`DELETE /api/admin/owner1`) — there's no
-`ON DELETE SET NULL`/cascade, so `dbuser.admin` simply stops resolving on
-the next read (confirmed via `GET /api/user/{username}` showing `"admin":
-null` right after the admin delete); any subsequent `DELETE
-/api/user/{username}` for that user then 500s as above. Marzban supports
-multiple admins and multiple users per panel — this isn't an edge case
-limited to a single-admin setup, just one that needs a second admin in the
-picture to trigger.
+**Concrete repro (primary path — no second admin needed):** `dbuser.admin`
+is `None` whenever the user's `admin_id` doesn't resolve to a live `Admin`
+row. The most common way to land there: the env-configured sudo admin
+(`SUDO_USERNAME`/`SUDO_PASSWORD`) has **no row in the `admins` table at
+all** — `Admin.get_admin()` (`app/models/admin.py`) short-circuits and
+builds a Pydantic `Admin` straight from the JWT payload when the token's
+username is in `SUDOERS`, never touching the DB. `add_user`
+(`app/routers/user.py`) then does `admin=crud.get_admin(db,
+admin.username)` — a plain DB lookup by username — which returns `None` for
+that admin. So **any user created by the default env sudo login already has
+`admin_id: null` from the moment it's created** (confirmed via `GET
+/api/user/{username}` showing `"admin": null` right after creation, no
+extra step). `DELETE`ing it then 500s as above. This is why the bug is
+"reliable" in the integration suite: it authenticates as exactly that env
+sudo admin.
 
-**Workaround:** `removeUserTolerantly()` in
+**Secondary path (also verified, needs two admins):** a non-sudo admin
+(created through the API, so it _does_ have an `admins` row) creates a
+user → the user's `admin_id` points at that admin; a sudo admin later
+deletes it (`DELETE /api/admin/{username}`) — there's no `ON DELETE SET
+NULL`/cascade, so `dbuser.admin` stops resolving on the next read. Same
+symptom, different route to it. Either way, this isn't an edge case scoped
+to unusual setups — it's the default outcome of the single most common
+setup (one env-configured sudo admin managing its own users directly).
+
+**Workaround:** `sdk.user.removeUser()` in `packages/sdk` catches exactly a
+500 from this endpoint and confirms the delete via a follow-up `getUser`
+(expecting 404) before treating it as success — see
+[`TolerantUserApi`](../packages/sdk/src/core/quirks/tolerant-user-api.ts). A
+genuine failure (the follow-up `getUser` shows the user still exists, or
+the confirmation itself can't be made) still throws. The integration
+suite's own `removeUserTolerantly()` in
 [`packages/sdk/test/integration/helpers/quirks.ts`](../packages/sdk/test/integration/helpers/quirks.ts)
 and the mirrored helper in
 [`packages/mcp/test/integration/helpers/quirks.ts`](../packages/mcp/test/integration/helpers/quirks.ts)
-— catches exactly a 500 from `removeUser` and treats it as success.
+now just call `sdk.user.removeUser()` directly — the tolerance itself moved
+into the SDK, and the wrapper only remains to add
+[`freshConnectionConfig()`](../packages/sdk/test/integration/helpers/quirks.ts)
+(a one-off connection), so that the SDK's own internal confirmation call
+doesn't draw the poisoned socket left behind by the crash.
 
-**Open:** the SDK itself does not currently special-case this — a real
-caller of `sdk.user.removeUser()` against an affected Marzban version still
-sees an `HttpError` on a successful delete, and hitting it only requires a
-panel with more than one admin. Tracked in
-[issue #103](https://github.com/Ilmar7786/marzban-sdk/issues/103): whether
-that tolerance belongs in the SDK proper (and, if so, how narrowly to scope
-it so a _genuine_ 500 elsewhere isn't silently swallowed) or stays
-test-only.
+Resolved in [issue #103](https://github.com/Ilmar7786/marzban-sdk/issues/103),
+shipping in `sdk-v3.3.0`.
 
 ## The 500 above can poison the next request on the same connection
 

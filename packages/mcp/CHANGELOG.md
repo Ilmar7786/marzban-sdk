@@ -1,5 +1,31 @@
 # Changelog
 
+## [mcp-v0.2.2] - 2026-08-31
+
+### <!-- 0 -->🚀 Features
+
+- Trust a custom CA via MARZBAN_TLS_CA_FILE by @Ilmar7786
+
+### <!-- 10 -->💼 Other
+
+- Merge pull request #71 from Ilmar7786/dev by @Ilmar7786 in [#71](https://github.com/Ilmar7786/marzban-sdk/pull/71)
+- Merge pull request #70 from Ilmar7786/fix/changelog-push-autostash by @Ilmar7786 in [#70](https://github.com/Ilmar7786/marzban-sdk/pull/70)
+
+### <!-- 6 -->🧪 Testing
+
+- Cover the full user lifecycle live against a real panel by @Ilmar7786
+- Trust the local panel's CA instead of disabling TLS verification by @Ilmar7786
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Bump marzban-mcp to 0.2.0 by @Ilmar7786
+
+### 🔗 From marzban-sdk
+
+- Bundles **marzban-sdk 3.3.0** (was 3.1.0) — see the [SDK release notes](https://github.com/Ilmar7786/marzban-sdk/releases/tag/sdk-v3.3.0).
+- `POST` and other unsafe methods are no longer retried — a failed write now surfaces as a tool error instead of being silently replayed ([#75](https://github.com/Ilmar7786/marzban-sdk/issues/75))
+- HTTP retries now actually run on API requests ([#92](https://github.com/Ilmar7786/marzban-sdk/pull/92))
+
 ## [mcp-v0.2.0] - 2026-08-21
 
 ### <!-- 0 -->🚀 Features

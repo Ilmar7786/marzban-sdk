@@ -1,5 +1,40 @@
 # Changelog
 
+## [sdk-v3.2.0] - 2026-08-27
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Make WebSocket log streaming resilient to bad callbacks and intervals #87 by @Ilmar7786
+- Attach WebSocket listeners in the same tick the socket is created #86 by @Ilmar7786
+- Never retry POST and other unsafe methods by @Ilmar7786
+- Make HTTP retries actually run on API requests by @Ilmar7786
+
+### <!-- 10 -->💼 Other
+
+- Merge pull request #96 from Ilmar7786/dev by @Ilmar7786 in [#96](https://github.com/Ilmar7786/marzban-sdk/pull/96)
+- Merge pull request #99 from Ilmar7786/fix/ws-logs-stream-hardening by @Ilmar7786 in [#99](https://github.com/Ilmar7786/marzban-sdk/pull/99)
+- Merge pull request #98 from Ilmar7786/fix/ws-listener-attachment-race by @Ilmar7786 in [#98](https://github.com/Ilmar7786/marzban-sdk/pull/98)
+- Merge pull request #97 from Ilmar7786/fix/ws-test-flake-and-ci-dupes by @Ilmar7786 in [#97](https://github.com/Ilmar7786/marzban-sdk/pull/97)
+- Merge branch 'dev' into fix/ws-test-flake-and-ci-dupes by @Ilmar7786
+- Merge branch 'main' into dev by @Ilmar7786
+- Merge pull request #73 from Ilmar7786/dev by @Ilmar7786 in [#73](https://github.com/Ilmar7786/marzban-sdk/pull/73)
+- Merge pull request #72 from Ilmar7786/dev by @Ilmar7786 in [#72](https://github.com/Ilmar7786/marzban-sdk/pull/72)
+- Merge pull request #95 from Ilmar7786/task/ws-test-harness by @Ilmar7786 in [#95](https://github.com/Ilmar7786/marzban-sdk/pull/95)
+- Merge pull request #94 from Ilmar7786/task/node-integration-tests by @Ilmar7786 in [#94](https://github.com/Ilmar7786/marzban-sdk/pull/94)
+- Merge pull request #92 from Ilmar7786/fix/retry-safe-methods by @Ilmar7786 in [#92](https://github.com/Ilmar7786/marzban-sdk/pull/92)
+
+### <!-- 6 -->🧪 Testing
+
+- Stop terminating WS clients mid-handshake by @Ilmar7786
+- Fix flaky waitForConnections WS test by @Ilmar7786
+- Add a real ws.Server test harness for the WS module by @Ilmar7786
+- Add integration coverage for the Node module by @Ilmar7786
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Bump version sdk by @Ilmar7786
+- Add types:check to sdk, cli and mcp by @Ilmar7786
+
 ## [sdk-v3.0.2] - 2026-08-21
 
 ### <!-- 0 -->🚀 Features

@@ -1,5 +1,20 @@
 # Changelog
 
+## [sdk-v3.3.0] - 2026-08-31
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Tolerate the removeUser 500 that follows a successful delete by @Ilmar7786
+
+### <!-- 10 -->💼 Other
+
+- Merge pull request #102 from Ilmar7786/dev by @Ilmar7786 in [#102](https://github.com/Ilmar7786/marzban-sdk/pull/102)
+- Merge pull request #104 from Ilmar7786/fix/remove-user-500-tolerance by @Ilmar7786 in [#104](https://github.com/Ilmar7786/marzban-sdk/pull/104)
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Bump marzban-sdk to 3.3.0 by @Ilmar7786
+
 ## [sdk-v3.2.0] - 2026-08-27
 
 ### <!-- 1 -->🐛 Bug Fixes
@@ -34,6 +49,24 @@
 
 - Bump version sdk by @Ilmar7786
 - Add types:check to sdk, cli and mcp by @Ilmar7786
+
+## [sdk-v3.1.0] - 2026-08-21
+
+### <!-- 0 -->🚀 Features
+
+- Support a custom httpAgent/httpsAgent for self-signed panels by @Ilmar7786
+
+### <!-- 10 -->💼 Other
+
+- Merge pull request #71 from Ilmar7786/dev by @Ilmar7786 in [#71](https://github.com/Ilmar7786/marzban-sdk/pull/71)
+
+### <!-- 6 -->🧪 Testing
+
+- Trust the local panel's CA instead of disabling TLS verification by @Ilmar7786
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Bump marzban-sdk to 3.1.0 by @Ilmar7786
 
 ## [sdk-v3.0.2] - 2026-08-21
 

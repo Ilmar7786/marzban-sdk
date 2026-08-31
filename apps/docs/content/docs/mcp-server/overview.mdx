@@ -16,7 +16,7 @@ It's a separate package from the SDK itself. If you're building your own integra
 - **21 tools**, namespaced `marzban_<area>_<action>`, covering the full user lifecycle plus config, hosts, nodes, system stats, and subscriptions.
 - **3 prompts** that chain those tools into ready-made investigations (expiring subscriptions, node health, traffic reports).
 - **Profile-gated access** — a tool outside the active profile never appears in `tools/list` at all, not just hidden behind a hint.
-- **Every destructive action needs confirmation** — a first call only describes the consequences and returns a one-time token; nothing runs until a second, explicitly confirmed call repeats it.
+- **Every destructive call needs confirmation** — a first call only describes the consequences and returns a one-time token; nothing runs until a second, explicitly confirmed call repeats it. Confirming one call never authorizes a different target or a wider version of the same call.
 - **Credentials only from environment variables** — never accepted as a tool argument, so a model can't redirect the server or leak them through a call.
 - **Credential-bearing fields masked by default** — `proxies`, `subscription_url`, and `links` stay hidden unless you opt in.
 

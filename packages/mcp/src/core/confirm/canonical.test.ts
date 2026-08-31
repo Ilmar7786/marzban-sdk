@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { canonicalize } from './canonical'
+import { canonicalize, hashCallArgs } from './canonical'
 
 describe('canonicalize', () => {
   it('produces the same string regardless of key order', () => {
@@ -23,5 +23,27 @@ describe('canonicalize', () => {
 
   it('produces different strings for different values', () => {
     expect(canonicalize({ a: 1 })).not.toBe(canonicalize({ a: 2 }))
+  })
+})
+
+describe('hashCallArgs', () => {
+  it('ignores confirmToken', () => {
+    expect(hashCallArgs({ username: 'alice', confirmToken: 'abc' })).toBe(hashCallArgs({ username: 'alice' }))
+  })
+
+  it('is unaffected by key order', () => {
+    expect(hashCallArgs({ b: 1, a: 2 })).toBe(hashCallArgs({ a: 2, b: 1 }))
+  })
+
+  it('differs for different arguments', () => {
+    expect(hashCallArgs({ username: 'alice' })).not.toBe(hashCallArgs({ username: 'bob' }))
+  })
+
+  it('differs when a boolean flag flips', () => {
+    expect(hashCallArgs({ all: false })).not.toBe(hashCallArgs({ all: true }))
+  })
+
+  it('handles undefined args', () => {
+    expect(hashCallArgs(undefined)).toBe(hashCallArgs({}))
   })
 })

@@ -86,8 +86,9 @@ the core config. It's a separate, published package (`marzban-mcp`), not a mode 
 - **21 tools, 3 prompts** — the full user lifecycle plus config, hosts, nodes, system stats, and subscriptions,
   and ready-made prompts that chain several tools into one investigation.
 - **Profile-gated access** — a tool outside the active profile never appears in `tools/list` at all.
-- **Confirmation on every destructive action** — a first call only describes the consequences and returns a
-  one-time token; nothing runs until a second, explicitly confirmed call repeats it.
+- **Confirmation on every destructive call** — a first call only describes the consequences and returns a
+  one-time token; nothing runs until a second, explicitly confirmed call repeats it. Confirming one call
+  never authorizes a different target or a wider version of the same call.
 - **Credentials only from environment variables**, masked by default in tool output.
 
 ```json title="claude_desktop_config.json / .mcp.json"

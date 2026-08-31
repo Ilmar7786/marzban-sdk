@@ -66,11 +66,11 @@ The signing key lives only in the server process's memory — a restart invalida
 
 | Mode | Behavior | Best for |
 |---|---|---|
-| `auto` (default) | Confirm once per tool name per connection; after that, calls to the *same tool* proceed without re-asking | Interactive use — balances safety with not re-confirming "delete user" fifty times in a cleanup loop |
+| `auto` (default) | Confirm once per tool name *and* exact arguments; a repeat of that same call proceeds without re-asking, but only within a 5-minute window | Interactive use — a genuine retry (a timeout, a reconnect) doesn't need re-confirming, but nothing broader is ever inferred from it |
 | `always` | Confirm every single call, with no memory of what was already confirmed | Shared or interactive environments where even one accumulated trust is undesirable |
 | `off` | Skip confirmation entirely, from the very first call | Fully automated, unattended environments only — there is no safety net once this is set |
 
-Trust in `auto` mode is granted per tool *name*, not per call's arguments — confirming a delete for `alice` also trusts future deletes for `bob` without re-asking, for the rest of that connection. This is a deliberate, logged trade-off, not an oversight: it's no looser than what a host's own "always allow this tool" consent dialog already permits, just made explicit and auditable on this side. Every action taken under accumulated trust is still written to the audit log described below.
+Trust in `auto` mode is granted per tool *and* per exact call arguments, not per tool name alone — confirming a delete for `alice` does **not** trust a delete for `bob`, and confirming `marzban_users_reset_traffic { username: "alice" }` does not trust the same tool called with `{ all: true }`. Each grant also expires after the same 5-minute window a confirm token uses, so a tool whose arguments never vary (`marzban_core_restart` always takes `{}`) can't turn one confirmation into unlimited free re-runs for the rest of the connection. Every call that proceeds on accumulated trust — rather than a freshly verified token — is logged to stderr.
 
 ## Credential masking
 

@@ -64,7 +64,8 @@ flowchart LR
   carries a TTL, a hash of the canonicalized arguments, and a per-process
   signing key; it's rejected on tool mismatch, argument mismatch, or reuse.
   `MARZBAN_MCP_CONFIRM` controls the mode: `off`, `auto` (confirm once per
-  tool per session), `always`.
+  tool _and_ exact arguments, trusted for the same TTL as the token —
+  `core/confirm/confirm.ts`'s `trustedCalls`), `always`.
 - **Handlers return plain data**, never a `CallToolResult` — rendering and
   error mapping are the pipeline's job, not the tool's.
 

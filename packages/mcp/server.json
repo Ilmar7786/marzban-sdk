@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.ilmar7786/marzban-mcp",
+  "name": "io.github.Ilmar7786/marzban-mcp",
   "title": "Marzban MCP",
   "description": "Manage Marzban panels through the Model Context Protocol.",
   "repository": {

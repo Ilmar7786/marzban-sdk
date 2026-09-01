@@ -2,6 +2,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import type { MDXComponents } from 'mdx/types'
 
+import { ChangelogViewer } from './changelog-viewer'
 import { OpenApiViewer } from './openapi-viewer'
 import { InlineCode, PlainCode } from './type-ref'
 
@@ -37,6 +38,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Tab,
     Tabs,
     OpenApiViewer,
+    ChangelogViewer,
     ...components,
   } satisfies MDXComponents
 }

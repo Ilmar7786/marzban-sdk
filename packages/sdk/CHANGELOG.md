@@ -104,31 +104,6 @@
 
 - Bump marzban-sdk to 3.0.2 to verify npm publish by @Ilmar7786
 
-## [sdk-v3.0.2] - 2026-08-21
-
-### <!-- 0 -->🚀 Features
-
-- Environment-aware default + consistent logging across layers by @Ilmar7786
-
-### <!-- 1 -->🐛 Bug Fixes
-
-- Make webhook crypto cross-runtime and keep node:crypto out of browser bundles by @Ilmar7786
-- Await webhook listeners and harden core modules by @Ilmar7786
-- Harden auth, webhook and ws layers for production by @Ilmar7786
-
-### <!-- 10 -->💼 Other
-
-- Merge pull request #54 from Ilmar7786/fix/production-hardening by @Ilmar7786
-
-### <!-- 2 -->🚜 Refactor
-
-- Accept a single options object in the LogsStream constructor by @Ilmar7786
-- Centralize SDK defaults and enforce validated config by @Ilmar7786
-
-### <!-- 6 -->🧪 Testing
-
-- Reach 100% coverage of hand-written code and enforce it by @Ilmar7786
-
 ## [3.0.1] - 2026-06-25
 
 ### <!-- 0 -->🚀 Features

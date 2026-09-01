@@ -12,6 +12,7 @@
     "utilities",
     "mcp-server",
     "ai-tools",
+    "openapi",
     "resources"
   ]
 }

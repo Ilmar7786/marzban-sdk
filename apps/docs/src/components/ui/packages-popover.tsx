@@ -5,10 +5,31 @@ import { ArrowUpRight, Container, Package } from 'lucide-react'
 
 import { mcpDockerImage, mcpNpmPackage, npmPackage } from '@/lib/shared'
 
+import mcpPackageJson from '../../../../../packages/mcp/package.json'
+import sdkPackageJson from '../../../../../packages/sdk/package.json'
+
+// The Docker image is tagged in lockstep with the npm package on every
+// release (see .github/workflows/release-mcp.yml), so its version reuses
+// mcpPackageJson.version rather than a separate source.
 const links = [
-  { icon: Package, label: 'marzban-sdk', sub: 'npm', href: `https://www.npmjs.com/package/${npmPackage}` },
-  { icon: Package, label: 'marzban-mcp', sub: 'npm', href: `https://www.npmjs.com/package/${mcpNpmPackage}` },
-  { icon: Container, label: mcpDockerImage, sub: 'Docker Hub', href: `https://hub.docker.com/r/${mcpDockerImage}` },
+  {
+    icon: Package,
+    label: 'marzban-sdk',
+    sub: `npm · v${sdkPackageJson.version}`,
+    href: `https://www.npmjs.com/package/${npmPackage}`,
+  },
+  {
+    icon: Package,
+    label: 'marzban-mcp',
+    sub: `npm · v${mcpPackageJson.version}`,
+    href: `https://www.npmjs.com/package/${mcpNpmPackage}`,
+  },
+  {
+    icon: Container,
+    label: mcpDockerImage,
+    sub: `Docker Hub · v${mcpPackageJson.version}`,
+    href: `https://hub.docker.com/r/${mcpDockerImage}`,
+  },
 ]
 
 /**

@@ -2,6 +2,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import type { MDXComponents } from 'mdx/types'
 
+import { OpenApiViewer } from './openapi-viewer'
 import { InlineCode, PlainCode } from './type-ref'
 
 /** Heading tags whose inline code should render plainly (no type popovers). */
@@ -35,6 +36,7 @@ export function getMDXComponents(components?: MDXComponents) {
     code: InlineCode,
     Tab,
     Tabs,
+    OpenApiViewer,
     ...components,
   } satisfies MDXComponents
 }

@@ -1,13 +1,13 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { ThemeSwitch } from 'fumadocs-ui/layouts/shared/slots/theme-switch'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, Bot } from 'lucide-react'
 
 import { HeaderGithub } from '@/components/landing/header-github'
 import { BrandMark } from '@/components/ui/brand-mark'
 import { PackagesPopover } from '@/components/ui/packages-popover'
 import { Tooltip } from '@/components/ui/tooltip'
 
-import { appName } from './shared'
+import { appName, docsRoute } from './shared'
 
 /** Ghost icon button for the landing header nav, matching Fumadocs' own controls. */
 const navIconButton =
@@ -48,8 +48,14 @@ export function baseOptions({ navExtras = true }: { navExtras?: boolean } = {}):
             {
               type: 'main',
               text: 'Docs',
-              url: '/docs',
+              url: docsRoute,
               icon: <BookOpen />,
+            },
+            {
+              type: 'main',
+              text: 'MCP Server',
+              url: `${docsRoute}/mcp-server/overview`,
+              icon: <Bot />,
             },
           ] satisfies BaseLayoutProps['links'])
         : []),

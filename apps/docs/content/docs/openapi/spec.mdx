@@ -1,0 +1,13 @@
+---
+title: OpenAPI Spec
+description: The exact schema MarzbanSDK is generated from — patched where upstream Marzban's spec is under-specified. Browse the endpoints below or download the file directly.
+full: true
+---
+
+MarzbanSDK doesn't fetch Marzban's OpenAPI spec at build time — it vendors a copy in the repository (`packages/sdk/openapi/openapi.json`) and hand-patches the parts upstream leaves under-specified. A future `npm run codegen` run can still overwrite those patches; [`gen-regression.test.ts`](https://github.com/Ilmar7786/marzban-sdk/blob/main/packages/sdk/src/gen-regression.test.ts) is what catches that, by pinning the generated behavior the patches produce.
+
+<OpenApiViewer />
+
+<Callout type="info">
+  Endpoints marked **patched** return data affected by a fix — see [Spec Patches](/docs/openapi/patches) for what changed and why.
+</Callout>

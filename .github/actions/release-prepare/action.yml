@@ -71,6 +71,35 @@ runs:
           echo "changed=false" >> "$GITHUB_OUTPUT"
         fi
 
+    - name: Choose the git-cliff commit range
+      # Historically this step hardcoded --latest, which asks git-cliff for
+      # "commits since the newest EXISTING tag" — but at this point in the
+      # job the tag for the version being released doesn't exist yet (it's
+      # created later, by Create GitHub Release), so --latest silently
+      # rendered the PREVIOUS release's commits under a --tag-overridden
+      # heading that claimed to be the current one. --include-path filtering
+      # occasionally hid this (the mislabeled range happened to be empty
+      # after filtering, so --latest fell through to the range before it),
+      # but the effect was the same: every release described the wrong diff.
+      # See docs/adr/0014-git-cliff-unreleased-not-latest.md.
+      #
+      # --unreleased ("commits not belonging to any tag") is correct for the
+      # normal case. The one place --latest is still right is resuming a
+      # force_publish release after Create GitHub Release already ran and
+      # created the tag: then --unreleased finds nothing (the commits are
+      # now tagged), while --latest correctly resolves to that newest,
+      # already-created tag.
+      id: range
+      if: steps.decide.outputs.changed == 'true'
+      shell: bash
+      run: |
+        tag="${{ inputs.tag-prefix }}${{ steps.npm-dry-run.outputs.version }}"
+        if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+          echo "mode=--latest" >> "$GITHUB_OUTPUT"
+        else
+          echo "mode=--unreleased" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Update package changelog
       if: steps.decide.outputs.changed == 'true'
       shell: bash
@@ -78,22 +107,26 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token }}
         TAG_MESSAGE_FILE: ${{ inputs.tag-message-file }}
       run: |
-        # --latest (rather than a full regenerate) is required here: git-cliff
-        # cannot correctly bucket commits per historical tag once --include-path
-        # is applied across the full multi-tag history — it collapses every
-        # release into one. Scoped to a single tag boundary, --include-path
-        # works correctly, so each release prepends just its own section.
+        set -o pipefail
         extra=()
         if [ -n "$TAG_MESSAGE_FILE" ] && [ -s "$TAG_MESSAGE_FILE" ]; then
           extra+=(--with-tag-message "$(cat "$TAG_MESSAGE_FILE")")
         fi
-        pnpm exec git-cliff \
+        cliff=(pnpm exec git-cliff \
           --tag "${{ inputs.tag-prefix }}${{ steps.npm-dry-run.outputs.version }}" \
           --tag-pattern '${{ inputs.tag-pattern }}' \
           --github-repo '${{ github.repository }}' \
           ${{ inputs.include-path-args }} \
           "${extra[@]}" \
-          --latest --prepend '${{ inputs.package-dir }}/CHANGELOG.md'
+          ${{ steps.range.outputs.mode }})
+        # A version bump with no commits matching --include-path renders just
+        # the "## [tag] - date" heading and nothing else. Prepending that
+        # gives readers an empty, misleading entry, so skip it instead.
+        if ! "${cliff[@]}" --strip all | grep -q '^- '; then
+          echo "::warning::No changelog-worthy commits for this release; leaving ${{ inputs.package-dir }}/CHANGELOG.md untouched."
+          exit 0
+        fi
+        "${cliff[@]}" --prepend '${{ inputs.package-dir }}/CHANGELOG.md'
 
     - name: Render release notes
       if: steps.decide.outputs.changed == 'true'
@@ -112,4 +145,4 @@ runs:
           --github-repo '${{ github.repository }}' \
           ${{ inputs.include-path-args }} \
           "${extra[@]}" \
-          --latest --strip all > /tmp/release-notes.md
+          ${{ steps.range.outputs.mode }} --strip all > /tmp/release-notes.md

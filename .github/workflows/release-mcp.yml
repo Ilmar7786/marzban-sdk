@@ -41,10 +41,17 @@ jobs:
       # Pre-release
       # ---------------------------------------------------------------
 
+      # workflow_run always fires against the default branch's latest workflow
+      # file, but its checkout defaults to that same latest commit — not the
+      # commit CI actually ran against. main can move between CI finishing and
+      # this job starting, so pin explicitly to the commit CI validated. Falls
+      # back to github.ref for workflow_dispatch, which has no workflow_run
+      # event to read a head_sha from.
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -215,6 +222,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.prepare.outputs.tag }}
+          target_commitish: ${{ github.event.workflow_run.head_sha || github.sha }}
           name: ${{ steps.prepare.outputs.tag }}
           body_path: ${{ steps.prepare.outputs.notes-path }}
           draft: ${{ inputs.dry_run || false }}

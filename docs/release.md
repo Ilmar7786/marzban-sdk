@@ -45,6 +45,16 @@ bump "version" in packages/<pkg>/package.json, merge to main
 
 mcp's Docker build runs **before** the workspace-range rewrite, not after — see the next section for why the order matters.
 
+`release-prepare` runs git-cliff with `--unreleased`, not `--latest` — the
+tag for the version being released doesn't exist yet at this point (`Create
+GitHub Release` creates it several steps later), so `--latest` would resolve
+to the _previous_ release's commits instead. See
+[ADR-0014](./adr/0014-git-cliff-unreleased-not-latest.md) for the failure
+this caused across nine releases and why `--unreleased` is correct here.
+`--latest` is still used, but only as a fallback for resuming a
+`force_publish` release whose tag a prior, partially-failed attempt already
+created.
+
 **Nobody creates a release tag by hand** — the GitHub Release step creates it
 from `tag_prefix + version`. Tag prefixes: `sdk-v*`, `mcp-v*`.
 
@@ -98,6 +108,12 @@ or Docker Hub, no tag, no changelog commit.
 ```sh
 pnpm changelog:sdk   # or changelog:cli / changelog:mcp
 ```
+
+Uses `--unreleased`, same as CI (see ADR-0014) — this only shows something
+useful before the package's own tag exists locally. If you've already run a
+real release for the current `package.json` version (so its tag exists), the
+range is empty and this prints nothing; that's expected, not a bug in the
+preview.
 
 ### Changelog grouping
 

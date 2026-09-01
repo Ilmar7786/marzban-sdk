@@ -54,3 +54,4 @@ What this enables, what it costs.
 | [0011](./0011-per-package-release-workflows-and-mcp-docker-build.md) | Per-package release workflows; mcp's Docker image built from source |
 | [0012](./0012-gate-dev-with-ci.md)                                   | Gate `dev`, not just `main`, with CI and branch protection          |
 | [0013](./0013-confirm-auto-trusts-a-call-not-a-tool.md)              | `confirm: 'auto'` trusts a call, not a tool                         |
+| [0014](./0014-git-cliff-unreleased-not-latest.md)                    | git-cliff uses `--unreleased`, tags pin to the commit CI ran on     |

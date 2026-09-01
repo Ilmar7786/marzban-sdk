@@ -1,6 +1,6 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { ThemeSwitch } from 'fumadocs-ui/layouts/shared/slots/theme-switch'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, Bot } from 'lucide-react'
 
 import { HeaderGithub } from '@/components/landing/header-github'
 import { BrandMark } from '@/components/ui/brand-mark'
@@ -50,6 +50,12 @@ export function baseOptions({ navExtras = true }: { navExtras?: boolean } = {}):
               text: 'Docs',
               url: docsRoute,
               icon: <BookOpen />,
+            },
+            {
+              type: 'main',
+              text: 'MCP Server',
+              url: `${docsRoute}/mcp-server/overview`,
+              icon: <Bot />,
             },
           ] satisfies BaseLayoutProps['links'])
         : []),

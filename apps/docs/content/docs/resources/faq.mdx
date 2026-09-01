@@ -1,13 +1,15 @@
 ---
 title: FAQ
-description: Answers to common MarzbanSDK questions — Marzban version support, browser and runtime compatibility, authentication, token refresh, and webhooks.
+description: Answers to common MarzbanSDK questions — Marzban version support, runtime compatibility, authentication, retries, error handling, and webhooks.
 ---
+
+Answers to questions that come up repeatedly across issues and discussions. If yours isn't here, check the rest of the docs or [open a discussion](https://github.com/Ilmar7786/marzban-sdk/discussions).
 
 ## General
 
 ### What version of Marzban does this SDK support?
 
-MarzbanSDK v3.x is generated from the Marzban API as of **v0.8.4** — that's the version pinned in the bundled OpenAPI specification (`packages/sdk/openapi/openapi.json`, `info.version`; browse it on the [OpenAPI Spec](/docs/openapi/spec) page). Newer Marzban releases that are additive (new optional fields, new endpoints) generally keep working; a release that changes existing request/response shapes may not, until the spec is re-vendored and the client regenerated. Check the [Changelog](/docs/resources/changelog) for what changed between SDK versions.
+MarzbanSDK v3.x is generated from the Marzban API as of **v0.8.4** — that's the version pinned in the bundled OpenAPI specification (`packages/sdk/openapi/openapi.json`, `info.version`; browse it on the [OpenAPI Spec](/docs/openapi/spec) page). A handful of schemas are hand-patched on top of what upstream publishes — see [Spec Patches](/docs/openapi/patches). Newer Marzban releases that are additive (new optional fields, new endpoints) generally keep working; a release that changes existing request/response shapes may not, until the spec is re-vendored and the client regenerated. Check the [Changelog](/docs/resources/changelog) for what changed between SDK versions.
 
 ### Does it work in the browser?
 
@@ -15,11 +17,24 @@ Yes, for most features. The SDK is designed to be cross-runtime:
 
 - **API calls** — work in any environment.
 - **WebSocket log streaming** — works in browsers using the native `WebSocket` global.
-- **Webhook signature verification** — **server-side only**. Calling `handleWebhook` or `parseWebhook` with a secret in a browser throws `WebhookEnvironmentError` to prevent secret exposure.
+- **Webhook signature verification** — **server-side only**. Calling `handleWebhook` or `parseWebhook` with `webhook.secret` configured, or calling `verifyWebhookSignature` directly, in a browser throws `WebhookEnvironmentError` to prevent secret exposure. Without a secret configured, `handleWebhook`/`parseWebhook` work fine in a browser — there's simply nothing to verify.
 
-### Can I use the SDK without TypeScript?
+The browser check looks for both `window` and `document`, so Web Workers, Deno, Bun, and edge runtimes are treated as server-side and aren't affected.
 
-Yes. The package ships ESM and CJS bundles that work in plain JavaScript. You'll lose autocomplete and type checking, but the runtime behaviour is identical.
+### What Node.js version do I need?
+
+The published packages don't declare an `engines` field, but two features have real runtime floors:
+
+| Feature | Requirement |
+|---|---|
+| Webhook signature verification (`crypto.subtle`) | Node 19+ |
+| Native `WebSocket` log streaming | Node 21+ (older versions fall back to the bundled `ws` package) |
+
+Bun, Deno, and browsers are supported throughout. `Node >= 24` is only required to *develop* the SDK itself — see [Contributing](/docs/resources/contributing).
+
+### SDK or `marzban-mcp` — which do I want?
+
+Use `marzban-sdk` directly if you're writing your own TypeScript/JavaScript application. Use [`marzban-mcp`](/docs/mcp-server/overview) if you want an AI assistant (Claude, or anything else that speaks MCP) to manage your Marzban panel — it's an MCP server built on top of this SDK.
 
 ### My self-hosted panel uses a self-signed certificate — how do I connect?
 
@@ -37,9 +52,9 @@ const sdk = await createMarzbanSDK({
 })
 ```
 
-See [Self-signed certificates & custom CA](/docs/configuration/config-options#self-signed-certificates--custom-ca). Using `marzban-mcp` instead? Set `MARZBAN_TLS_CA_FILE` — see [MCP Configuration](/docs/mcp-server/configuration#tls--self-signed-certificates).
+There's also an `httpAgent` counterpart for plain HTTP. Both are typed structurally (anything with a `destroy()` method), so proxy agents like `https-proxy-agent` or `socks-proxy-agent` work too.
 
----
+See [Self-signed certificates & custom CA](/docs/configuration/config-options#self-signed-certificates--custom-ca). Using `marzban-mcp` instead? Set `MARZBAN_TLS_CA_FILE` — see [MCP Configuration](/docs/mcp-server/configuration#tls--self-signed-certificates).
 
 ## Authentication
 
@@ -49,13 +64,26 @@ No — `createMarzbanSDK` calls it automatically by default. Set `authenticateOn
 
 ### What happens when the JWT expires?
 
-The SDK catches `401 Unauthorized` responses, re-authenticates with your stored `username` and `password`, and retries the original request transparently. You don't need to handle this in your code.
+The SDK catches `401 Unauthorized` responses, re-authenticates with your stored `username` and `password`, and retries the original request transparently — once. If the retried request also comes back `401`, that error propagates to your code instead of retrying indefinitely.
 
 ### Can I use a pre-existing token?
 
-Yes. Pass it via the `token` config field. The SDK will use it until it expires, then fall back to credentials for renewal.
+Yes, via the `token` config field — but two things trip people up:
 
----
+- `username` and `password` are still required even when you pass `token`. There's no token-only mode.
+- With the default `authenticateOnInit: true`, `createMarzbanSDK` logs in immediately and **overwrites** the token you passed. Pair `token` with `authenticateOnInit: false` if you want it actually used:
+
+```ts
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://panel.example.com',
+  username: 'admin',
+  password: 'secret',
+  token: existingToken,
+  authenticateOnInit: false,
+})
+```
+
+The SDK will use `token` until it expires, then fall back to `username`/`password` for renewal.
 
 ## Errors
 
@@ -75,13 +103,19 @@ try {
 }
 ```
 
-See [Error Handling](/docs/advanced/error-handling) for the full list.
+There are nine guards in total, one per error class. See [Error Handling](/docs/advanced/error-handling) for the full list.
 
-### What does AUTH_TOKEN_FAILED mean?
+### What does `AUTH_TOKEN_FAILED` mean?
 
 The server returned `200 OK` from the login endpoint, but the response body contained no `access_token`. This usually means the Marzban API returned an unexpected response format. Check your Marzban version compatibility.
 
----
+### Will my password end up in the logs?
+
+No. `SdkError` redacts known secret keys — `authorization`, `password`, `token`, `secret`, `apikey`, `cookie`, and similar — replacing their values with `[REDACTED]` in `.details`, `.toJSON()`, and anything the built-in logger prints. WebSocket URLs have their `token=` query parameter stripped before logging, too.
+
+### Why wasn't my failed `createUser` call retried?
+
+Only `GET`, `HEAD`, and `OPTIONS` requests are retried automatically, and only on network errors or `429`/`5xx` responses. `POST`, `PUT`, `PATCH`, and `DELETE` are never retried — even on a network error — because re-sending a request whose outcome is unknown could duplicate a write. See [HTTP & Retry](/docs/advanced/http-retry).
 
 ## Webhooks
 
@@ -91,42 +125,38 @@ You don't have to, but you should in production. Without signature verification,
 
 ### Why does signature verification throw WebhookEnvironmentError?
 
-Webhook signature verification uses `crypto.subtle` (Web Crypto API). While this API is available in browsers, running signature verification in a browser would require exposing your webhook secret to the client. The SDK detects the browser environment and throws `WebhookEnvironmentError` to prevent this mistake.
+Webhook signature verification uses `crypto.subtle` (Web Crypto API). While this API is available in browsers, running signature verification in a browser would require exposing your webhook secret to the client. The SDK detects the browser environment and throws `WebhookEnvironmentError` to prevent this mistake — this only applies when a secret is configured; without one there's nothing to verify.
+
+### Why do I get "Raw body required for signature verification"?
+
+When `webhook.secret` is configured, `parseWebhook` needs the **raw, unparsed** request body (`string`, `Uint8Array`, or `ArrayBuffer`) plus the signature header to verify it — an already-JSON-parsed object can't be verified, so it throws `WebhookSignatureError`. Read the raw body from your framework before parsing it yourself; see the framework-specific webhook guides for examples.
 
 ### Can Marzban send multiple events in one request?
 
-Yes. The `handleWebhook` method processes arrays of events. Subscribe to the `'batch'` event to receive the full array in one call.
-
----
+Yes. `handleWebhook` processes arrays of events. Subscribe to the `'batch'` event to receive the full array in one call, or `'*'` to receive every event regardless of action. `handleWebhook` awaits your listeners before resolving, so `await`ing it guarantees processing finished before you respond to the request.
 
 ## Utilities
 
 ### Is parseSize case-sensitive?
 
-No. It accepts `GB`, `gb`, `Gb`, `GiB`, etc. The value is normalised to uppercase internally.
+No. It accepts `GB`, `gb`, `Gb`, `GiB`, etc. The value is normalised to uppercase internally. By default it uses binary units (1 GB = 1024³ bytes); pass `{ decimal: true }` for decimal (1000-based) units. Unparseable input returns `0` rather than throwing.
 
 ### What does humanRemaining return for expired dates?
 
-It returns the string `"expired"` when `totalMs < 0` (i.e. the date is in the past).
+It returns the string `"expired"` when `totalMs < 0` (i.e. the date is in the past), and `"< 1s"` when the remaining time rounds down to nothing.
 
----
+### Is there a cache, or client-side rate limiting?
+
+No. MarzbanSDK doesn't cache responses or throttle outgoing requests on its own — every call hits the panel directly. If you need either, add it in your application layer.
 
 ## Development
 
-### How do I run the tests?
+See [Contributing](/docs/resources/contributing) for the full setup. In short, this is a pnpm/Turborepo monorepo — the SDK lives in `packages/sdk`:
 
 ```bash
-npm test
+pnpm --filter marzban-sdk test        # run the test suite
+pnpm --filter marzban-sdk build       # build the package
+pnpm --filter marzban-sdk codegen     # regenerate the API client
 ```
 
-The test suite uses **Vitest** and covers config validation, auth flow, error classes, webhook parsing, and utility functions.
-
-### How do I regenerate the API client?
-
-The generated code in `src/gen/` is produced by Kubb from the OpenAPI spec in `openapi/`:
-
-```bash
-npm run codegen
-```
-
-After regenerating, rebuild with `npm run build`.
+The generated code in `packages/sdk/src/gen/` is produced by Kubb from the OpenAPI spec at `packages/sdk/openapi/openapi.json`. After regenerating, rebuild with `pnpm --filter marzban-sdk build`.

@@ -1,6 +1,6 @@
 ---
 title: Contributing
-description: How to contribute to MarzbanSDK — reporting bugs, submitting PRs, and development setup.
+description: How to contribute to MarzbanSDK — reporting bugs, submitting PRs, and development setup in the pnpm/Turborepo monorepo.
 ---
 
 Thank you for your interest in contributing to MarzbanSDK! All contributions are welcome — bug fixes, features, documentation improvements, and test coverage.
@@ -12,49 +12,104 @@ Open an issue on [GitHub](https://github.com/Ilmar7786/marzban-sdk/issues) and i
 - A clear description of the problem.
 - Steps to reproduce (code snippet or minimal repo link preferred).
 - Expected vs. actual behaviour.
-- SDK version (`npm list marzban-sdk`).
+- The SDK version you're on and the package it's in (`marzban-sdk`, `marzban-mcp`, ...).
+
+## Repository layout
+
+MarzbanSDK is a monorepo managed with [pnpm workspaces](https://pnpm.io/workspaces) and [Turborepo](https://turbo.build/repo):
+
+| Path | Package | What it is |
+|---|---|---|
+| `packages/sdk` | `marzban-sdk` | The SDK itself. Published to npm. |
+| `packages/mcp` | `marzban-mcp` | MCP server built on top of the SDK. Published to npm, Docker Hub, and the MCP Registry. |
+| `packages/cli` | `marzban-cli` | Command-line interface. Still an unpublished work in progress. |
+| `apps/docs` | `marzban-sdk-docs` | This documentation site. |
 
 ## Development setup
+
+You'll need **Node ≥ 24** and **pnpm 11** (the exact version is pinned in the root `package.json`'s `packageManager` field — run any `pnpm` command and Corepack will fetch it automatically).
 
 ```bash
 git clone https://github.com/Ilmar7786/marzban-sdk.git
 cd marzban-sdk
-npm install
+pnpm install
+pnpm build && pnpm test
 ```
 
 ### Available scripts
 
+Run from the repo root, these fan out across the workspace via Turborepo:
+
 | Command | Description |
 |---------|-------------|
-| `npm run build` | Compile TypeScript → `dist/` (ESM + CJS) |
-| `npm test` | Run the full test suite once with Vitest |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Run tests with a coverage report |
-| `npm run lint` | Run ESLint |
-| `npm run codegen` | Regenerate the API client from `openapi/` using Kubb |
+| `pnpm build` | Build all packages |
+| `pnpm test` | Run the unit test suite for every package |
+| `pnpm lint` | Run ESLint across the workspace |
+| `pnpm lint:fix` | Run ESLint with `--fix` |
+| `pnpm types:check` | Type-check every package with `tsc --noEmit` |
+| `pnpm format` | Format the repo with Prettier |
+| `pnpm format:check` | Check formatting without writing |
+
+Package-specific scripts need `--filter`:
+
+| Command | Description |
+|---------|-------------|
+| `pnpm --filter marzban-sdk test:watch` | Watch mode while developing |
+| `pnpm --filter marzban-sdk test:coverage` | Run tests with a coverage report |
+| `pnpm --filter marzban-sdk test:integration` | Run integration tests against a real panel |
+| `pnpm --filter marzban-sdk codegen` | Regenerate the API client from the OpenAPI spec |
+| `pnpm --filter marzban-sdk dev` | Build in watch mode |
+
+<Callout type="info">
+  There's no root-level `codegen` script — it only exists on `packages/sdk`, so it always needs `--filter marzban-sdk` (or `pnpm turbo run codegen`).
+</Callout>
+
+### Local Marzban panel
+
+To try changes against a real Marzban panel, spin up a disposable one in Docker:
+
+```bash
+pnpm local:up     # start
+pnpm local:logs   # follow logs
+pnpm local:down   # stop
+pnpm local:reset  # stop and wipe data
+```
+
+See [`local/README.md`](https://github.com/Ilmar7786/marzban-sdk/blob/main/local/README.md) for details. This is also what the integration test suite runs against.
 
 ## Testing
 
-The SDK is covered by [Vitest](https://vitest.dev). Tests live next to the code they cover as `src/**/*.test.ts`.
+The SDK and MCP server are covered by [Vitest](https://vitest.dev). Unit tests live next to the code they cover, as `src/**/*.test.ts`.
 
 ```bash
-npm test              # run once
-npm run test:watch    # watch mode while developing
-npm run test:coverage # run with a coverage report
+pnpm --filter marzban-sdk test              # run once
+pnpm --filter marzban-sdk test:watch        # watch mode while developing
+pnpm --filter marzban-sdk test:coverage     # run with a coverage report
 ```
 
-Hand-written code is held at **100% coverage** — statements, branches, functions, and lines. Generated code (`src/gen/`, produced from the OpenAPI spec) and type-only files are excluded from coverage on purpose.
+Hand-written code is held at **100% coverage** — statements, branches, functions, and lines — in both `packages/sdk` and `packages/mcp`. Generated code (`src/gen/**`), type-only files (`**/types.ts`, `**/*.types.ts`), and barrel files (`**/index.ts`) are excluded from coverage on purpose.
 
-Every feature and bug fix must come with tests, and `npm run test:coverage` must stay green.
+Every feature and bug fix must come with tests, and `pnpm --filter marzban-sdk test:coverage` must stay green.
+
+Integration tests are separate — `test/integration/**/*.integration.test.ts`, run with their own config against a real panel:
+
+```bash
+pnpm local:up
+pnpm --filter marzban-sdk test:integration
+pnpm --filter marzban-mcp test:integration
+```
+
+They don't run as part of `pnpm test` and aren't held to the coverage threshold.
 
 ### Build & verify
 
 ```bash
-npm run build
-npm run test:coverage
+pnpm build
+pnpm test
+pnpm types:check
 ```
 
-Both must pass before submitting a PR.
+All three must pass before submitting a PR.
 
 ## Submitting a pull request
 
@@ -63,15 +118,19 @@ Both must pass before submitting a PR.
    git checkout -b feat/your-feature
    ```
 2. Make your changes.
-3. Add or update tests in `src/**/*.test.ts`.
-4. Run `npm run test:coverage` and `npm run build`.
+3. Add or update tests next to the code they cover (`src/**/*.test.ts`).
+4. Run `pnpm test` and `pnpm build`.
 5. Commit using [Conventional Commits](https://www.conventionalcommits.org/) (enforced by commitlint):
    ```
    feat: add pagination to getUsers
    fix: handle missing token in AuthManager
    docs: add NestJS integration example
    ```
-6. Push and open a PR against the `main` branch.
+6. Push and open a PR against the **`dev`** branch.
+
+<Callout type="warn">
+  PRs target `dev`, not `main`. `dev` is the integration branch — it merges into `main` periodically. Both branches require the `ci` check to pass.
+</Callout>
 
 ## Commit message format
 
@@ -83,28 +142,53 @@ Optional body.
 BREAKING CHANGE: description  ← for major version bumps
 ```
 
-**Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `build`.
+**Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `build`, `ci`.
+
+**Scopes:** `sdk`, `cli`, `mcp`, `docs`, `deps`, `ci`, `release`, `changelog`. A scope can be a comma-separated list — if a fix in `packages/sdk` also changes `marzban-mcp`'s behaviour, scope it `fix(sdk,mcp): ...` so it surfaces in mcp's changelog too.
+
+A Husky `pre-commit` hook runs `lint-staged` (ESLint + Prettier on staged files), and `commit-msg` runs commitlint against these rules.
 
 ## Code style
 
 - All code is in **TypeScript** with `strict` mode enabled.
-- ESLint + Prettier enforce style — run `npm run lint` before committing.
-- No unnecessary `any` — prefer proper generics or `unknown`.
+- ESLint + Prettier enforce style — run `pnpm lint` before committing.
+- No unnecessary `any` type — prefer proper generics or `unknown`.
 - No comments that explain *what* the code does — only *why* when it's non-obvious.
+- MDX content under `apps/docs/content/` is excluded from Prettier and formatted by hand — Prettier's MDX printer can mangle fenced code blocks inside JSX.
 
 ## Regenerating the API client
 
-The `src/gen/` directory is auto-generated from the OpenAPI spec. Do **not** edit it manually:
+`packages/sdk/src/gen/` is auto-generated from the OpenAPI spec by [kubb](https://kubb.dev). Do **not** edit it manually — a fresh generation wipes the directory clean:
 
 ```bash
-# Update the spec in openapi/ first, then:
-npm run codegen
+# Update packages/sdk/openapi/openapi.json first, then:
+pnpm --filter marzban-sdk codegen
 ```
 
 If you're fixing a bug in a generated file, fix the template or the spec instead.
 
-Some schemas in `openapi/openapi.json` are hand-patched on top of what upstream Marzban publishes — see [Spec Patches](/docs/openapi/patches) before touching them, and add a regression test alongside any new patch.
+Some schemas in `packages/sdk/openapi/openapi.json` are hand-patched on top of what upstream Marzban publishes — see [Spec Patches](/docs/openapi/patches) before touching them, and add a regression test alongside any new patch.
+
+## CI
+
+Every PR against `main` or `dev` runs on Node 24:
+
+```bash
+pnpm turbo run lint types:check test build
+pnpm format:check
+```
+
+Reproduce it locally with the same two commands. A separate `integration` workflow runs the integration suites against a Docker panel — it's informational and doesn't block merging.
+
+## Releases
+
+There's no manual tagging. A release is triggered by a `version` bump in a package's `package.json` landing on `main`: [git-cliff](https://git-cliff.org) generates the changelog, and a GitHub Release creates the tag (`sdk-v*`, `mcp-v*`), which publishes to npm. Preview the changelog for a pending bump locally:
+
+```bash
+pnpm changelog:sdk
+pnpm changelog:mcp
+```
 
 ## Questions
 
-Start a discussion in [GitHub Discussions](https://github.com/Ilmar7786/marzban-sdk/discussions) or open an issue.
+Start a discussion in [GitHub Discussions](https://github.com/Ilmar7786/marzban-sdk/discussions) or open an issue. For how the workspace, CI, and releases actually work under the hood, [`docs/`](https://github.com/Ilmar7786/marzban-sdk/blob/main/docs/README.md) in the repository is the canonical source.

@@ -4,7 +4,7 @@ description: The exact schema MarzbanSDK is generated from — patched where ups
 full: true
 ---
 
-MarzbanSDK doesn't fetch Marzban's OpenAPI spec at build time — it vendors a copy in the repository (`packages/sdk/openapi/openapi.json`) and hand-patches the parts upstream leaves under-specified. A future `npm run codegen` run can still overwrite those patches; [`gen-regression.test.ts`](https://github.com/Ilmar7786/marzban-sdk/blob/main/packages/sdk/src/gen-regression.test.ts) is what catches that, by pinning the generated behavior the patches produce.
+MarzbanSDK doesn't fetch Marzban's OpenAPI spec at build time — it vendors a copy in the repository (`packages/sdk/openapi/openapi.json`) and hand-patches the parts upstream leaves under-specified. A future `pnpm --filter marzban-sdk codegen` run can still overwrite those patches; [`gen-regression.test.ts`](https://github.com/Ilmar7786/marzban-sdk/blob/main/packages/sdk/src/gen-regression.test.ts) is what catches that, by pinning the generated behavior the patches produce.
 
 <OpenApiViewer />
 

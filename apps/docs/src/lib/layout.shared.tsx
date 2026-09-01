@@ -7,7 +7,7 @@ import { BrandMark } from '@/components/ui/brand-mark'
 import { PackagesPopover } from '@/components/ui/packages-popover'
 import { Tooltip } from '@/components/ui/tooltip'
 
-import { appName } from './shared'
+import { appName, docsRoute } from './shared'
 
 /** Ghost icon button for the landing header nav, matching Fumadocs' own controls. */
 const navIconButton =
@@ -48,7 +48,7 @@ export function baseOptions({ navExtras = true }: { navExtras?: boolean } = {}):
             {
               type: 'main',
               text: 'Docs',
-              url: '/docs',
+              url: docsRoute,
               icon: <BookOpen />,
             },
           ] satisfies BaseLayoutProps['links'])

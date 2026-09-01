@@ -4,6 +4,9 @@
 # generated content
 .source
 
+# synced from packages/sdk/openapi/openapi.json by scripts/sync-openapi.mjs
+/public/openapi.json
+
 # test & build
 /coverage
 /.next/
@@ -24,3 +27,7 @@ yarn-error.log*
 .env*.local
 .vercel
 next-env.d.ts
+
+# written by `next dev` itself (generate-agent-files.js) — not our content
+/AGENTS.md
+/CLAUDE.md

@@ -1,0 +1,25 @@
+---
+title: Spec Patches
+description: Patches applied on top of upstream Marzban's OpenAPI spec, and why — so you know when a type differs from what the panel actually returns.
+---
+
+MarzbanSDK vendors `openapi/openapi.json` in the repository instead of fetching Marzban's spec at build time (see [ADR-0003](https://github.com/Ilmar7786/marzban-sdk/blob/main/docs/adr/0003-vendored-openapi-spec.md)), and hand-patches schemas that upstream leaves under-specified. Every patch currently applied is listed here.
+
+## Under-specified schemas no longer drop fields on parse
+
+Several upstream schemas are declared as `type: object` with no `properties` — proxy settings, parts of the core config. [kubb](https://kubb.dev) generates these as `z.object({})`, and Zod's default strip mode silently drops every key when parsing a real payload:
+
+- `getCoreConfig()` / `modifyCoreConfig()` returned `{}` instead of the actual Xray core config.
+- Every user response's `proxies` field returned `{}` instead of the per-protocol settings.
+
+**Fix (2026-08-12):** patched the schema to `additionalProperties: true`, so kubb emits `.catchall(z.any())` instead of a key-dropping strict object.
+
+| Schema | Where it shows up |
+|---|---|
+| `ProxySettings` | `user.proxies[protocol]` on every endpoint that returns a user — see the **Patched** column on the [OpenAPI Spec](/docs/openapi/spec) page |
+| `CoreConfig` (get) | `GET /api/core/config` |
+| `CoreConfig` (put) | `PUT /api/core/config` |
+
+<Callout type="info">
+  Pinned by [`gen-regression.test.ts`](https://github.com/Ilmar7786/marzban-sdk/blob/main/packages/sdk/src/gen-regression.test.ts) — a future `pnpm codegen` run that reverts this fails the test suite instead of shipping silently-truncated data.
+</Callout>

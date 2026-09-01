@@ -65,9 +65,25 @@ here imports it. That entry exists solely so Turborepo's `^build` dependency
 builds the SDK before the docs site — see
 [`docs/architecture.md`](../../docs/architecture.md).
 
-**Content is maintained by hand, not generated from code.** Nothing here
-regenerates docs from the SDK's OpenAPI spec or MCP's tool definitions. Two
-places are the most likely to drift from the code they describe:
+**MDX content is maintained by hand, not generated from code** — with one
+exception. The OpenAPI Spec page (`content/docs/openapi/spec.mdx`) renders
+`src/components/docs/openapi-viewer.tsx`, which reads
+`packages/sdk/openapi/openapi.json` directly (the vendored, hand-patched spec
+— see [ADR-0003](../../docs/adr/0003-vendored-openapi-spec.md)) at build time,
+so the endpoint list always matches the spec without a separate regeneration
+step. `scripts/sync-openapi.mjs` only mirrors that same file into `public/`
+for the page's "Download openapi.json" link — the `prebuild` hook runs it
+automatically, so a forgotten manual `pnpm sync:openapi` can't ship a stale
+download.
+
+`public/openapi.json` is gitignored, so it doesn't exist yet on a fresh
+clone. `dev`/`types:check` don't need it (the viewer reads
+`packages/sdk/openapi/openapi.json` directly), but the download link 404s in
+`next dev` until you run `pnpm sync:openapi` once — `pnpm build` also
+produces it, via `prebuild`.
+
+Everything else is still hand-maintained. Two places are the most likely to
+drift from the code they describe:
 
 - `content/docs/mcp-server/tools.mdx` — the MCP tool list.
 - `src/components/docs/type-glossary.ts` — the SDK type glossary powering

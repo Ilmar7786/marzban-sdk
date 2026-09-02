@@ -9,18 +9,6 @@
 - Tolerate the removeUser 500 that follows a successful delete by @Ilmar7786
 - Confirm=auto now trusts one call, not the whole tool by @Ilmar7786
 
-### <!-- 10 -->💼 Other
-
-- Merge pull request #102 from Ilmar7786/dev by @Ilmar7786 in [#102](https://github.com/Ilmar7786/marzban-sdk/pull/102)
-- Merge pull request #96 from Ilmar7786/dev by @Ilmar7786 in [#96](https://github.com/Ilmar7786/marzban-sdk/pull/96)
-- Merge pull request #104 from Ilmar7786/fix/remove-user-500-tolerance by @Ilmar7786 in [#104](https://github.com/Ilmar7786/marzban-sdk/pull/104)
-- Merge pull request #101 from Ilmar7786/fix/mcp-confirm-auto-per-call by @Ilmar7786 in [#101](https://github.com/Ilmar7786/marzban-sdk/pull/101)
-- Merge branch 'dev' into fix/ws-test-flake-and-ci-dupes by @Ilmar7786
-- Merge branch 'main' into dev by @Ilmar7786
-- Merge pull request #73 from Ilmar7786/dev by @Ilmar7786 in [#73](https://github.com/Ilmar7786/marzban-sdk/pull/73)
-- Merge pull request #72 from Ilmar7786/dev by @Ilmar7786 in [#72](https://github.com/Ilmar7786/marzban-sdk/pull/72)
-- Merge pull request #93 from Ilmar7786/task/mcp-http-status-accessor by @Ilmar7786 in [#93](https://github.com/Ilmar7786/marzban-sdk/pull/93)
-
 ### <!-- 2 -->🚜 Refactor
 
 - Read the HTTP status from HttpError instead of digging it out by @Ilmar7786
@@ -47,11 +35,6 @@
 ### <!-- 0 -->🚀 Features
 
 - Trust a custom CA via MARZBAN_TLS_CA_FILE by @Ilmar7786
-
-### <!-- 10 -->💼 Other
-
-- Merge pull request #71 from Ilmar7786/dev by @Ilmar7786 in [#71](https://github.com/Ilmar7786/marzban-sdk/pull/71)
-- Merge pull request #70 from Ilmar7786/fix/changelog-push-autostash by @Ilmar7786 in [#70](https://github.com/Ilmar7786/marzban-sdk/pull/70)
 
 ### <!-- 6 -->🧪 Testing
 
@@ -83,10 +66,7 @@
 
 ### <!-- 10 -->💼 Other
 
-- Merge pull request #67 from Ilmar7786/chore/mcp-release-verify by @Ilmar7786 in [#67](https://github.com/Ilmar7786/marzban-sdk/pull/67)
-- Merge pull request #66 from Ilmar7786/dev by @Ilmar7786 in [#66](https://github.com/Ilmar7786/marzban-sdk/pull/66)
 - Potential fix for pull request finding 'CodeQL / Disabling certificate validation' by @Ilmar7786
-- Merge pull request #64 from Ilmar7786/feat/monorepo-migration by @Ilmar7786 in [#64](https://github.com/Ilmar7786/marzban-sdk/pull/64)
 
 ### <!-- 2 -->🚜 Refactor
 

@@ -25,6 +25,7 @@ on:
 permissions:
   id-token: write # Required for OIDC / npm provenance
   contents: write
+  actions: write # Required to dispatch the docs rebuild (see commit-changelog)
 
 jobs:
   release:
@@ -131,6 +132,7 @@ jobs:
         uses: ./.github/actions/commit-changelog
         with:
           paths: packages/sdk/CHANGELOG.md
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           message: >-
             chore(changelog): marzban-sdk
             ${{ steps.prepare.outputs.version }} [skip ci]

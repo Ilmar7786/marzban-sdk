@@ -5,6 +5,11 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "out/**", "!.next/cache/**"]
     },
+    "marzban-sdk-docs#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "out/**", "!.next/cache/**"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/*/CHANGELOG.md"]
+    },
     "lint": {},
     "test": {
       "dependsOn": ["^build"]

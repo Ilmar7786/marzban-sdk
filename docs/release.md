@@ -24,7 +24,8 @@ actions so the two files don't duplicate the fiddly parts:
 - [`.github/actions/commit-changelog`](../.github/actions/commit-changelog) —
   commits the updated changelog back to `main` as `github-actions[bot]`, with
   a retry loop for the case where both packages release around the same time
-  and race on the push.
+  and race on the push, then dispatches the docs rebuild (see
+  "Why the release dispatches the docs build" below).
 
 Each workflow otherwise runs a straight sequence of steps in a single job —
 no job-to-job output plumbing — because mcp's release body depends on the
@@ -41,6 +42,7 @@ bump "version" in packages/<pkg>/package.json, merge to main
       → artifact links appended to the release notes
       → GitHub Release created, tag = "<prefix>v<version>"
       → commit-changelog pushes the CHANGELOG.md update back to main
+      → commit-changelog dispatches Deploy Docs so the Changelog page catches up
 ```
 
 mcp's Docker build runs **before** the workspace-range rewrite, not after — see the next section for why the order matters.
@@ -118,10 +120,40 @@ preview.
 ### Changelog grouping
 
 `cliff.toml` groups commits by Conventional Commit type into sections
-(Features, Bug Fixes, Performance, Refactor, …); `docs`-scoped and
-`chore(release|deps|changelog)` commits are excluded so the changelog stays
-user-facing. This is why the commit format in
+(Features, Bug Fixes, Performance, Refactor, …); `docs`-scoped,
+`chore(release|deps|changelog)` and git's auto-generated `Merge …` commits are
+excluded so the changelog stays user-facing. This is why the commit format in
 [conventions.md](./conventions.md) matters beyond `git log` readability.
+
+`cliff.toml` is the _only_ place that decides what a changelog leaves out.
+The same generated file is read three ways — the npm tarball, the GitHub
+Release notes, and the docs site's Changelog page, which parses it verbatim —
+so a filter applied anywhere else would make one of the three quietly
+disagree with the others.
+
+### Why entries end with a commit hash, not a PR number
+
+Each entry is rendered as:
+
+```
+- Tolerate the removeUser 500 that follows a successful delete by @Ilmar7786 ([c7c0c261](…/commit/c7c0c261…))
+```
+
+Dropping merge commits (above) is safe for content — git-cliff walks the full
+history, so every commit inside a merged branch is already listed in its own
+section; a merge line was always a duplicate. What it _did_ cost was the PR
+links: git-cliff matches a commit to a pull request by `merge_commit_sha`, and
+with this repo's merge-commit flow that sha belongs to the merge commit, never
+to the commits inside the branch. Before the hash was added, every `#N` link
+in the entire changelog history came from a merge line, and filtering them left
+zero.
+
+The commit hash doesn't have that dependency — every entry has one, whatever
+the merge strategy. `in [#N]` is still in the template and still renders for a
+squash-merged PR, where the squashed commit _is_ the `merge_commit_sha`.
+
+Releases published before this change (up to `sdk-v3.3.0`) have no hashes;
+the docs parser treats the suffix as optional rather than backfilling them.
 
 One consequence of scoping git-cliff to `packages/mcp/**`: a fix that lands
 in `packages/sdk` and changes mcp's runtime behavior would never show up in
@@ -218,7 +250,8 @@ pipelines above can run for real:
 ## Docs site deploy
 
 ```
-push to main touching apps/docs/**
+push to main touching apps/docs/**, packages/sdk/openapi/**, packages/*/CHANGELOG.md
+  (or workflow_dispatch, or the 6-hourly schedule)
   → pnpm turbo run build --filter=marzban-sdk-docs   (static export → apps/docs/out)
   → touch out/.nojekyll
   → upload-pages-artifact → deploy-pages
@@ -228,3 +261,41 @@ Deploys to `https://ilmar7786.github.io/marzban-sdk/`. `basePath` is set in
 both `next.config.mjs` and `src/lib/shared.ts` — see
 [`apps/docs/ARCHITECTURE.md`](../apps/docs/ARCHITECTURE.md) for why
 that duplication is intentional.
+
+### Why the release dispatches the docs build
+
+The site's Changelog page is rendered at build time from
+`packages/*/CHANGELOG.md` (`apps/docs/src/lib/changelog.ts`), and the site is
+a static export — the page only changes when the site is rebuilt. Nothing
+about a release does that on its own:
+
+- The changelog commit is pushed with `GITHUB_TOKEN`, and **pushes made with
+  `GITHUB_TOKEN` create no workflow runs at all**. The `push` trigger on
+  `docs.yml` never sees that commit, whatever its path filters say. (The
+  `[skip ci]` in the commit message is a second, independent reason — but
+  removing it would not help.)
+- `workflow_dispatch` and `repository_dispatch` are the documented exceptions
+  to that rule, so `commit-changelog` ends with `gh workflow run docs.yml`.
+
+That keeps the trigger tied to the thing that actually changed. The obvious
+alternative — a `workflow_run` trigger on `docs.yml` listening for the release
+workflows — fires on _every_ successful release run, and both release
+workflows run (and succeed, doing nothing) after every green CI on `main`, so
+each merge would queue two pointless Pages deploys against the `pages`
+concurrency group. It also spends a level of the three-deep `workflow_run`
+chaining limit, which `CI → Release <pkg>` already uses two of.
+
+Without any of this the page would still catch up on the 6-hourly schedule —
+that cron exists for the header's baked-in GitHub star count — just up to six
+hours late.
+
+### Turbo caching and the changelog
+
+`apps/docs` reads files from outside its own package directory, which Turbo's
+default input hashing does not see. `packages/sdk` is covered incidentally
+(it's a workspace dependency of the docs app, so `^build` folds its hash in),
+but `mcp` and `cli` are not. `turbo.json` therefore gives
+`marzban-sdk-docs#build` an explicit
+`"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/*/CHANGELOG.md"]` — without
+it, a local `turbo run build` after an mcp release would happily serve a
+cached site missing that release.

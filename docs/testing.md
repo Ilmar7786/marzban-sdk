@@ -9,9 +9,19 @@
 [Vitest 4](https://vitest.dev), `environment: 'node'`, `globals: true`. Tests
 live next to the code they cover as `*.test.ts` — there's no separate
 `tests/` directory. `packages/sdk/vitest.config.ts` and
-`packages/mcp/vitest.config.ts` are the two active configs;
-`packages/cli` has no `test` script yet (see
+`packages/mcp/vitest.config.ts` are the two configs that carry the real
+suite; `packages/cli` has no `test` script yet (see
 [`packages/cli/ARCHITECTURE.md`](../packages/cli/ARCHITECTURE.md)).
+
+`apps/docs` has a third, deliberately narrow config
+(`apps/docs/vitest.config.mts` — `.mts` because the app has no
+`"type": "module"`). It covers exactly one module: `src/lib/changelog.ts`,
+the parser that renders the site's Changelog page from the git-cliff
+`CHANGELOG.md` files. That parser depends on the shape of `cliff.toml`'s
+output, and nothing else in the build would notice if the two drifted — the
+page would just render empty. Pages and components are left to
+`types:check` and the production build, so there's no `test:coverage` script
+for the docs app and the 100% threshold below doesn't apply to it.
 
 ```sh
 pnpm test                                    # every package, once

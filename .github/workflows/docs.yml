@@ -6,7 +6,15 @@ on:
     paths:
       - 'apps/docs/**'
       - 'packages/sdk/openapi/**'
+      # The Changelog page is rendered from these at build time (see
+      # apps/docs/src/lib/changelog.ts). Covers a changelog edited by hand in
+      # a normal PR; the release workflows' own bot commit can't be caught
+      # here at all (GITHUB_TOKEN pushes create no workflow runs) and asks
+      # for this workflow explicitly instead — see .github/actions/commit-changelog.
+      - 'packages/*/CHANGELOG.md'
       - '.github/workflows/docs.yml'
+  # Also dispatched by .github/actions/commit-changelog after a release lands
+  # its regenerated CHANGELOG.md on main.
   workflow_dispatch:
   # The site is a static export — the GitHub star count in the header is
   # baked in at build time (see `fetchStars()` in header-github.tsx), so it

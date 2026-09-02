@@ -44,6 +44,19 @@ function PackageReleases({ releases }: { releases: ReturnType<typeof getChangelo
                             </a>
                           </>
                         )}
+                        {entry.sha && entry.commitUrl && (
+                          <>
+                            {' '}
+                            <a
+                              href={entry.commitUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-mono text-[0.8em] text-fd-muted-foreground no-underline hover:text-fd-primary hover:underline"
+                            >
+                              {entry.sha}
+                            </a>
+                          </>
+                        )}
                       </span>
                     </li>
                   ))}
@@ -71,7 +84,8 @@ function PackageReleases({ releases }: { releases: ReturnType<typeof getChangelo
  * Release history read straight from packages/*\/CHANGELOG.md — the same
  * git-cliff output that ships in each npm package and becomes each GitHub
  * Release's notes, so this page can't drift from them the way hand-written
- * prose could.
+ * prose could. What gets left out of a changelog is decided once, in
+ * cliff.toml, not here — see the note at the top of lib/changelog.ts.
  */
 export function ChangelogViewer() {
   const packages = getChangelog()

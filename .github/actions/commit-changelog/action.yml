@@ -1,5 +1,7 @@
 name: Commit changelog
-description: Commits and pushes changed changelog file(s) back to main, retrying on push races.
+description: >-
+  Commits and pushes changed changelog file(s) back to main, retrying on push
+  races, then asks the docs site to rebuild off the new changelog.
 
 inputs:
   paths:
@@ -7,6 +9,11 @@ inputs:
     required: true
   message:
     description: Commit message
+    required: true
+  github-token:
+    description: >-
+      Token used to dispatch the docs rebuild. Needs `actions: write` on the
+      calling job — GITHUB_TOKEN is enough.
     required: true
 
 runs:
@@ -38,3 +45,30 @@ runs:
         done
         echo "::error::Failed to push ${{ inputs.paths }} after 5 attempts"
         exit 1
+
+    # The docs site renders its Changelog page straight from these files
+    # (apps/docs/src/lib/changelog.ts), and it's a static export — the page
+    # only changes when the site is rebuilt. Nothing else will trigger that:
+    # the push above is made with GITHUB_TOKEN, and pushes made with
+    # GITHUB_TOKEN don't create workflow runs at all, so Deploy Docs' `push`
+    # trigger never sees this commit no matter what its path filters say (the
+    # `[skip ci]` in the message is belt-and-braces on top of that).
+    # workflow_dispatch is the documented exception to that rule, so ask for
+    # the rebuild explicitly here — right where the content actually changed,
+    # and only when it changed. Without this the page would lag a release by
+    # up to 6 hours, until Deploy Docs' scheduled rebuild.
+    #
+    # Not fatal: by this point npm publish and the GitHub Release have already
+    # succeeded, and Deploy Docs' 6-hourly schedule picks the changelog up
+    # anyway. Failing the release job over a stale docs page would misreport a
+    # release that actually shipped. (`continue-on-error` isn't available on
+    # composite-action steps, hence the `||`.)
+    - name: Rebuild the docs site
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        GH_REPO: ${{ github.repository }}
+      run: >-
+        gh workflow run docs.yml --ref main ||
+        echo "::warning::Could not dispatch Deploy Docs; the Changelog page will
+        catch up on the next scheduled rebuild."

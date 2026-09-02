@@ -7,6 +7,8 @@
     "prebuild": "node scripts/sync-openapi.mjs",
     "build": "next build",
     "start": "serve out",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
     "sync:openapi": "node scripts/sync-openapi.mjs",
@@ -37,6 +39,7 @@
     "postcss": "^8.5.26",
     "serve": "^14.2.6",
     "tailwindcss": "^4.3.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }

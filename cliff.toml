@@ -27,7 +27,8 @@ body = """
             {% if commit.remote.username %} by @{{ commit.remote.username }}{%- endif -%}
             {% if commit.remote.pr_number %} in \
             [#{{ commit.remote.pr_number }}]({{ self::remote_url() }}/pull/{{ commit.remote.pr_number }}) \
-            {%- endif -%}
+            {%- endif %} \
+            ([{{ commit.id | truncate(length=8, end="") }}]({{ self::remote_url() }}/commit/{{ commit.id }}))\
     {% endfor %}
 {% endfor %}
 
@@ -93,6 +94,23 @@ commit_parsers = [
     # (e.g. `fix(docs): ...`) — must come before the type-based matchers below,
     # otherwise `^fix` etc. would claim them first.
     { message = "^\\w+\\(docs\\)", skip = true },
+    # Git's own auto-generated merge messages describe branch plumbing, not a
+    # change to the package — they were the bulk of the "Other" group, and they
+    # duplicate the branch's real commits, which git-cliff already lists
+    # individually (it walks the full history, not just first-parent).
+    #
+    # Dropping them used to cost every PR link in the changelog: git-cliff
+    # matches a commit to a PR by `merge_commit_sha`, so with merge-commit PRs
+    # only the merge itself ever gets a `#N`. That's why the body template now
+    # appends each commit's own hash — a per-entry link that doesn't depend on
+    # how the branch was merged. (A squash-merged PR still gets its `#N`: its
+    # single commit *is* the merge_commit_sha.)
+    #
+    # Filtered here, at the source, so the npm changelog, the GitHub Release
+    # notes and the docs site's Changelog page all agree —
+    # apps/docs/src/lib/changelog.ts parses these files verbatim and
+    # deliberately has no noise filter of its own.
+    { message = "^Merge (pull request|branch|remote-tracking branch) ", skip = true },
     { message = "^feat", group = "<!-- 0 -->🚀 Features" },
     { message = "^fix", group = "<!-- 1 -->🐛 Bug Fixes" },
     { message = "^docs", skip = true },

@@ -6,11 +6,6 @@
 
 - Tolerate the removeUser 500 that follows a successful delete by @Ilmar7786
 
-### <!-- 10 -->💼 Other
-
-- Merge pull request #102 from Ilmar7786/dev by @Ilmar7786 in [#102](https://github.com/Ilmar7786/marzban-sdk/pull/102)
-- Merge pull request #104 from Ilmar7786/fix/remove-user-500-tolerance by @Ilmar7786 in [#104](https://github.com/Ilmar7786/marzban-sdk/pull/104)
-
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
 
 - Bump marzban-sdk to 3.3.0 by @Ilmar7786
@@ -23,20 +18,6 @@
 - Attach WebSocket listeners in the same tick the socket is created #86 by @Ilmar7786
 - Never retry POST and other unsafe methods by @Ilmar7786
 - Make HTTP retries actually run on API requests by @Ilmar7786
-
-### <!-- 10 -->💼 Other
-
-- Merge pull request #96 from Ilmar7786/dev by @Ilmar7786 in [#96](https://github.com/Ilmar7786/marzban-sdk/pull/96)
-- Merge pull request #99 from Ilmar7786/fix/ws-logs-stream-hardening by @Ilmar7786 in [#99](https://github.com/Ilmar7786/marzban-sdk/pull/99)
-- Merge pull request #98 from Ilmar7786/fix/ws-listener-attachment-race by @Ilmar7786 in [#98](https://github.com/Ilmar7786/marzban-sdk/pull/98)
-- Merge pull request #97 from Ilmar7786/fix/ws-test-flake-and-ci-dupes by @Ilmar7786 in [#97](https://github.com/Ilmar7786/marzban-sdk/pull/97)
-- Merge branch 'dev' into fix/ws-test-flake-and-ci-dupes by @Ilmar7786
-- Merge branch 'main' into dev by @Ilmar7786
-- Merge pull request #73 from Ilmar7786/dev by @Ilmar7786 in [#73](https://github.com/Ilmar7786/marzban-sdk/pull/73)
-- Merge pull request #72 from Ilmar7786/dev by @Ilmar7786 in [#72](https://github.com/Ilmar7786/marzban-sdk/pull/72)
-- Merge pull request #95 from Ilmar7786/task/ws-test-harness by @Ilmar7786 in [#95](https://github.com/Ilmar7786/marzban-sdk/pull/95)
-- Merge pull request #94 from Ilmar7786/task/node-integration-tests by @Ilmar7786 in [#94](https://github.com/Ilmar7786/marzban-sdk/pull/94)
-- Merge pull request #92 from Ilmar7786/fix/retry-safe-methods by @Ilmar7786 in [#92](https://github.com/Ilmar7786/marzban-sdk/pull/92)
 
 ### <!-- 6 -->🧪 Testing
 
@@ -55,10 +36,6 @@
 ### <!-- 0 -->🚀 Features
 
 - Support a custom httpAgent/httpsAgent for self-signed panels by @Ilmar7786
-
-### <!-- 10 -->💼 Other
-
-- Merge pull request #71 from Ilmar7786/dev by @Ilmar7786 in [#71](https://github.com/Ilmar7786/marzban-sdk/pull/71)
 
 ### <!-- 6 -->🧪 Testing
 
@@ -84,10 +61,7 @@
 
 ### <!-- 10 -->💼 Other
 
-- Merge pull request #68 from Ilmar7786/chore/sdk-release-verify by @Ilmar7786 in [#68](https://github.com/Ilmar7786/marzban-sdk/pull/68)
-- Merge pull request #66 from Ilmar7786/dev by @Ilmar7786 in [#66](https://github.com/Ilmar7786/marzban-sdk/pull/66)
 - Potential fix for pull request finding 'CodeQL / Disabling certificate validation' by @Ilmar7786
-- Merge pull request #64 from Ilmar7786/feat/monorepo-migration by @Ilmar7786 in [#64](https://github.com/Ilmar7786/marzban-sdk/pull/64)
 
 ### <!-- 2 -->🚜 Refactor
 
@@ -119,12 +93,8 @@
 ### <!-- 10 -->💼 Other
 
 - 3.0.1 by @Ilmar7786
-- Merge pull request #55 from Ilmar7786/task/web-docs by @Ilmar7786 in [#55](https://github.com/Ilmar7786/marzban-sdk/pull/55)
 - 3.0.0 by @Ilmar7786
-- Merge pull request #54 from Ilmar7786/fix/production-hardening by @Ilmar7786
-- Merge pull request #53 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-650b74d069 by @Ilmar7786
 - Bump form-data in the npm_and_yarn group across 1 directory by @dependabot[bot]
-- Merge pull request #52 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-bed0206944 by @Ilmar7786
 - Bump vite in the npm_and_yarn group across 1 directory by @dependabot[bot]
 - Fix url repository by package.json by @Ilmar7786
 
@@ -196,10 +166,8 @@
 
 - 2.0.0 by @Ilmar7786
 - Update dependencies by @Ilmar7786
-- Merge pull request #46 from Ilmar7786/dev by @Ilmar7786 in [#46](https://github.com/Ilmar7786/marzban-sdk/pull/46)
 - Update dependencies and fix method default client by http by @Ilmar7786
 - Update dependencies by @Ilmar7786
-- Merge pull request #45 from Ilmar7786/revert-43-dev by @Ilmar7786 in [#45](https://github.com/Ilmar7786/marzban-sdk/pull/45)
 - Revert "Dev" by @Ilmar7786
 
 ### <!-- 2 -->🚜 Refactor
@@ -225,11 +193,8 @@
 ### <!-- 10 -->💼 Other
 
 - 1.5.5 by @Ilmar7786
-- Merge pull request #42 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-f1ea3e7a5d by @Ilmar7786 in [#42](https://github.com/Ilmar7786/marzban-sdk/pull/42)
 - Bump the npm_and_yarn group across 1 directory with 2 updates by @dependabot[bot]
-- Merge pull request #41 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-32e07c5719 by @Ilmar7786 in [#41](https://github.com/Ilmar7786/marzban-sdk/pull/41)
 - Bump ip-address by @dependabot[bot]
-- Merge pull request #40 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-85af2c71bb by @Ilmar7786 in [#40](https://github.com/Ilmar7786/marzban-sdk/pull/40)
 - Bump follow-redirects by @dependabot[bot]
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
@@ -242,9 +207,7 @@
 
 - 1.5.4 by @Ilmar7786
 - Update version dependency axios by @Ilmar7786
-- Merge pull request #39 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-447f6a9e2e by @Ilmar7786 in [#39](https://github.com/Ilmar7786/marzban-sdk/pull/39)
 - Bump the npm_and_yarn group across 1 directory with 3 updates by @dependabot[bot]
-- Merge pull request #38 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-3f9ee708be by @Ilmar7786 in [#38](https://github.com/Ilmar7786/marzban-sdk/pull/38)
 - Bump picomatch in the npm_and_yarn group across 1 directory by @dependabot[bot]
 
 ## [1.5.3] - 2026-03-23
@@ -253,7 +216,6 @@
 
 - 1.5.3 by @Ilmar7786
 - Update version dependencies by @Ilmar7786
-- Merge pull request #37 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-e5a595f223 by @Ilmar7786 in [#37](https://github.com/Ilmar7786/marzban-sdk/pull/37)
 - Bump flatted by @dependabot[bot]
 
 ## [1.5.2] - 2026-02-28
@@ -261,9 +223,7 @@
 ### <!-- 10 -->💼 Other
 
 - 1.5.2 by @Ilmar7786
-- Merge pull request #36 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-8a6d6a6aaf by @Ilmar7786 in [#36](https://github.com/Ilmar7786/marzban-sdk/pull/36)
 - Bump the npm_and_yarn group across 1 directory with 2 updates by @dependabot[bot]
-- Merge pull request #35 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-387f502f5a by @Ilmar7786 in [#35](https://github.com/Ilmar7786/marzban-sdk/pull/35)
 - Bump basic-ftp by @dependabot[bot]
 
 ## [1.5.1] - 2026-02-13
@@ -271,7 +231,6 @@
 ### <!-- 10 -->💼 Other
 
 - 1.5.1 by @Ilmar7786
-- Merge pull request #34 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-66fcce4dc2 by @Ilmar7786 in [#34](https://github.com/Ilmar7786/marzban-sdk/pull/34)
 - Bump axios in the npm_and_yarn group across 1 directory by @dependabot[bot]
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
@@ -307,19 +266,14 @@
 
 - 1.5.0 by @Ilmar7786
 - Update version dependencies by @Ilmar7786
-- Merge pull request #33 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-f3562b46b9 by @Ilmar7786 in [#33](https://github.com/Ilmar7786/marzban-sdk/pull/33)
 - Bump lodash by @dependabot[bot]
 - 1.4.4 by @Ilmar7786
-- Merge pull request #32 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-12cb0b0c21 by @Ilmar7786 in [#32](https://github.com/Ilmar7786/marzban-sdk/pull/32)
 - Bump the npm_and_yarn group across 1 directory with 1 update by @dependabot[bot]
-- Merge pull request #31 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-3c67cbb9cd by @Ilmar7786 in [#31](https://github.com/Ilmar7786/marzban-sdk/pull/31)
 - Bump js-yaml by @dependabot[bot]
 - Update release notes for Marzban SDK 2.0.0 by @Ilmar7786
 - 1.4.3 by @Ilmar7786
-- Merge pull request #29 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-2ea0fb2c37 by @Ilmar7786 in [#29](https://github.com/Ilmar7786/marzban-sdk/pull/29)
 - Bump the npm_and_yarn group across 1 directory with 2 updates by @dependabot[bot]
 - 1.4.1 by @Ilmar7786
-- Merge pull request #25 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-e04d5d616f by @Ilmar7786 in [#25](https://github.com/Ilmar7786/marzban-sdk/pull/25)
 - Bump form-data in the npm_and_yarn group across 1 directory by @dependabot[bot]
 - 1.4.0 by @Ilmar7786
 - Create CODE_OF_CONDUCT.md by @Ilmar7786
@@ -327,24 +281,12 @@
 - Create LICENSE by @Ilmar7786
 - Client generation parameters are included in config and added to sourceMap build by @Ilmar7786
 - Remove lib for windows by @Ilmar7786
-- Merge pull request #22 from Ilmar7786/task/linting_and_code_style by @Ilmar7786 in [#22](https://github.com/Ilmar7786/marzban-sdk/pull/22)
-- Merge pull request #20 from Ilmar7786/task/update-deps by @Ilmar7786 in [#20](https://github.com/Ilmar7786/marzban-sdk/pull/20)
 - Fixing vulnerabilities by updating libraries by @Ilmar7786
-- Merge pull request #19 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-8bcfda83f8 by @Ilmar7786 in [#19](https://github.com/Ilmar7786/marzban-sdk/pull/19)
 - Bump the npm_and_yarn group across 1 directory with 2 updates by @dependabot[bot]
-- Merge pull request #18 from Ilmar7786/dependabot/npm_and_yarn/npm_and_yarn-50d8c8c048 by @Ilmar7786 in [#18](https://github.com/Ilmar7786/marzban-sdk/pull/18)
 - Bump the npm_and_yarn group across 1 directory with 2 updates by @dependabot[bot]
-- Merge pull request #16 from Ilmar7786/task/authorization-token by @Ilmar7786 in [#16](https://github.com/Ilmar7786/marzban-sdk/pull/16)
 - Update README.md by @Ilmar7786
-- Merge pull request #12 from Ilmar7786/task/webscoket-logs by @Ilmar7786 in [#12](https://github.com/Ilmar7786/marzban-sdk/pull/12)
 - Update github action by @Ilmar7786
-- Merge pull request #11 from Ilmar7786/feature/docs by @Ilmar7786 in [#11](https://github.com/Ilmar7786/marzban-sdk/pull/11)
-- Merge pull request #10 from Ilmar7786/task/request-retry by @Ilmar7786 in [#10](https://github.com/Ilmar7786/marzban-sdk/pull/10)
-- Merge pull request #9 from Ilmar7786/refactore/improving_code_base by @Ilmar7786 in [#9](https://github.com/Ilmar7786/marzban-sdk/pull/9)
-- Merge pull request #3 from Ilmar7786/fix/requests-wait-for-authentication by @Ilmar7786 in [#3](https://github.com/Ilmar7786/marzban-sdk/pull/3)
-- Merge pull request #2 from Ilmar7786/feat/custom-template-client by @Ilmar7786 in [#2](https://github.com/Ilmar7786/marzban-sdk/pull/2)
 - 1.0.0 by @Ilmar7786
-- Merge pull request #1 from Ilmar7786/feat/github-actions-publish-npm by @Ilmar7786
 - 0.2.1 by @Ilmar7786
 - 0.2.0 by @Ilmar7786
 - 0.1.1 by @Ilmar7786

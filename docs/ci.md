@@ -31,7 +31,7 @@ flowchart TB
         sdk["marzban-sdk<br/>lint · types:check · test · build"]
         cli["marzban-cli<br/>lint · types:check · build"]
         mcp["marzban-mcp<br/>lint · types:check · test · build"]
-        docs["apps/docs<br/>lint · types:check · build"]
+        docs["apps/docs<br/>lint · types:check · test · build"]
         sdk -->|^build| cli
         sdk -->|^build| mcp
         sdk -->|^build| docs

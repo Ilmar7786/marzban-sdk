@@ -27,6 +27,7 @@ on:
 permissions:
   id-token: write # Required for OIDC / npm provenance
   contents: write
+  actions: write # Required to dispatch the docs rebuild (see commit-changelog)
 
 jobs:
   release:
@@ -244,6 +245,7 @@ jobs:
         uses: ./.github/actions/commit-changelog
         with:
           paths: packages/mcp/CHANGELOG.md .changelog/mcp-downstream.md
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           message: >-
             chore(changelog): marzban-mcp
             ${{ steps.prepare.outputs.version }} [skip ci]

@@ -230,7 +230,6 @@ describe('MarzbanSDK', () => {
         basePath: BASE_CONFIG.baseUrl,
         authService: expect.any(MockAuthManager),
         logger: expect.any(Object),
-        maxRetries: undefined, // config.retries is filled by validateConfig in production
         lifecycle: expect.any(Lifecycle),
       })
     })

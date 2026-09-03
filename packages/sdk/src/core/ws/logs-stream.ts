@@ -1,14 +1,10 @@
-import { AnyType, type HttpAgentLike, isBrowser, redactUrlToken, safeCallback } from '@/common'
-import { DEFAULT_RETRIES } from '@/config'
+import { type HttpAgentLike, isBrowser } from '@/common'
 import { AuthManager } from '@/core/auth'
 import { Logger } from '@/core/logger'
 
 import { Lifecycle } from '../lifecycle'
-import { BaseWebSocketClient, WebSocketClient } from './client'
-import { LogsStreamRetryHandler } from './logs-stream-retry'
-import { configurationUrlWs } from './utils'
-import { closeQuietly } from './utils/close-quietly'
-import type { ConnectionHandle, HandleCloseConnection } from './utils/connection-handle.types'
+import { LogStream, type LogStreamTuning } from './log-stream'
+import type { HandleCloseConnection } from './utils/connection-handle.types'
 import { resolveLogInterval } from './utils/log-interval'
 
 /**
@@ -33,8 +29,6 @@ export interface LogsStreamOptions {
   authService: AuthManager
   /** Logger instance for logging WebSocket events. */
   logger: Logger
-  /** Max reconnection attempts on auth (403) failures. Defaults to {@link DEFAULT_RETRIES}. */
-  maxRetries?: number
   /**
    * Node-only `https.Agent` (or compatible) for the WebSocket connection —
    * e.g. to trust a self-signed panel certificate. Ignored in the browser.
@@ -42,46 +36,44 @@ export interface LogsStreamOptions {
   httpsAgent?: HttpAgentLike
   /** Shared SDK-instance terminal-state flag. Defaults to a fresh, always-active one when omitted. */
   lifecycle?: Lifecycle
+  /**
+   * Overrides for the reconnect policy's timing. Internal — used by this
+   * package's own tests to exercise backoff/budget/timeout behavior without
+   * waiting out the real windows. The public option surface lands with
+   * issue #89.
+   *
+   * @internal
+   */
+  tuning?: Partial<LogStreamTuning>
 }
 
 /**
  * Handles streaming logs from the Marzban API via WebSocket.
  * Supports both core logs and node-specific logs.
+ *
+ * Owns the set of live streams; each {@link LogStream} owns its own socket,
+ * reconnect policy, and shutdown guarantees (see ADR-0016).
  */
 export class LogsStream {
   private basePath: string
   private authService: AuthManager
   private logger: Logger
-  private activeConnections: Set<BaseWebSocketClient> = new Set()
+  private activeStreams: Set<LogStream> = new Set()
   private httpsAgent?: HttpAgentLike
   private lifecycle: Lifecycle
-  private retryHandler: LogsStreamRetryHandler
+  private tuning?: Partial<LogStreamTuning>
 
   /**
    * Creates an API instance for handling logs via WebSocket.
    * @param options Configuration for the log stream. See {@link LogsStreamOptions}.
    */
-  constructor({
-    basePath,
-    authService,
-    logger,
-    maxRetries = DEFAULT_RETRIES,
-    httpsAgent,
-    lifecycle = new Lifecycle(),
-  }: LogsStreamOptions) {
+  constructor({ basePath, authService, logger, httpsAgent, lifecycle = new Lifecycle(), tuning }: LogsStreamOptions) {
     this.basePath = basePath
     this.authService = authService
     this.logger = logger
     this.httpsAgent = httpsAgent
     this.lifecycle = lifecycle
-    this.retryHandler = new LogsStreamRetryHandler({
-      authService,
-      logger,
-      maxRetries,
-      lifecycle,
-      closeTracked: (wsClient, endpoint) => this.closeTracked(wsClient, endpoint),
-      reconnect: (endpoint, options, retryCount) => this.connect(endpoint, options, retryCount),
-    })
+    this.tuning = tuning
     this.logger.debug('LogsStream initialized', 'LogsStream')
 
     if (httpsAgent && isBrowser()) {
@@ -93,138 +85,33 @@ export class LogsStream {
   }
 
   /**
-   * Ensures that an access token is available and refreshes it if necessary.
-   * @private
-   */
-  private async ensureAuthenticated() {
-    this.logger.debug('Ensuring authentication for WebSocket connection', 'LogsStream')
-    await this.authService.waitForCurrentAuth()
-
-    if (!this.authService.accessToken) {
-      this.logger.warn('No access token available, attempting to re-authenticate', 'LogsStream')
-      await this.authService.retryAuth()
-    } else {
-      this.logger.debug('Access token available for WebSocket connection', 'LogsStream')
-    }
-  }
-
-  private buildWsUrl(endpoint: string, interval: number): string {
-    const wsUrl = configurationUrlWs({
-      basePath: this.basePath,
-      endpoint,
-      token: this.authService.accessToken,
-      interval,
-    })
-
-    // Redact the token query param so JWTs never leak into logs.
-    const redactedUrl = redactUrlToken(wsUrl, 'token')
-    this.logger.debug(`WebSocket URL generated: ${redactedUrl}`, 'LogsStream')
-
-    return wsUrl
-  }
-
-  /**
-   * Connects `wsClient`'s socket, undoing the `activeConnections` tracking on
-   * failure — a connect that never opens must not leave a dead entry behind.
-   */
-  private async openConnection(wsClient: BaseWebSocketClient): Promise<void> {
-    try {
-      await wsClient.init()
-    } catch (error) {
-      this.activeConnections.delete(wsClient)
-      throw error
-    }
-  }
-
-  /** Closes and untracks `wsClient`, logging rather than throwing if `close()` itself fails. */
-  private closeTracked(wsClient: BaseWebSocketClient, endpoint: string): void {
-    const failures = closeQuietly(wsClient)
-    this.activeConnections.delete(wsClient)
-    failures.forEach(error =>
-      this.logger.error(`Failed to close WebSocket connection: ${endpoint}`, error, 'LogsStream')
-    )
-  }
-
-  /** Wraps `options.onMessage`/`onError` so a throw from consumer code is logged, never propagated. */
-  private createEmitters(endpoint: string, options: LogOptions) {
-    return {
-      emitMessage: safeCallback(options.onMessage, error =>
-        this.logger.error(`onMessage callback threw (${endpoint})`, error, 'LogsStream')
-      ),
-      emitError: safeCallback(options.onError, error =>
-        this.logger.error(`onError callback threw (${endpoint})`, error, 'LogsStream')
-      ),
-    }
-  }
-
-  /**
-   * Attaches every event listener for `wsClient` and returns its close handle.
-   * A successful 403 retry repoints `connection.close` at the replacement
-   * socket, so callers always close whichever connection is currently active.
-   */
-  private wireConnection(
-    wsClient: BaseWebSocketClient,
-    endpoint: string,
-    options: LogOptions,
-    retryCount: number
-  ): ConnectionHandle {
-    const { emitMessage, emitError } = this.createEmitters(endpoint, options)
-
-    const connection: ConnectionHandle = {
-      close: () => {
-        this.logger.debug(`Closing WebSocket connection: ${endpoint}`, 'LogsStream')
-        this.closeTracked(wsClient, endpoint)
-      },
-    }
-
-    wsClient.on('open', () => {
-      this.logger.info(`WebSocket connection established: ${endpoint}`, 'LogsStream')
-    })
-
-    wsClient.on('message', ({ data }) => {
-      emitMessage(data as AnyType)
-    })
-
-    wsClient.on('error', event =>
-      this.retryHandler.handleError({ wsClient, endpoint, options, retryCount, event, emitError, connection })
-    )
-
-    wsClient.on('close', () => {
-      this.activeConnections.delete(wsClient)
-      this.logger.info(`WebSocket connection closed: ${endpoint}`, 'LogsStream')
-    })
-
-    return connection
-  }
-
-  /**
    * Establishes a WebSocket connection to a specified endpoint.
-   * @private
-   * @param endpoint The API endpoint for the WebSocket connection.
-   * @param options Connection options (callbacks, interval).
-   * @param retryCount The number of retry attempts in case of failure (default is 0).
-   * @returns A function to close the WebSocket connection.
+   *
+   * Resolves only once the socket is genuinely open, so a failed first
+   * connect rejects instead of handing back a handle to a dead stream.
    */
-  private async connect(endpoint: string, options: LogOptions, retryCount = 0): Promise<HandleCloseConnection> {
+  private async connect(endpoint: string, options: LogOptions): Promise<HandleCloseConnection> {
     this.lifecycle.assertActive(`logs.connect(${endpoint})`)
 
     const interval = resolveLogInterval(options.interval)
 
-    this.logger.debug(`Establishing WebSocket connection to: ${endpoint}`, 'LogsStream')
-    await this.ensureAuthenticated()
+    const stream = new LogStream({
+      endpoint,
+      interval,
+      handlers: options,
+      basePath: this.basePath,
+      authService: this.authService,
+      logger: this.logger,
+      httpsAgent: this.httpsAgent,
+      lifecycle: this.lifecycle,
+      onClosed: () => this.activeStreams.delete(stream),
+      tuning: this.tuning,
+    })
+    this.activeStreams.add(stream)
 
-    const wsUrl = this.buildWsUrl(endpoint, interval)
+    await stream.open()
 
-    // Resolved (not yet connected) so every listener is attached before
-    // `init()` constructs the socket — a connect that fails before the first
-    // microtask still reaches `on('error')`/`on('close')` instead of nobody.
-    const wsClient: BaseWebSocketClient = WebSocketClient.resolve(wsUrl, undefined, { agent: this.httpsAgent })
-    this.activeConnections.add(wsClient)
-
-    const connection = this.wireConnection(wsClient, endpoint, options, retryCount)
-    await this.openConnection(wsClient)
-
-    return () => connection.close()
+    return () => stream.close()
   }
 
   /**
@@ -232,6 +119,8 @@ export class LogsStream {
    * @param options Connection options (callbacks, interval).
    * @returns A function to close the WebSocket connection.
    * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
+   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts.
+   * @throws {WsError} If the connection cannot be established.
    */
   async connectByCore(options: LogOptions) {
     this.logger.debug('Connecting to core logs WebSocket', 'LogsStream')
@@ -244,6 +133,8 @@ export class LogsStream {
    * @param options Connection options (callbacks, interval).
    * @returns A function to close the WebSocket connection.
    * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
+   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts.
+   * @throws {WsError} If the connection cannot be established.
    */
   async connectByNode(nodeId: number | string, options: LogOptions) {
     this.logger.debug(`Connecting to node logs WebSocket for node ID: ${nodeId}`, 'LogsStream')
@@ -252,15 +143,26 @@ export class LogsStream {
 
   /**
    * Closes all active WebSocket connections.
+   *
+   * Each stream's own `close()` is what stops it — including one that is
+   * mid-reconnect, which aborts at its next checkpoint rather than racing
+   * this call to open a replacement socket.
    */
   closeAllConnections() {
-    const connectionCount = this.activeConnections.size
-    this.logger.info(`Closing ${connectionCount} active WebSocket connections`, 'LogsStream')
+    this.logger.info(`Closing ${this.activeStreams.size} active WebSocket connections`, 'LogsStream')
 
-    // Every socket is closed and untracked even if one throws — a partial
-    // cleanup must never look the same as a successful one.
-    const failures = [...this.activeConnections].flatMap(closeQuietly)
-    this.activeConnections.clear()
+    // Iterated over a copy: each close() untracks itself from the live set.
+    // Every stream is closed even if one throws — a partial cleanup must
+    // never look the same as a successful one.
+    const failures = [...this.activeStreams].flatMap(stream => {
+      try {
+        stream.close()
+        return []
+      } catch (error) {
+        return [error]
+      }
+    })
+    this.activeStreams.clear()
 
     failures.forEach(error => this.logger.error('Failed to close a WebSocket connection', error, 'LogsStream'))
     this.logger.debug('All WebSocket connections closed successfully', 'LogsStream')

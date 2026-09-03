@@ -152,3 +152,37 @@ function walk(value: unknown, depth: number, seen: WeakSet<object>): unknown {
 export function redactSecrets<T>(value: T): T {
   return walk(value, 0, new WeakSet()) as T
 }
+
+/**
+ * Marker used by {@link redactUrlToken} instead of {@link REDACTED} — a query
+ * parameter value is percent-encoded on serialization, and `[`/`]` would
+ * round-trip as unreadable `%5B`/`%5D` noise in a URL.
+ */
+const REDACTED_URL_PARAM = 'REDACTED'
+
+/**
+ * Redacts one query parameter's value from a URL string, leaving the rest of
+ * the URL intact.
+ *
+ * {@link redactSecrets} walks object graphs by key — it can't help here, since
+ * a WebSocket connection URL carries its access token as a query parameter
+ * (`?token=...`) rather than under a recognizable key on some object. Falls
+ * back to a regex when `url` isn't parseable (so a caller building a URL by
+ * hand, or building one for a log line before it's fully assembled, still
+ * gets redaction instead of a thrown error).
+ *
+ * @example
+ * redactUrlToken('wss://host/api/core/logs?interval=1&token=eyJhbGciOi...', 'token')
+ * // => 'wss://host/api/core/logs?interval=1&token=REDACTED'
+ */
+export function redactUrlToken(url: string, paramName: string): string {
+  try {
+    const parsed = new URL(url)
+    if (!parsed.searchParams.has(paramName)) return url
+    parsed.searchParams.set(paramName, REDACTED_URL_PARAM)
+    return parsed.toString()
+  } catch {
+    const pattern = new RegExp(`(${paramName}=)[^&]+`, 'i')
+    return url.replace(pattern, `$1${REDACTED_URL_PARAM}`)
+  }
+}

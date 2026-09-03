@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { redactSecrets } from './redact'
+import { redactSecrets, redactUrlToken } from './redact'
 
 describe('redactSecrets', () => {
   describe('primitives and simple values', () => {
@@ -252,5 +252,25 @@ describe('redactSecrets', () => {
       expect(data).not.toContain('hunter2')
       expect(JSON.parse(data)).toEqual({ username: 'admin', password: '[REDACTED]' })
     })
+  })
+})
+
+describe('redactUrlToken', () => {
+  it('replaces the named query parameter, leaving the rest of the URL intact', () => {
+    const url = 'wss://panel.example.com/api/core/logs?interval=1&token=eyJhbGciOi...'
+    expect(redactUrlToken(url, 'token')).toBe('wss://panel.example.com/api/core/logs?interval=1&token=REDACTED')
+  })
+
+  it('leaves the URL unchanged when the parameter is absent', () => {
+    const url = 'wss://panel.example.com/api/core/logs?interval=1'
+    expect(redactUrlToken(url, 'token')).toBe(url)
+  })
+
+  it('falls back to a regex replace when the URL is not parseable', () => {
+    expect(redactUrlToken('not a url?token=secret&x=1', 'token')).toBe('not a url?token=REDACTED&x=1')
+  })
+
+  it('returns an unparseable URL unchanged when the parameter is absent from it too', () => {
+    expect(redactUrlToken('not a url at all', 'token')).toBe('not a url at all')
   })
 })

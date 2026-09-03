@@ -5,6 +5,7 @@ import { ConfigurationError } from './categories/configuration.error'
 import { HttpError } from './categories/http.error'
 import { SdkDestroyedError } from './categories/lifecycle.error'
 import { WebhookEnvironmentError, WebhookSignatureError, WebhookValidationError } from './categories/webhook.error'
+import { WsError } from './categories/ws.error'
 import { ERROR_CODES, ErrorCode } from './codes'
 import { isAuthError, isAuthTokenError } from './guards/auth.guard'
 import { isConfigurationError } from './guards/configuration.guard'
@@ -12,6 +13,7 @@ import { isHttpError } from './guards/http.guard'
 import { isSdkDestroyedError } from './guards/lifecycle.guard'
 import { isSdkError } from './guards/sdk.guard'
 import { isWebhookEnvironmentError, isWebhookSignatureError, isWebhookValidationError } from './guards/webhook.guard'
+import { isWsError } from './guards/ws.guard'
 import { SdkError } from './sdk.error'
 
 // ─── SdkError ────────────────────────────────────────────────────────────────
@@ -264,6 +266,59 @@ describe('WebhookValidationError', () => {
   })
 })
 
+describe('WsError', () => {
+  const baseDetails = { phase: 'handshake' as const, attempt: 1, url: 'wss://host/api/core/logs?token=secret' }
+
+  it('is an instance of SdkError and Error', () => {
+    const err = new WsError(ERROR_CODES.WS_HANDSHAKE_REJECTED, baseDetails)
+    expect(err).toBeInstanceOf(SdkError)
+    expect(err).toBeInstanceOf(Error)
+  })
+
+  it('sets name to WsError', () => {
+    expect(new WsError(ERROR_CODES.WS_HANDSHAKE_REJECTED, baseDetails).name).toBe('WsError')
+  })
+
+  it('uses the code it was constructed with', () => {
+    expect(new WsError(ERROR_CODES.WS_CONNECTION_LOST, baseDetails).code).toBe(ERROR_CODES.WS_CONNECTION_LOST.code)
+    expect(new WsError(ERROR_CODES.WS_RETRIES_EXHAUSTED, baseDetails).code).toBe(ERROR_CODES.WS_RETRIES_EXHAUSTED.code)
+  })
+
+  it('exposes phase, attempt, closeCode, and status from details', () => {
+    const err = new WsError(ERROR_CODES.WS_CONNECTION_LOST, {
+      phase: 'connection',
+      attempt: 3,
+      url: 'wss://host/api/core/logs?token=secret',
+      closeCode: 1006,
+      status: 403,
+    })
+    expect(err.phase).toBe('connection')
+    expect(err.attempt).toBe(3)
+    expect(err.closeCode).toBe(1006)
+    expect(err.status).toBe(403)
+  })
+
+  it('closeCode/status are undefined when not provided', () => {
+    const err = new WsError(ERROR_CODES.WS_HANDSHAKE_REJECTED, baseDetails)
+    expect(err.closeCode).toBeUndefined()
+    expect(err.status).toBeUndefined()
+  })
+
+  it('redacts the token query parameter out of url', () => {
+    const err = new WsError(ERROR_CODES.WS_HANDSHAKE_REJECTED, baseDetails)
+    expect(err.url).toBe('wss://host/api/core/logs?token=REDACTED')
+    expect(err.url).not.toContain('secret')
+  })
+
+  it('redacts secret-bearing keys inside a raw event carried under details.event', () => {
+    const err = new WsError(ERROR_CODES.WS_CONNECTION_LOST, {
+      ...baseDetails,
+      event: { message: 'boom', target: { url: 'wss://host?token=secret', headers: { Authorization: 'Bearer x' } } },
+    })
+    expect(JSON.stringify(err.details)).not.toContain('Bearer x')
+  })
+})
+
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
 describe('isSdkError', () => {
@@ -402,5 +457,20 @@ describe('isSdkDestroyedError', () => {
 
   it('returns false for null', () => {
     expect(isSdkDestroyedError(null)).toBe(false)
+  })
+})
+
+describe('isWsError', () => {
+  it('returns true for WsError', () => {
+    const err = new WsError(ERROR_CODES.WS_HANDSHAKE_REJECTED, { phase: 'handshake', attempt: 1, url: 'wss://host' })
+    expect(isWsError(err)).toBe(true)
+  })
+
+  it('returns false for a different SdkError subclass', () => {
+    expect(isWsError(new AuthError())).toBe(false)
+  })
+
+  it('returns false for null', () => {
+    expect(isWsError(null)).toBe(false)
   })
 })

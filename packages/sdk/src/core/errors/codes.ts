@@ -19,6 +19,19 @@ export const ERROR_CODES = {
   },
 
   WS_OPTIONS_INVALID: { code: 'WS_OPTIONS_INVALID', message: 'Invalid WebSocket log stream options' },
+  WS_HANDSHAKE_REJECTED: {
+    code: 'WS_HANDSHAKE_REJECTED',
+    message: 'The WebSocket handshake was rejected before the connection ever opened',
+  },
+  WS_AUTH_FAILED: {
+    code: 'WS_AUTH_FAILED',
+    message: 'WebSocket re-authentication failed with a freshly issued token',
+  },
+  WS_CONNECTION_LOST: { code: 'WS_CONNECTION_LOST', message: 'The WebSocket connection was lost after opening' },
+  WS_RETRIES_EXHAUSTED: {
+    code: 'WS_RETRIES_EXHAUSTED',
+    message: 'The WebSocket reconnect budget was exhausted',
+  },
 
   WEBHOOK_SIGNATURE_ERROR: { code: 'WEBHOOK_SIGNATURE_ERROR', message: 'Invalid webhook signature' },
   WEBHOOK_VALIDATION_ERROR: { code: 'WEBHOOK_VALIDATION_ERROR', message: 'Invalid webhook payload' },

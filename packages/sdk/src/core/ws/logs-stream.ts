@@ -1,4 +1,4 @@
-import { AnyType, type HttpAgentLike, isBrowser, safeCallback } from '@/common'
+import { AnyType, type HttpAgentLike, isBrowser, redactUrlToken, safeCallback } from '@/common'
 import { DEFAULT_RETRIES } from '@/config'
 import { AuthManager } from '@/core/auth'
 import { Logger } from '@/core/logger'
@@ -117,7 +117,7 @@ export class LogsStream {
     })
 
     // Redact the token query param so JWTs never leak into logs.
-    const redactedUrl = wsUrl.replace(/(token=)[^&]+/i, '$1***')
+    const redactedUrl = redactUrlToken(wsUrl, 'token')
     this.logger.debug(`WebSocket URL generated: ${redactedUrl}`, 'LogsStream')
 
     return wsUrl

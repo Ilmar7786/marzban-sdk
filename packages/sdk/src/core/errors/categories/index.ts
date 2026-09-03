@@ -1,5 +1,6 @@
 export * from './auth.error'
 export * from './configuration.error'
 export * from './http.error'
+export * from './lifecycle.error'
 export * from './webhook.error'
 export * from './ws.error'

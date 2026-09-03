@@ -4,6 +4,7 @@ import type { AnyType } from '@/common'
 import type { AuthManager } from '@/core/auth'
 import type { Logger } from '@/core/logger'
 
+import { Lifecycle } from '../lifecycle'
 import type { BaseWebSocketClient } from './client'
 import type { LogOptions } from './logs-stream'
 import { LogsStreamRetryHandler } from './logs-stream-retry'
@@ -16,6 +17,7 @@ const options: LogOptions = { onMessage: () => {} }
 function createHandler(
   overrides: {
     maxRetries?: number
+    lifecycle?: Lifecycle
     retryAuth?: () => Promise<void>
     reconnect?: (endpoint: string, options: LogOptions, retryCount: number) => Promise<HandleCloseConnection>
   } = {}
@@ -31,6 +33,7 @@ function createHandler(
     authService,
     logger,
     maxRetries: overrides.maxRetries ?? 3,
+    lifecycle: overrides.lifecycle,
     closeTracked,
     reconnect,
   })
@@ -171,6 +174,34 @@ describe('LogsStreamRetryHandler', () => {
     })
 
     expect(emitError).toHaveBeenCalledTimes(1)
+    expect(connection.close).toBe(originalClose)
+  })
+
+  it('abandons the reconnect quietly when the SDK is destroyed while retryAuth() is in flight', async () => {
+    const lifecycle = new Lifecycle()
+    const originalClose = vi.fn()
+    const { handler, reconnect } = createHandler({
+      lifecycle,
+      retryAuth: vi.fn().mockImplementation(async () => {
+        // Simulates MarzbanSDK.destroy() running concurrently with retryAuth().
+        lifecycle.markDestroyed()
+      }),
+    })
+    const emitError = vi.fn()
+    const connection: ConnectionHandle = { close: originalClose }
+
+    await handler.handleError({
+      wsClient,
+      endpoint,
+      options,
+      retryCount: 0,
+      event: { message: '403 Forbidden' } as AnyType,
+      emitError,
+      connection,
+    })
+
+    expect(reconnect).not.toHaveBeenCalled()
+    expect(emitError).not.toHaveBeenCalled()
     expect(connection.close).toBe(originalClose)
   })
 })

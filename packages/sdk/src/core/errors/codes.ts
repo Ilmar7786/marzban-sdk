@@ -6,6 +6,8 @@ export interface FormatCode {
 export const ERROR_CODES = {
   CONFIG_INVALID: { code: 'CONFIG_INVALID', message: 'Invalid SDK configuration' },
 
+  SDK_DESTROYED: { code: 'SDK_DESTROYED', message: 'The SDK instance has been destroyed' },
+
   NETWORK_HTTP_ERROR: { code: 'NETWORK_HTTP_ERROR', message: 'HTTP request failed' },
 
   AUTH_TOKEN_FAILED: { code: 'AUTH_TOKEN_FAILED', message: 'Failed to retrieve access token' },

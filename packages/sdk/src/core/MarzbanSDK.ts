@@ -4,6 +4,7 @@ import { adminApi, coreApi, nodeApi, subscriptionApi, systemApi, userApi, userTe
 import { AuthManager } from './auth'
 import { SdkError } from './errors'
 import { configureHttpClient } from './http'
+import { Lifecycle } from './lifecycle'
 import { createLogger, Logger } from './logger'
 import { TolerantUserApi } from './quirks/tolerant-user-api'
 import { WebhookManager } from './webhook'
@@ -18,6 +19,8 @@ export class MarzbanSDK {
   private readonly _config: ValidatedConfig
   private readonly _authService: AuthManager
   private readonly _logger: Logger
+  private readonly _lifecycle: Lifecycle
+  private _destroyPromise: Promise<void> | null = null
 
   /**
    * Administrative API endpoints.
@@ -127,13 +130,14 @@ export class MarzbanSDK {
   constructor(config: Config) {
     this._config = validateConfig(config)
     this._logger = createLogger(this._config.logger)
+    this._lifecycle = new Lifecycle()
 
     const storageAuth: AuthManager['storage'] = {
       username: this._config.username,
       password: this._config.password,
       accessToken: this._config.token,
     }
-    this._authService = new AuthManager(storageAuth, this._logger)
+    this._authService = new AuthManager(storageAuth, this._logger, this._lifecycle)
 
     const http = configureHttpClient(this._config.baseUrl, this._authService, this._config, this._logger)
     this._authService.setPublicClient(http.publicClient)
@@ -151,8 +155,9 @@ export class MarzbanSDK {
       logger: this._logger,
       maxRetries: this._config.retries,
       httpsAgent: this._config.httpsAgent,
+      lifecycle: this._lifecycle,
     })
-    this.webhook = new WebhookManager({ ...this._config.webhook, logger: this._logger })
+    this.webhook = new WebhookManager({ ...this._config.webhook, logger: this._logger, lifecycle: this._lifecycle })
 
     this._logger.debug('MarzbanSDK instance created', 'MarzbanSDK')
   }
@@ -163,12 +168,14 @@ export class MarzbanSDK {
    * Waits for any in-progress authentication, then returns the JWT token in use (or empty string if none).
    *
    * @returns {Promise<string>} The current JWT token.
+   * @throws {SdkDestroyedError} If the SDK has been destroyed.
    *
    * @example
    * const token = await sdk.getAuthToken();
    * console.log(`Token: ${token}`);
    */
   async getAuthToken(): Promise<string> {
+    this._lifecycle.assertActive('getAuthToken')
     await this._authService.waitForCurrentAuth()
     return this._authService.accessToken
   }
@@ -179,6 +186,7 @@ export class MarzbanSDK {
    * If a login is already in progress, returns the existing promise (deduplicates concurrent calls).
    *
    * @returns {Promise<void>} Resolves on successful authentication; rejects with {@link AuthError} on failure.
+   * @throws {SdkDestroyedError} If the SDK has been destroyed.
    *
    * @example
    * try {
@@ -191,16 +199,31 @@ export class MarzbanSDK {
    * }
    */
   authorize(): Promise<void> {
+    this._lifecycle.assertActive('authorize')
     // Concurrent-call de-duplication is handled inside AuthManager.authenticate,
     // which returns the in-flight promise when a login is already running.
     return this._authService.authenticate(this._config.username, this._config.password)
   }
 
   /**
-   * Releases resources held by the SDK.
+   * Releases resources held by the SDK and enters a terminal `destroyed`
+   * state. Idempotent — calling it again after the first call returns the
+   * same promise and starts no new work.
    *
-   * Closes all active WebSocket log streams. Safe to call multiple times;
-   * any error while closing connections is logged and swallowed.
+   * From the point `destroy()` is called, every other public operation on
+   * this instance — `authorize()`, `getAuthToken()`, `logs.connect*()`, and
+   * `webhook.parseWebhook()`/`handleWebhook()`/`dispatch()` — rejects with
+   * `SdkDestroyedError`. `webhook.on()`/`once()`/`off()` keep working, so
+   * unsubscribing after shutdown stays safe. Direct API calls (`sdk.user.*`,
+   * `sdk.node.*`, …) are not rejected by this method: the stored access token
+   * is cleared, so such a call fails with the panel's own 401 instead once
+   * re-authentication is attempted and rejected as above. An HTTP request
+   * already in flight when `destroy()` is called is not cancelled.
+   *
+   * Runs three independent cleanup steps — closing active WebSocket log
+   * streams, clearing webhook listeners, and clearing the stored access
+   * token — each wrapped so a throw from one never skips the others; every
+   * failure is logged and swallowed.
    *
    * Does not touch `httpAgent`/`httpsAgent` from {@link Config} — the SDK
    * never creates that agent, so it doesn't own or destroy it either;
@@ -208,17 +231,37 @@ export class MarzbanSDK {
    *
    * @returns {Promise<void>} Resolves once cleanup has completed.
    */
-  async destroy(): Promise<void> {
+  destroy(): Promise<void> {
+    if (!this._destroyPromise) {
+      this._destroyPromise = this.destroyInternal()
+    }
+    return this._destroyPromise
+  }
+
+  private async destroyInternal(): Promise<void> {
     this._logger.info('Destroying SDK and closing active connections', 'MarzbanSDK')
+
+    // Marked first, before any cleanup step runs, so a 403 reconnect or any
+    // other pending operation observes the destroyed state at its next
+    // checkpoint instead of racing shutdown to completion.
+    this._lifecycle.markDestroyed()
+
+    this.runCleanupStep(() => this.logs.closeAllConnections())
+    this.runCleanupStep(() => this.webhook.close())
+    this.runCleanupStep(() => this._authService.close())
+  }
+
+  /** Runs one independent destroy step, logging rather than throwing if it fails — so the others still run. */
+  private runCleanupStep(step: () => void): void {
     try {
-      this.logs.closeAllConnections()
+      step()
     } catch (err) {
       if (err instanceof SdkError) {
         this._logger.error(err.message, err.stack, err.code)
       } else if (err instanceof Error) {
         this._logger.error(err.message, err.stack, 'MarzbanSDK')
       } else {
-        this._logger.error('Failed to close connections during destroy', err, 'MarzbanSDK')
+        this._logger.error('Failed to clean up during destroy', err, 'MarzbanSDK')
       }
     }
   }

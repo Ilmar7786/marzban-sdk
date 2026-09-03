@@ -240,6 +240,10 @@ export const typeGlossary: Record<string, TypeInfo> = {
       'Signature verification was called in a browser context, which is unsupported (code WEBHOOK_ENVIRONMENT_ERROR).',
     href: '/docs/advanced/error-handling#error-codes-reference',
   },
+  SdkDestroyedError: {
+    description: 'Thrown by a guarded operation called after sdk.destroy() (code SDK_DESTROYED).',
+    href: '/docs/advanced/lifecycle#what-rejects-after-destroy',
+  },
 
   // ── Loose / dynamic values ─────────────────────────────────────────────
   ProxySettings: {

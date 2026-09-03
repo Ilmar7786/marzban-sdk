@@ -56,3 +56,4 @@ What this enables, what it costs.
 | [0013](./0013-confirm-auto-trusts-a-call-not-a-tool.md)              | `confirm: 'auto'` trusts a call, not a tool                         |
 | [0014](./0014-git-cliff-unreleased-not-latest.md)                    | git-cliff uses `--unreleased`, tags pin to the commit CI ran on     |
 | [0015](./0015-sdk-destroy-terminal-lifecycle.md)                     | `MarzbanSDK.destroy()` is a terminal lifecycle transition           |
+| [0016](./0016-ws-stream-lifecycle-and-reconnect.md)                  | WebSocket stream lifecycle and reconnect policy                     |

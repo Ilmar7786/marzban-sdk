@@ -85,12 +85,11 @@ pnpm --filter marzban-sdk test:coverage
 
 ## WS module
 
-`core/ws` is the one module whose unit tests don't mock the transport with
-`vi.mock` (see "Network isolation" below) — `logs-stream.test.ts` mocks
-`WebSocketClient.resolve` itself with a synchronous fake instead, which
-cannot reproduce timing bugs that only show up with a real socket (an
-unsolicited `close`, a shutdown racing a reconnect). `packages/sdk/src/testing/`
-fixes that gap with a real `ws.Server` on loopback.
+`core/ws` is the one module whose tests don't mock the transport with
+`vi.mock` (see "Network isolation" below): `packages/sdk/src/testing/` runs a
+real `ws.Server` on loopback, because the bugs worth catching here are
+timing bugs — an unsolicited `close`, a shutdown racing a reconnect — that a
+synchronous fake cannot reproduce.
 
 `BaseWebSocketClient` itself used to have a microtask gap between socket
 construction and listener attachment — `createWebSocket()` was `async`, so
@@ -109,8 +108,8 @@ only exists because of real event-loop timing.
   real panel authorizes a connection before `websocket.accept()` (see
   [marzban-quirks.md](./marzban-quirks.md)). Handshakes can be configured to
   accept, reject (with a status), delay, or hang; logins to succeed,
-  fail, or stall until released — enough to drive the real-socket timing
-  scenarios `logs-stream.test.ts`'s fake can't.
+  fail, or stall until released — enough to drive every reconnect,
+  connect-timeout, and shutdown-race scenario in the suite.
 - [`transports.ts`](../packages/sdk/src/testing/transports.ts) — forces
   `WebSocketClient.create` onto the `ws`-package fallback for a test, so WS
   behavior can be asserted on both transports it can resolve to.
@@ -122,55 +121,60 @@ only exists because of real event-loop timing.
   itself. It isn't exported from `src/index.ts`, so it never reaches the
   published package (`tsup`'s only entry is `index.ts`; `files: ["dist"]`
   in `package.json` ships only the build output regardless).
-- `logs-stream.server.test.ts` (next to `logs-stream.test.ts`) is where WS
-  timing/lifecycle tests belong, built on this fixture instead of a
-  hand-rolled fake — including #86's own regression scenarios (a rejected
-  handshake, a panel that goes unreachable after login) that assert
-  `onError` fires and `activeConnections` ends up empty, on both transports
-  (`describe.each(WS_TRANSPORTS)`). `logs-stream.test.ts` itself stays — it
-  still pins `LogsStream`'s branch behavior efficiently — until it's
-  replaced outright once a public-API change lands (tracked alongside the
-  reconnect rework in [issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88)).
+- `logs-stream.server.test.ts` is where WS timing/lifecycle tests belong,
+  on both transports (`describe.each(WS_TRANSPORTS)`): reconnect after a
+  drop, retry while the panel is unavailable, backoff spacing, budget
+  exhaustion, connect timeout, and every shutdown overlap — `destroy()` or
+  `close()` or `closeAllConnections()` landing mid-reconnect — asserting no
+  orphaned socket survives. It also carries #86's regression scenarios (a
+  rejected handshake, a panel that goes unreachable after login).
 
-Reconnect, connect-timeout, and shutdown-race scenarios are exercised on
-this fixture as those behaviors are implemented — see
-[issue #85](https://github.com/Ilmar7786/marzban-sdk/issues/85) for the
-fixture itself and the issues it unblocks.
+The synchronous-fake `logs-stream.test.ts` that used to sit beside it is
+gone: [issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88)
+changed the public contract it pinned, and its branch coverage moved to the
+two files above.
 
-### LogsStream internals (issue #87)
+### Where WS behavior is tested, and why there
 
-`logs-stream.ts` only orchestrates: validate `interval`, authenticate, build
-the URL, create and track the socket, wire it up, open it. The 403-retry
-state machine lives in its own
-[`logs-stream-retry.ts`](../packages/sdk/src/core/ws/logs-stream-retry.ts)
-(`LogsStreamRetryHandler`), constructed with plain injected functions
-(`closeTracked`, `reconnect`) instead of reaching into `LogsStream`'s
-internals — so [`logs-stream-retry.test.ts`](../packages/sdk/src/core/ws/logs-stream-retry.test.ts)
-exercises the whole retry/give-up/re-auth-fails matrix as fast, deterministic
-unit tests with no socket at all. Small pure pieces live in `core/ws/utils/`
-next to `configuration-url-ws.ts` — `log-interval.ts` (validates `interval`
-against the panel's `0`–`10` range, throwing `WsOptionsError`),
-`close-quietly.ts` (closes a socket, collecting rather than propagating a
-throw from `close()` itself), and `ws-error.ts` (extracts a WS error
-event's message and classifies a 403). None of these are re-exported from
-`utils/index.ts` — only `configurationUrlWs` is; everything else is
-imported by its own file path so it stays out of the package's public API.
+`logs-stream.ts` is only a registry: validate `interval`, create a
+`LogStream`, track it, close them all on shutdown. The reconnect state
+machine is
+[`log-stream.ts`](../packages/sdk/src/core/ws/log-stream.ts) — one object per
+logical stream, across however many sockets it takes (see
+[ADR-0016](./adr/0016-ws-stream-lifecycle-and-reconnect.md)).
 
-`logs-stream.server.test.ts` also covers, on both transports: a throwing
-`onMessage`/`onError` is logged rather than crashing the process (asserted
-via a scoped `process.on('unhandledRejection')` listener) and doesn't block
-later messages; `closeAllConnections()` and the returned close handle both
-still close every other tracked socket and clear their entry when one
-client's `close()` itself throws; and `connectByCore({ interval: 11 })`
-rejects before a socket is even opened. One transport-specific finding
-surfaced while writing these: Node's native `WebSocket` global's `error`
-event carries no message text at all (verified on Node 24), so the
-existing substring-of-the-error-message 403 classification silently never
-recognizes a 403 as retryable on that transport — only the `ws`-package
-fallback's error text contains "403". See
-[marzban-quirks.md](./marzban-quirks.md) and
-[issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88), which
-replaces the classification itself.
+That split is what makes it testable at two levels:
+
+- [`log-stream.test.ts`](../packages/sdk/src/core/ws/log-stream.test.ts) —
+  a fake socket plus injected `now`/`sleep`, for the checkpoints that only
+  matter when something lands _between_ two awaits: a shutdown mid-handshake,
+  a socket that opens after its stream was closed, a stability timer
+  belonging to a superseded connection.
+- `logs-stream.server.test.ts` — the same policy end to end on real sockets.
+
+Timing is driven through `LogStreamTuning` (an internal `tuning` seam on
+`LogsStream`), not fake timers: the suite runs a real `ws.Server`, and faking
+timers would freeze its I/O along with the backoff under test. The seam is
+also what keeps the suite fast — the real defaults are a 10-second connect
+timeout and a 10-minute reconnect budget.
+
+Small pure pieces live in `core/ws/utils/` next to `configuration-url-ws.ts`
+— `log-interval.ts` (validates `interval` against the panel's `0`–`10` range,
+throwing `WsOptionsError`), `close-quietly.ts` (closes a socket, collecting
+rather than propagating a throw from `close()` itself), and `ws-error.ts`
+(reads the handshake's HTTP status out of the error message, when the
+transport reported one). None are re-exported from `utils/index.ts` — only
+`configurationUrlWs` is; everything else is imported by its own file path so
+it stays out of the package's public API.
+
+The two transports genuinely differ, which is why `WS_TRANSPORTS` covers
+both rather than picking one: on a rejected handshake the `ws` package
+reports `Unexpected server response: 403`, while the native `WebSocket`
+reports an empty message and close code `1006` — the same thing it reports
+for a refused connection (verified on Node 24). The classifier is anchored to
+that exact phrase, and `ws-error.test.ts` pins the trap it avoids: a
+connection-refused message carries a port number, and a looser pattern would
+read it as a status. See [marzban-quirks.md](./marzban-quirks.md).
 
 ## Coverage
 

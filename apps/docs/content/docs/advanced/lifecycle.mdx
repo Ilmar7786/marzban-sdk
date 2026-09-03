@@ -1,0 +1,80 @@
+---
+title: Lifecycle & Shutdown
+description: What `sdk.destroy()` guarantees — idempotency, what gets rejected afterward, and what still isn't cancelled.
+---
+
+`sdk.destroy()` releases everything the SDK owns and puts the instance into a terminal, `destroyed` state. It's the one method every long-running process (a server, a worker, a test suite tearing down between cases) should call before letting an SDK instance go out of scope.
+
+```ts
+await sdk.destroy()
+```
+
+## Calling destroy()
+
+`destroy()` is **idempotent** — call it as many times as you like; the second call onward is a no-op that returns the same promise and starts no new work. That makes it safe to call from more than one shutdown hook (a `SIGTERM` handler and a framework's own teardown, for example) without coordinating who calls it first.
+
+```ts
+await sdk.destroy()
+await sdk.destroy() // no-op, resolves immediately
+```
+
+## What destroy() does
+
+Three independent steps run, each wrapped so a failure in one never skips the others — every failure is logged and swallowed, `destroy()` itself never rejects:
+
+1. **Closes every active WebSocket log stream** opened through `sdk.logs.connectByCore()`/`connectByNode()`.
+2. **Clears every webhook listener** registered with `sdk.webhook.on()`/`once()`.
+3. **Clears the stored access token.** This drops the reference only — JavaScript strings can't be reliably zeroed in memory, so this isn't a security wipe, just a "the token is no longer reachable through this instance" guarantee.
+
+## What rejects after destroy
+
+From the moment `destroy()` is called, these reject with `SdkDestroyedError` (code `SDK_DESTROYED`) instead of doing anything:
+
+| Call | Behavior after `destroy()` |
+|------|------|
+| `sdk.authorize()` | Throws synchronously |
+| `sdk.getAuthToken()` | Rejects |
+| `sdk.logs.connectByCore()` / `connectByNode()` | Rejects |
+| `sdk.webhook.parseWebhook()` | Rejects |
+| `sdk.webhook.handleWebhook()` | Rejects |
+| `sdk.webhook.dispatch()` | Rejects |
+
+```ts
+import { isSdkDestroyedError } from 'marzban-sdk'
+
+await sdk.destroy()
+
+try {
+  await sdk.authorize()
+} catch (err) {
+  if (isSdkDestroyedError(err)) {
+    // err.details.operation === 'authorize'
+  }
+}
+```
+
+## What still works after destroy
+
+`sdk.webhook.on()`, `once()`, and `off()` are **not** guarded — subscribing or, more importantly, unsubscribing after shutdown must stay safe, since a caller tearing down its own listeners shouldn't need to check whether the SDK died first.
+
+## What isn't covered
+
+- **Direct API calls** (`sdk.user.getUsers()`, `sdk.node.getNodes()`, …) are not rejected by `destroy()` itself. The access token is cleared, so such a call fails with the panel's own `401` once it reaches the network, and the SDK's automatic re-authentication is what actually rejects — with `SdkDestroyedError`, not a fresh login attempt.
+- **A request already in flight when `destroy()` is called is not cancelled.** It runs to completion (success, error response, or timeout) on its own.
+- **`httpAgent`/`httpsAgent`** passed in [config](/docs/configuration/config-options) are never touched. The SDK doesn't create that agent, so it doesn't own its lifecycle either — if you supplied one, you're responsible for calling its own `.destroy()`.
+
+## Graceful shutdown order
+
+If you're handling incoming webhooks on an HTTP server, close the server *before* calling `sdk.destroy()` — not after:
+
+```ts
+server.close(async () => {
+  await sdk.destroy()
+})
+```
+
+Calling `destroy()` first can make an in-flight webhook request hit `sdk.webhook.handleWebhook()` after it's already rejecting, returning a `500` to the panel and triggering an unnecessary retry.
+
+## Multiple SDK instances
+
+Each `MarzbanSDK` instance has its own `Lifecycle` state — destroying one instance never affects another, even against the same panel. See [HTTP & Retry](/docs/advanced/http-retry#multiple-sdk-instances) for the same guarantee applied to tokens and retry state.

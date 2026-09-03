@@ -2,6 +2,7 @@ import { SafeEventEmitter, toBytes } from '@/common'
 import { SdkError, WebhookSignatureError, WebhookValidationError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
+import { Lifecycle } from '../lifecycle'
 import { WebhookType } from './webhook.schema'
 import { validateWebhookPayload, verifyWebhookSignature } from './webhook.utils'
 
@@ -45,6 +46,9 @@ export interface WebhookManagerOptions {
    * Logger instance used for internal webhook logging.
    */
   logger: Logger
+
+  /** Shared SDK-instance terminal-state flag. Defaults to a fresh, always-active one when omitted. */
+  lifecycle?: Lifecycle
 }
 
 /**
@@ -77,15 +81,17 @@ export class WebhookManager {
   private readonly _secret?: string
   private readonly _emitter: SafeEventEmitter<WebhookEventMap>
   private readonly _logger: Logger
+  private readonly _lifecycle: Lifecycle
 
   /**
    * @param options Webhook manager options.
    * @param options.secret Optional webhook secret for verifying signatures.
    * @param options.logger Logger instance for logging events.
    */
-  constructor({ secret, logger }: WebhookManagerOptions) {
+  constructor({ secret, logger, lifecycle = new Lifecycle() }: WebhookManagerOptions) {
     this._secret = secret
     this._logger = logger
+    this._lifecycle = lifecycle
     this._emitter = new SafeEventEmitter<WebhookEventMap>()
 
     this._logger.debug('WebhookManager initialized', 'WebhookManager')
@@ -132,8 +138,10 @@ export class WebhookManager {
    * @param rawBody Incoming webhook raw body (string|Uint8Array|ArrayBuffer) OR already-parsed object.
    * @param signature Optional webhook signature to verify (hex string)
    * @returns Array of validated webhook payloads
+   * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
    */
   async parseWebhook(rawBody: unknown, signature?: string): Promise<WebhookType[]> {
+    this._lifecycle.assertActive('webhook.parseWebhook')
     this._logger.debug('Parsing incoming webhook payload', 'WebhookManager')
 
     // If secret is configured — require signature and raw body bytes.
@@ -200,8 +208,10 @@ export class WebhookManager {
    * @param rawBody Incoming webhook raw body (string|Uint8Array|ArrayBuffer) or already-parsed object
    * @param signature Optional signature for verification
    * @returns true if at least one event had listeners
+   * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
    */
   async handleWebhook(rawBody: unknown, signature?: string): Promise<boolean> {
+    this._lifecycle.assertActive('webhook.handleWebhook')
     this._logger.debug('Handling incoming webhook', 'WebhookManager')
     let emitted = false
 
@@ -241,14 +251,25 @@ export class WebhookManager {
    * @param event Event name (specific action, '*', or 'batch')
    * @param payload Payload to emit
    * @returns true if event had listeners
+   * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
    */
   async dispatch<E extends keyof Omit<WebhookEventMap, '*' | 'batch'>>(
     event: E,
     payload: WebhookEventMap[E]
   ): Promise<boolean> {
+    this._lifecycle.assertActive('webhook.dispatch')
     this._logger.debug(`Dispatching event: ${String(event)}`, 'WebhookManager')
     const result = await this._emitter.emitAsync(event, payload)
     this._logger.debug(`Event dispatched: ${String(event)}, result=${result}`, 'WebhookManager')
     return result
+  }
+
+  /**
+   * Removes every registered listener (specific-action, wildcard, and batch).
+   * Called by `MarzbanSDK.destroy()`; safe to call directly.
+   */
+  close(): void {
+    this._emitter.removeAllListeners()
+    this._logger.debug('WebhookManager closed, all listeners removed', 'WebhookManager')
   }
 }

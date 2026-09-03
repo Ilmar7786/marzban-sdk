@@ -14,6 +14,7 @@ Error
     │   └── AuthTokenError   (code: AUTH_TOKEN_FAILED)
     ├── ConfigurationError   (code: CONFIG_INVALID)
     ├── HttpError            (code: NETWORK_HTTP_ERROR)
+    ├── SdkDestroyedError    (code: SDK_DESTROYED)
     ├── WsOptionsError       (code: WS_OPTIONS_INVALID)
     └── WebhookError
         ├── WebhookSignatureError     (code: WEBHOOK_SIGNATURE_ERROR)
@@ -47,6 +48,7 @@ class SdkError extends Error {
 | `AUTH_TOKEN_FAILED` | `AuthTokenError` | Server responded but returned no `access_token` |
 | `CONFIG_INVALID` | `ConfigurationError` | Config fails Zod schema validation |
 | `NETWORK_HTTP_ERROR` | `HttpError` | HTTP request failed (4xx, 5xx, network timeout) |
+| `SDK_DESTROYED` | `SdkDestroyedError` | A guarded operation (`authorize()`, `logs.connect*()`, webhook processing, …) was called after [`sdk.destroy()`](/docs/advanced/lifecycle) |
 | `WS_OPTIONS_INVALID` | `WsOptionsError` | `LogOptions.interval` is outside the `0`–`10` range the panel accepts |
 | `WEBHOOK_SIGNATURE_ERROR` | `WebhookSignatureError` | Missing signature or HMAC mismatch |
 | `WEBHOOK_VALIDATION_ERROR` | `WebhookValidationError` | Webhook payload doesn't match expected schema |
@@ -79,6 +81,7 @@ import {
   isAuthTokenError,
   isConfigurationError,
   isHttpError,
+  isSdkDestroyedError,
   isWebhookSignatureError,
   isWebhookValidationError,
   isWebhookEnvironmentError,
@@ -175,3 +178,4 @@ try {
 - **Always re-throw unknown errors** — only catch what you can handle; let the rest propagate.
 - **Use `toJSON()`** when logging errors to structured log systems — it serializes the full error context.
 - **Webhook errors are server-side only** — `WebhookEnvironmentError` is thrown if signature verification is called in a browser. Move webhook handling to a server route.
+- **`SdkDestroyedError` means the instance is gone, not that the request was bad** — see [Lifecycle & shutdown](/docs/advanced/lifecycle) for exactly which operations reject after `destroy()`.

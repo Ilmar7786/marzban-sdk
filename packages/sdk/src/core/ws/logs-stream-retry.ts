@@ -1,6 +1,7 @@
 import { AuthManager } from '@/core/auth'
 import { Logger } from '@/core/logger'
 
+import { Lifecycle } from '../lifecycle'
 import { BaseWebSocketClient } from './client'
 import type { LogOptions } from './logs-stream'
 import type { ConnectionHandle, HandleCloseConnection } from './utils/connection-handle.types'
@@ -10,6 +11,8 @@ export interface LogsStreamRetryHandlerOptions {
   authService: AuthManager
   logger: Logger
   maxRetries: number
+  /** Shared SDK-instance terminal-state flag. Defaults to a fresh, always-active one when omitted. */
+  lifecycle?: Lifecycle
   /** Untracks and closes the failed socket, logging rather than throwing if `close()` itself fails. */
   closeTracked: (wsClient: BaseWebSocketClient, endpoint: string) => void
   /** Opens a brand new connection for the same endpoint/options, one retry attempt further in. */
@@ -27,6 +30,7 @@ export class LogsStreamRetryHandler {
   private readonly authService: AuthManager
   private readonly logger: Logger
   private readonly maxRetries: number
+  private readonly lifecycle: Lifecycle
   private readonly closeTracked: LogsStreamRetryHandlerOptions['closeTracked']
   private readonly reconnect: LogsStreamRetryHandlerOptions['reconnect']
 
@@ -34,6 +38,7 @@ export class LogsStreamRetryHandler {
     this.authService = options.authService
     this.logger = options.logger
     this.maxRetries = options.maxRetries
+    this.lifecycle = options.lifecycle ?? new Lifecycle()
     this.closeTracked = options.closeTracked
     this.reconnect = options.reconnect
   }
@@ -74,6 +79,15 @@ export class LogsStreamRetryHandler {
 
     try {
       await this.authService.retryAuth()
+
+      // The SDK may have been destroyed while retryAuth() was in flight — the
+      // consumer's handlers are already disposed of, so give up quietly
+      // instead of opening a socket nobody is going to close.
+      if (this.lifecycle.destroyed) {
+        this.logger.debug('SDK destroyed during 403 re-auth, abandoning reconnect', 'LogsStream')
+        return
+      }
+
       connection.close = await this.reconnect(endpoint, options, retryCount + 1)
     } catch {
       emitError(event)

@@ -1,9 +1,10 @@
 /* eslint-disable no-empty */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { AuthError, AuthTokenError } from '@/core/errors'
+import { AuthError, AuthTokenError, isSdkDestroyedError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
+import { Lifecycle } from '../lifecycle'
 import { AuthManager } from './auth.manager'
 import { Storage } from './auth.types'
 
@@ -297,6 +298,55 @@ describe('AuthManager', () => {
       makeAdminToken({ access_token: 'tok' })
       await manager.retryAuth()
       expect(storage.accessToken).toBe('tok')
+    })
+  })
+
+  // ─── close ────────────────────────────────────────────────────────────────
+
+  describe('close', () => {
+    it('clears the stored access token', () => {
+      storage.accessToken = 'live-token'
+      manager.close()
+      expect(storage.accessToken).toBeUndefined()
+    })
+
+    it('logs debug when the token is cleared', () => {
+      manager.close()
+      expect(logger.debug).toHaveBeenCalledWith('Access token cleared', 'AuthManager')
+    })
+
+    it('does not touch stored username/password', () => {
+      manager.close()
+      expect(storage.username).toBe('admin')
+      expect(storage.password).toBe('secret')
+    })
+  })
+
+  // ─── lifecycle guard ────────────────────────────────────────────────────────
+
+  describe('when the owning SDK is destroyed', () => {
+    it('authenticate() throws SdkDestroyedError instead of making a request', () => {
+      const lifecycle = new Lifecycle()
+      const destroyedManager = new AuthManager(storage, logger, lifecycle)
+      lifecycle.markDestroyed()
+
+      let thrown: unknown
+      try {
+        destroyedManager.authenticate('admin', 'secret')
+      } catch (err) {
+        thrown = err
+      }
+
+      expect(isSdkDestroyedError(thrown)).toBe(true)
+      expect(mockAdminApi).not.toHaveBeenCalled()
+    })
+
+    it('retryAuth() propagates the same SdkDestroyedError (it delegates to authenticate())', () => {
+      const lifecycle = new Lifecycle()
+      const destroyedManager = new AuthManager(storage, logger, lifecycle)
+      lifecycle.markDestroyed()
+
+      expect(() => destroyedManager.retryAuth()).toThrow(expect.objectContaining({ code: 'SDK_DESTROYED' }))
     })
   })
 })

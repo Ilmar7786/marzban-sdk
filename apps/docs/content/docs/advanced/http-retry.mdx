@@ -100,10 +100,10 @@ const sdkB = await createMarzbanSDK({ baseUrl: 'https://server-b.com', ... })
 
 ## Cleanup
 
-Call `sdk.destroy()` to close all active WebSocket connections and release resources:
+Call `sdk.destroy()` to release everything the SDK owns — active WebSocket connections, webhook listeners, the stored token — and enter a terminal, idempotent shutdown state:
 
 ```ts
 await sdk.destroy()
 ```
 
-This is particularly important in long-running processes or tests where you create multiple SDK instances.
+This is particularly important in long-running processes or tests where you create multiple SDK instances. See [Lifecycle & shutdown](/docs/advanced/lifecycle) for the full `destroy()` contract, including which operations reject afterward.

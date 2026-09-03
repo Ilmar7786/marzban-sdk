@@ -3,6 +3,7 @@ import { DEFAULT_RETRIES } from '@/config'
 import { AuthManager } from '@/core/auth'
 import { Logger } from '@/core/logger'
 
+import { Lifecycle } from '../lifecycle'
 import { BaseWebSocketClient, WebSocketClient } from './client'
 import { LogsStreamRetryHandler } from './logs-stream-retry'
 import { configurationUrlWs } from './utils'
@@ -39,6 +40,8 @@ export interface LogsStreamOptions {
    * e.g. to trust a self-signed panel certificate. Ignored in the browser.
    */
   httpsAgent?: HttpAgentLike
+  /** Shared SDK-instance terminal-state flag. Defaults to a fresh, always-active one when omitted. */
+  lifecycle?: Lifecycle
 }
 
 /**
@@ -51,21 +54,31 @@ export class LogsStream {
   private logger: Logger
   private activeConnections: Set<BaseWebSocketClient> = new Set()
   private httpsAgent?: HttpAgentLike
+  private lifecycle: Lifecycle
   private retryHandler: LogsStreamRetryHandler
 
   /**
    * Creates an API instance for handling logs via WebSocket.
    * @param options Configuration for the log stream. See {@link LogsStreamOptions}.
    */
-  constructor({ basePath, authService, logger, maxRetries = DEFAULT_RETRIES, httpsAgent }: LogsStreamOptions) {
+  constructor({
+    basePath,
+    authService,
+    logger,
+    maxRetries = DEFAULT_RETRIES,
+    httpsAgent,
+    lifecycle = new Lifecycle(),
+  }: LogsStreamOptions) {
     this.basePath = basePath
     this.authService = authService
     this.logger = logger
     this.httpsAgent = httpsAgent
+    this.lifecycle = lifecycle
     this.retryHandler = new LogsStreamRetryHandler({
       authService,
       logger,
       maxRetries,
+      lifecycle,
       closeTracked: (wsClient, endpoint) => this.closeTracked(wsClient, endpoint),
       reconnect: (endpoint, options, retryCount) => this.connect(endpoint, options, retryCount),
     })
@@ -193,6 +206,8 @@ export class LogsStream {
    * @returns A function to close the WebSocket connection.
    */
   private async connect(endpoint: string, options: LogOptions, retryCount = 0): Promise<HandleCloseConnection> {
+    this.lifecycle.assertActive(`logs.connect(${endpoint})`)
+
     const interval = resolveLogInterval(options.interval)
 
     this.logger.debug(`Establishing WebSocket connection to: ${endpoint}`, 'LogsStream')
@@ -216,6 +231,7 @@ export class LogsStream {
    * Connects to the core logs (`/api/core/logs`).
    * @param options Connection options (callbacks, interval).
    * @returns A function to close the WebSocket connection.
+   * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
    */
   async connectByCore(options: LogOptions) {
     this.logger.debug('Connecting to core logs WebSocket', 'LogsStream')
@@ -227,6 +243,7 @@ export class LogsStream {
    * @param nodeId The ID of the node whose logs should be accessed.
    * @param options Connection options (callbacks, interval).
    * @returns A function to close the WebSocket connection.
+   * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
    */
   async connectByNode(nodeId: number | string, options: LogOptions) {
     this.logger.debug(`Connecting to node logs WebSocket for node ID: ${nodeId}`, 'LogsStream')

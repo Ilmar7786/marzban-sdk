@@ -1,6 +1,7 @@
 export * from './auth.guard'
 export * from './configuration.guard'
 export * from './http.guard'
+export * from './lifecycle.guard'
 export * from './sdk.guard'
 export * from './webhook.guard'
 export * from './ws.guard'

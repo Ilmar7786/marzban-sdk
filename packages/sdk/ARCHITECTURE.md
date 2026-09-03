@@ -16,15 +16,15 @@ its own on top of HTTP.
 
 ## Directory map
 
-| Directory      | Role                                                                                                                        |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `src/index.ts` | The only public entry point.                                                                                                |
-| `src/core/`    | Hand-written infrastructure: `MarzbanSDK.ts` (the facade) plus `auth/`, `http/`, `errors/`, `logger/`, `webhook/`, `ws/`.   |
-| `src/config/`  | Zod config schema, defaults, validation.                                                                                    |
-| `src/common/`  | Runtime-agnostic utilities with no domain knowledge (redaction, byte/buffer helpers, event emitter, environment detection). |
-| `src/gen/`     | Fully generated from OpenAPI via kubb — `api/`, `models/`, `schemas/`. Committed to git, never hand-edited.                 |
-| `src/helpers/` | Convenience utilities for SDK consumers (bytes, datetime, pagination) — not used by `core/`.                                |
-| `src/testing/` | Test-only fixtures — see below.                                                                                             |
+| Directory      | Role                                                                                                                                                                  |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/index.ts` | The only public entry point.                                                                                                                                          |
+| `src/core/`    | Hand-written infrastructure: `MarzbanSDK.ts` (the facade), `lifecycle.ts` (shared destroy-state flag) plus `auth/`, `http/`, `errors/`, `logger/`, `webhook/`, `ws/`. |
+| `src/config/`  | Zod config schema, defaults, validation.                                                                                                                              |
+| `src/common/`  | Runtime-agnostic utilities with no domain knowledge (redaction, byte/buffer helpers, event emitter, environment detection).                                           |
+| `src/gen/`     | Fully generated from OpenAPI via kubb — `api/`, `models/`, `schemas/`. Committed to git, never hand-edited.                                                           |
+| `src/helpers/` | Convenience utilities for SDK consumers (bytes, datetime, pagination) — not used by `core/`.                                                                          |
+| `src/testing/` | Test-only fixtures — see below.                                                                                                                                       |
 
 Dependency direction is one-way and acyclic: `index.ts → core/MarzbanSDK.ts →
 {config, core/*, gen/api}`. `common/` sits below everything and depends on
@@ -120,9 +120,26 @@ production.
 
 `SdkError<T>` is the base; `ERROR_CODES` is a fixed const map (`CONFIG_INVALID`,
 `NETWORK_HTTP_ERROR`, `AUTH_FAILED`, …). Categories (`HttpError`, `AuthError`,
-`ConfigurationError`, three `Webhook*Error` variants) extend it. Type guards
-(`isHttpError`, `isAuthError`, …) are the supported way to narrow — don't
-match on `error.code` strings or `instanceof` on internals.
+`ConfigurationError`, `SdkDestroyedError`, three `Webhook*Error` variants)
+extend it. Type guards (`isHttpError`, `isAuthError`, `isSdkDestroyedError`, …)
+are the supported way to narrow — don't match on `error.code` strings or
+`instanceof` on internals.
+
+## Lifecycle
+
+`core/lifecycle.ts`'s `Lifecycle` is one shared destroy-state flag, held by
+`MarzbanSDK` and passed into every subsystem it constructs (`AuthManager`,
+`LogsStream`, `WebhookManager`) instead of each keeping its own. It is
+internal — not exported from `src/index.ts` — since consumers interact with
+it only through `MarzbanSDK.destroy()` and the `SdkDestroyedError` it causes
+elsewhere to be thrown. `destroy()` calls `Lifecycle.markDestroyed()` before
+running its cleanup steps, and a subsystem calls `assertActive()` at points
+where continuing after shutdown would do the wrong thing — typically right
+after an `await`, since that's where a pending operation could otherwise
+resurrect work post-shutdown (a WebSocket 403 reconnect finishing after
+`destroy()` already resolved is the motivating case). See
+[ADR-0015](../../docs/adr/0015-sdk-destroy-terminal-lifecycle.md) for the
+full contract and why each subsystem's guard sits where it does.
 
 ## Extension points
 

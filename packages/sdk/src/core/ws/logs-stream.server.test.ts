@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { AnyType } from '@/common'
-import { WsOptionsError } from '@/core/errors'
+import { isSdkDestroyedError, WsOptionsError } from '@/core/errors'
 import { createMarzbanSDK, type MarzbanSDK } from '@/core/MarzbanSDK'
 import type { MockPanel } from '@/testing'
 import { selectWsTransport, startMockPanel, WS_TRANSPORTS } from '@/testing'
@@ -89,6 +89,16 @@ describe.each(WS_TRANSPORTS)('LogsStream over the %s transport', transportName =
     await vi.waitFor(() => {
       sockets.forEach(socket => expect(socket.readyState).toBe(socket.CLOSED))
     })
+  })
+
+  it('connectByCore() rejects with SdkDestroyedError once destroy() has resolved (#84)', async () => {
+    const instance = await connectSdk()
+
+    await instance.destroy()
+
+    await expect(instance.logs.connectByCore({ onMessage: () => {} })).rejects.toSatisfy(isSdkDestroyedError)
+    // No new connection reached the panel for the rejected call above.
+    expect(panel.sockets.size).toBe(0)
   })
 
   it('a fresh login flows through to the next connection', async () => {

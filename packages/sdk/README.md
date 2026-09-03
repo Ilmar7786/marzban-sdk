@@ -65,6 +65,7 @@ const close = await sdk.logs.connectByCore({
 - 🎯 **Classified errors** — `AuthError`, `HttpError`, `ConfigurationError` and webhook errors all extend `SdkError` with a machine-readable code and type-guard helpers.
 - 📡 **Real-time logs & webhooks** — WebSocket log streams from the core and nodes, plus HMAC-verified inbound webhooks with typed event subscriptions.
 - 🔐 **Custom CA support** — pass a Node `httpsAgent` to trust a self-hosted panel's self-signed certificate, without disabling TLS verification.
+- 🧹 **Explicit shutdown** — `await sdk.destroy()` is idempotent and terminal: it closes WebSocket streams, clears webhook listeners and the stored token, and every guarded operation on that instance rejects with `SdkDestroyedError` from then on.
 
 ## Documentation
 
@@ -76,6 +77,7 @@ Full guides, configuration reference and the complete typed API live at
 - [Error handling](https://ilmar7786.github.io/marzban-sdk/docs/advanced/error-handling) & [validation](https://ilmar7786.github.io/marzban-sdk/docs/advanced/validation)
 - [Webhooks](https://ilmar7786.github.io/marzban-sdk/docs/webhooks/event-types) & [WebSocket logs](https://ilmar7786.github.io/marzban-sdk/docs/realtime/websocket-logs)
 - [Utilities](https://ilmar7786.github.io/marzban-sdk/docs/utilities/data-sizes)
+- [Lifecycle & shutdown](https://ilmar7786.github.io/marzban-sdk/docs/advanced/lifecycle)
 
 ## Contributing
 

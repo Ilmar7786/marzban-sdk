@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest'
 import { AuthError, AuthTokenError } from './categories/auth.error'
 import { ConfigurationError } from './categories/configuration.error'
 import { HttpError } from './categories/http.error'
+import { SdkDestroyedError } from './categories/lifecycle.error'
 import { WebhookEnvironmentError, WebhookSignatureError, WebhookValidationError } from './categories/webhook.error'
 import { ERROR_CODES, ErrorCode } from './codes'
 import { isAuthError, isAuthTokenError } from './guards/auth.guard'
 import { isConfigurationError } from './guards/configuration.guard'
 import { isHttpError } from './guards/http.guard'
+import { isSdkDestroyedError } from './guards/lifecycle.guard'
 import { isSdkError } from './guards/sdk.guard'
 import { isWebhookEnvironmentError, isWebhookSignatureError, isWebhookValidationError } from './guards/webhook.guard'
 import { SdkError } from './sdk.error'
@@ -153,6 +155,20 @@ describe('AuthTokenError', () => {
 
   it('sets name to AuthTokenError', () => {
     expect(new AuthTokenError().name).toBe('AuthTokenError')
+  })
+})
+
+describe('SdkDestroyedError', () => {
+  it('has the correct code', () => {
+    expect(new SdkDestroyedError('authorize').code).toBe(ERROR_CODES.SDK_DESTROYED.code)
+  })
+
+  it('sets name to SdkDestroyedError', () => {
+    expect(new SdkDestroyedError('authorize').name).toBe('SdkDestroyedError')
+  })
+
+  it('carries the failed operation in details', () => {
+    expect(new SdkDestroyedError('logs.connectByCore').details).toEqual({ operation: 'logs.connectByCore' })
   })
 })
 
@@ -372,5 +388,19 @@ describe('isWebhookEnvironmentError', () => {
 
   it('returns false for null', () => {
     expect(isWebhookEnvironmentError(null)).toBe(false)
+  })
+})
+
+describe('isSdkDestroyedError', () => {
+  it('returns true for SdkDestroyedError', () => {
+    expect(isSdkDestroyedError(new SdkDestroyedError('authorize'))).toBe(true)
+  })
+
+  it('returns false for a plain AuthError', () => {
+    expect(isSdkDestroyedError(new AuthError())).toBe(false)
+  })
+
+  it('returns false for null', () => {
+    expect(isSdkDestroyedError(null)).toBe(false)
   })
 })

@@ -134,6 +134,12 @@ export async function startMockPanel(): Promise<MockPanel> {
   })
 
   server.on('upgrade', (req: IncomingMessage, socket: Socket, head: Buffer) => {
+    // A raw upgrade socket has no error handler of its own, so a client that
+    // goes away mid-handshake (which the reconnect tests do constantly)
+    // raises an uncaught ECONNRESET and fails the run. Nothing here needs to
+    // react to it — the connection is over either way.
+    socket.on('error', () => {})
+
     const url = new URL(req.url!, 'http://mock-panel')
     handshakes.push({
       pathname: url.pathname,

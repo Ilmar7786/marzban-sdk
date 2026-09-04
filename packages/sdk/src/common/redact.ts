@@ -23,8 +23,54 @@ const REDACTED = '[REDACTED]'
 const MAX_DEPTH = 6
 const MAX_ENTRIES = 50
 
+/**
+ * Marker used for a redacted URL query parameter instead of {@link REDACTED}
+ * — a query parameter value is percent-encoded on serialization, and `[`/`]`
+ * would round-trip as unreadable `%5B`/`%5D` noise in a URL.
+ */
+const REDACTED_URL_PARAM = 'REDACTED'
+
 function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEYS.has(key.toLowerCase().replace(/[-_\s]/g, ''))
+}
+
+/**
+ * Redacts every query parameter of `url` whose name `shouldRedact` accepts.
+ * Returns `undefined` (rather than `url` itself) when `url` doesn't parse as
+ * an absolute URL at all, so callers can tell "nothing to redact" apart from
+ * "couldn't even look."
+ */
+function redactUrlParams(url: string, shouldRedact: (key: string) => boolean): string | undefined {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return undefined
+  }
+
+  let changed = false
+  for (const key of parsed.searchParams.keys()) {
+    if (shouldRedact(key)) {
+      parsed.searchParams.set(key, REDACTED_URL_PARAM)
+      changed = true
+    }
+  }
+  return changed ? parsed.toString() : url
+}
+
+/**
+ * Redacts any sensitive-named query parameter (the same {@link SENSITIVE_KEYS}
+ * used for object keys, e.g. `token`, `access_token`) out of a string that
+ * happens to parse as an absolute URL. `walk()`'s key-based redaction can't
+ * catch this on its own — a URL is a single string value, and its query
+ * parameters aren't object keys, wherever that URL happens to sit in the
+ * graph (a `url` field on a wrapped WebSocket event, an axios request's
+ * `config.url`, ...). A string that isn't a parseable absolute URL is
+ * returned unchanged rather than pattern-matched, so ordinary prose
+ * containing e.g. "token=" isn't mistaken for one.
+ */
+function redactUrlSecrets(value: string): string {
+  return redactUrlParams(value, isSensitiveKey) ?? value
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -63,7 +109,7 @@ function redactJsonString(value: string, depth: number, seen: WeakSet<object>): 
 }
 
 function walk(value: unknown, depth: number, seen: WeakSet<object>): unknown {
-  if (typeof value === 'string') return redactJsonString(value, depth, seen)
+  if (typeof value === 'string') return redactUrlSecrets(redactJsonString(value, depth, seen))
   if (value === null || typeof value !== 'object') {
     return typeof value === 'function' ? undefined : value
   }
@@ -141,14 +187,44 @@ function walk(value: unknown, depth: number, seen: WeakSet<object>): unknown {
  * always replaced with `'[REDACTED]'` wherever they appear in the graph —
  * including inside JSON-object/array-shaped strings (e.g. an already
  * `JSON.stringify`'d request body), which are parsed, redacted, and
- * re-stringified. Opaque runtime objects that aren't safely serializable
- * (sockets, streams, buffers) are never walked and are replaced with a short
- * type tag instead.
+ * re-stringified, and inside the query string of any value that parses as an
+ * absolute URL (e.g. a `url` field carrying `?token=...`), regardless of
+ * which key it sits under. Opaque runtime objects that aren't safely
+ * serializable (sockets, streams, buffers) are never walked and are replaced
+ * with a short type tag instead.
  *
  * @example
  * redactSecrets({ username: 'admin', password: 'hunter2' })
  * // => { username: 'admin', password: '[REDACTED]' }
+ *
+ * @example
+ * redactSecrets({ target: { url: 'wss://host/logs?token=eyJhbGciOi...' } })
+ * // => { target: { url: 'wss://host/logs?token=REDACTED' } }
  */
 export function redactSecrets<T>(value: T): T {
   return walk(value, 0, new WeakSet()) as T
+}
+
+/**
+ * Redacts one specific query parameter's value from a URL string, leaving
+ * the rest of the URL intact — for a caller that knows exactly which
+ * parameter carries the secret (e.g. the WS connection URL's `token`) and
+ * wants that one redacted even if {@link isSensitiveKey} wouldn't otherwise
+ * recognize its name. {@link redactSecrets} (via {@link walk}) redacts every
+ * sensitively-named parameter of any URL it encounters; this is the narrower,
+ * explicit sibling for building one log line before that value ever reaches
+ * `redactSecrets`. Falls back to a regex when `url` isn't parseable (so a
+ * caller building a URL by hand, or building one for a log line before it's
+ * fully assembled, still gets redaction instead of a thrown error).
+ *
+ * @example
+ * redactUrlToken('wss://host/api/core/logs?interval=1&token=eyJhbGciOi...', 'token')
+ * // => 'wss://host/api/core/logs?interval=1&token=REDACTED'
+ */
+export function redactUrlToken(url: string, paramName: string): string {
+  const redacted = redactUrlParams(url, key => key === paramName)
+  if (redacted !== undefined) return redacted
+
+  const pattern = new RegExp(`(${paramName}=)[^&]+`, 'i')
+  return url.replace(pattern, `$1${REDACTED_URL_PARAM}`)
 }

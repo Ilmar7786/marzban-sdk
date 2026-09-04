@@ -15,7 +15,13 @@
  */
 export const DEFAULT_TIMEOUT = 30_000
 
-/** Default number of automatic retries for failed requests / WS reconnections. */
+/**
+ * Default number of automatic retries for failed HTTP requests.
+ *
+ * WS log streaming (`core/ws`) does not use this — it has its own budget
+ * (`WS_RECONNECT_BUDGET_MS`) below, since "N attempts" doesn't fit a
+ * long-lived connection the way it fits a single request.
+ */
 export const DEFAULT_RETRIES = 3
 
 /** Base delay (ms) used for exponential backoff between retries. */
@@ -37,3 +43,34 @@ export const DEFAULT_WS_INTERVAL = 1
  */
 export const MIN_WS_INTERVAL = 0
 export const MAX_WS_INTERVAL = 10
+
+/**
+ * How long a WS handshake may stay in `CONNECTING` before it's treated as a
+ * transport drop. Guards against a socket that hangs indefinitely — a
+ * black hole on SYN, or a proxy that accepts the TCP connection but never
+ * completes the upgrade.
+ */
+export const WS_CONNECT_TIMEOUT_MS = 10_000
+
+/** Base delay (ms) for the WS reconnect state machine's exponential backoff. */
+export const WS_BACKOFF_BASE_MS = 1_000
+
+/** Upper bound (ms) for a single WS reconnect backoff delay. */
+export const WS_BACKOFF_MAX_MS = 30_000
+
+/**
+ * How long (ms) a WS stream keeps reconnecting after a transport drop before
+ * giving up — a time budget rather than an attempt count, so a
+ * `docker restart`-scale outage (~10s) is never lost to a low attempt-count
+ * default, while an unbounded default wouldn't mask a permanent failure (a
+ * revoked admin, a panel that's gone for good).
+ */
+export const WS_RECONNECT_BUDGET_MS = 600_000
+
+/**
+ * How long (ms) a reconnected WS stream must stay open before it's
+ * considered stable again, resetting the reconnect budget above. Without
+ * this, one long-lived connection that eventually drops would start its next
+ * reconnect attempt with a budget already exhausted by earlier flapping.
+ */
+export const WS_STABLE_AFTER_MS = 30_000

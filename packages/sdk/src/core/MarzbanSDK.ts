@@ -153,7 +153,6 @@ export class MarzbanSDK {
       basePath: this._config.baseUrl,
       authService: this._authService,
       logger: this._logger,
-      maxRetries: this._config.retries,
       httpsAgent: this._config.httpsAgent,
       lifecycle: this._lifecycle,
     })

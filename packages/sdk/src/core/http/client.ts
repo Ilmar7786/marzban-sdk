@@ -6,6 +6,7 @@ import { isBrowser } from '@/common'
 import { MAX_RETRY_DELAY_MS, RETRY_BASE_DELAY_MS, ValidatedConfig } from '@/config'
 
 import { AuthManager } from '../auth'
+import { computeBackoff } from '../backoff'
 import { Logger } from '../logger'
 import { setupAuthInterceptors } from './interceptors'
 import { createRetryCondition, LOGIN_RETRYABLE_METHODS, SAFE_HTTP_METHODS } from './retry'
@@ -60,8 +61,10 @@ export const configureHttpClient = (
 
   const retries = config.retries
   // Exponential backoff capped at MAX_RETRY_DELAY_MS: 1s, 2s, 4s, 8s, ...
+  // No jitter here — deterministic delay is the existing, tested behavior;
+  // jitter is opt-in for the WS reconnect state machine (core/ws) instead.
   const retryDelay = (retryCount: number): number => {
-    const delay = Math.min(2 ** (retryCount - 1) * RETRY_BASE_DELAY_MS, MAX_RETRY_DELAY_MS)
+    const delay = computeBackoff(retryCount, { baseMs: RETRY_BASE_DELAY_MS, maxMs: MAX_RETRY_DELAY_MS })
     logger.debug(`Retry attempt ${retryCount}, delay: ${delay}ms`, 'HttpClient')
     return delay
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { redactSecrets } from './redact'
+import { redactSecrets, redactUrlToken } from './redact'
 
 describe('redactSecrets', () => {
   describe('primitives and simple values', () => {
@@ -210,6 +210,33 @@ describe('redactSecrets', () => {
     })
   })
 
+  describe('URL-shaped strings', () => {
+    it('redacts a sensitive query parameter nested under a non-sensitive key', () => {
+      // The leak this closes: a `url` field isn't a sensitive key by name, so
+      // only scanning the string itself for URL query parameters catches the
+      // token carried inside it.
+      const result = redactSecrets({ target: { url: 'wss://host/logs?interval=1&token=eyJhbGciOi...' } })
+      expect(result).toEqual({ target: { url: 'wss://host/logs?interval=1&token=REDACTED' } })
+    })
+
+    it('leaves a URL with no sensitive query parameters unchanged', () => {
+      const url = 'wss://host/logs?interval=1'
+      expect(redactSecrets({ url })).toEqual({ url })
+    })
+
+    it('leaves a non-URL string unchanged even if it contains "token="', () => {
+      const message = 'auth failed: token=abc123 was rejected'
+      expect(redactSecrets(message)).toBe(message)
+    })
+
+    it('redacts a token nested inside an already-stringified JSON payload that itself carries a URL', () => {
+      const body = JSON.stringify({ callbackUrl: 'https://host/hook?token=secret' })
+      const result = redactSecrets(body) as string
+      expect(result).not.toContain('secret')
+      expect(JSON.parse(result)).toEqual({ callbackUrl: 'https://host/hook?token=REDACTED' })
+    })
+  })
+
   describe('realistic HTTP client error shape', () => {
     it('redacts an Authorization header and a request-body password while preserving useful fields', () => {
       const axiosLikeError = {
@@ -252,5 +279,25 @@ describe('redactSecrets', () => {
       expect(data).not.toContain('hunter2')
       expect(JSON.parse(data)).toEqual({ username: 'admin', password: '[REDACTED]' })
     })
+  })
+})
+
+describe('redactUrlToken', () => {
+  it('replaces the named query parameter, leaving the rest of the URL intact', () => {
+    const url = 'wss://panel.example.com/api/core/logs?interval=1&token=eyJhbGciOi...'
+    expect(redactUrlToken(url, 'token')).toBe('wss://panel.example.com/api/core/logs?interval=1&token=REDACTED')
+  })
+
+  it('leaves the URL unchanged when the parameter is absent', () => {
+    const url = 'wss://panel.example.com/api/core/logs?interval=1'
+    expect(redactUrlToken(url, 'token')).toBe(url)
+  })
+
+  it('falls back to a regex replace when the URL is not parseable', () => {
+    expect(redactUrlToken('not a url?token=secret&x=1', 'token')).toBe('not a url?token=REDACTED&x=1')
+  })
+
+  it('returns an unparseable URL unchanged when the parameter is absent from it too', () => {
+    expect(redactUrlToken('not a url at all', 'token')).toBe('not a url at all')
   })
 })

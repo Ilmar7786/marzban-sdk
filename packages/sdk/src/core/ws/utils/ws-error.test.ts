@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { AnyType } from '@/common'
 
-import { getWsErrorMessage, isForbiddenWsError } from './ws-error'
+import { extractWsHandshakeStatus, getWsErrorMessage } from './ws-error'
 
 describe('getWsErrorMessage', () => {
   it('returns the message property when present', () => {
@@ -14,16 +14,32 @@ describe('getWsErrorMessage', () => {
   })
 })
 
-describe('isForbiddenWsError', () => {
-  it('recognizes a message containing 403', () => {
-    expect(isForbiddenWsError('403 Forbidden')).toBe(true)
+describe('extractWsHandshakeStatus', () => {
+  it("reads the status out of the ws package's rejected-handshake message", () => {
+    expect(extractWsHandshakeStatus('Unexpected server response: 403')).toBe(403)
   })
 
-  it('rejects a message that does not mention 403', () => {
-    expect(isForbiddenWsError('Network error')).toBe(false)
+  it.each([401, 404, 500])('reads status %s', status => {
+    expect(extractWsHandshakeStatus(`Unexpected server response: ${status}`)).toBe(status)
   })
 
-  it('rejects an empty message', () => {
-    expect(isForbiddenWsError('')).toBe(false)
+  it('is case-insensitive and tolerates extra spacing', () => {
+    expect(extractWsHandshakeStatus('unexpected server response:  502')).toBe(502)
+  })
+
+  // The whole point of anchoring to the phrase: a refused connection carries a
+  // port number, and reading that as a status would turn "the panel is
+  // restarting" into "the panel rejected us" — terminating a stream that
+  // should have kept reconnecting.
+  it('does not mistake the port in a connection-refused message for a status', () => {
+    expect(extractWsHandshakeStatus('connect ECONNREFUSED 127.0.0.1:53467')).toBeUndefined()
+  })
+
+  it('returns undefined for the native transport, which reports no message at all', () => {
+    expect(extractWsHandshakeStatus('')).toBeUndefined()
+  })
+
+  it('returns undefined for an unrelated error message that happens to contain digits', () => {
+    expect(extractWsHandshakeStatus('getaddrinfo ENOTFOUND panel.example.com 443')).toBeUndefined()
   })
 })

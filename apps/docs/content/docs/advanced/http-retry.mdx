@@ -74,18 +74,18 @@ The SDK has a separate, built-in mechanism for 401 responses:
 
 This happens transparently — your code never sees the 401.
 
-## WebSocket retries
+## WebSocket reconnects
 
-WebSocket connections use the same `retries` value for **403 Forbidden** reconnections:
+WebSocket log streams don't use `retries` at all — they have their own `reconnect` policy: exponential backoff with jitter, bounded by a time budget (10 minutes by default) instead of an attempt count.
 
 ```ts
-const closeStream = await sdk.logs.connectByCore({
+const stream = await sdk.logs.connectByCore({
   onMessage: (data) => console.log(data),
-  onError: (event) => console.error('Max retries reached', event),
+  onError: (error) => console.error('Stream ended', error.code, error.message),
 })
 ```
 
-If the server returns `403` on a WebSocket connection, the SDK re-authenticates and retries up to `retries` times. After exhausting retries, the `onError` callback is invoked.
+If the connection drops after opening, the SDK re-authenticates and reconnects automatically until it succeeds or the budget runs out. A **failed first connect** rejects `connect*()` immediately by default (`reconnect.initial` opts into retrying that too). See [WebSocket Logs → Reconnect behavior](/docs/realtime/websocket-logs#reconnect-behavior) for the full policy, including the `config.reconnect` SDK-wide default and per-call overrides.
 
 ## Multiple SDK instances
 

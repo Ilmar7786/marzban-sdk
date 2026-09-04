@@ -1,5 +1,32 @@
 # Changelog
 
+## [sdk-v4.0.0] - 2026-09-04
+
+### <!-- 0 -->🚀 Features
+
+- Send the WS log-stream token as Authorization: Bearer on the ws-package transport by @Ilmar7786 ([0dc6e5f6](https://github.com/Ilmar7786/marzban-sdk/commit/0dc6e5f67e31105e06694bbf13526d53a35cee22))
+- Public reconnect option with initial/budget/backoff/shouldReconnect escape hatches by @Ilmar7786 ([c9538ec7](https://github.com/Ilmar7786/marzban-sdk/commit/c9538ec7e21dfe9cf46a3b10304e60c5faff231d))
+- Add LogOptions.replay to dedup log lines after a reconnect by @Ilmar7786 ([d15fcd9c](https://github.com/Ilmar7786/marzban-sdk/commit/d15fcd9c2d00b164fbf2e33722377585b62d3a40))
+- Typed onError + onOpen/onReconnect/onClose lifecycle callbacks by @Ilmar7786 ([ff35c3e9](https://github.com/Ilmar7786/marzban-sdk/commit/ff35c3e924e60b908948e95ce7975f19237cd726))
+- Return a callable stream handle from logs.connect*() by @Ilmar7786 ([b8bf6249](https://github.com/Ilmar7786/marzban-sdk/commit/b8bf62496b3ee600f843eab7724e55915b7bdd13))
+- Reconnect WS log streams with a phase-based state machine by @Ilmar7786 ([075886e4](https://github.com/Ilmar7786/marzban-sdk/commit/075886e438b14b6970eee23a623d2c74ea17b7a0))
+- Add WsError, WS_* codes, and URL-token redaction by @Ilmar7786 ([5da4d2de](https://github.com/Ilmar7786/marzban-sdk/commit/5da4d2de03b1d7d9a24305f709721a76ed2917dc))
+- Make destroy() a terminal, idempotent lifecycle transition #84 by @Ilmar7786 ([0528e1f4](https://github.com/Ilmar7786/marzban-sdk/commit/0528e1f4fdae93fd950f02746c6fc64551f9c32e))
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Redact URL-embedded secrets inside walk(), not just details.url by @Ilmar7786 ([77d8958b](https://github.com/Ilmar7786/marzban-sdk/commit/77d8958be1bb4a83984ae6ea5c4ce8a4a72c0da4))
+- Correct mcp entries, drop duplicate sdk-v3.0.2 section by @Ilmar7786 ([32b386b3](https://github.com/Ilmar7786/marzban-sdk/commit/32b386b39b2d7241f2458676d14d29b7fa2c86d7))
+
+### <!-- 2 -->🚜 Refactor
+
+- Extract a shared exponential-backoff helper by @Ilmar7786 ([c99dc901](https://github.com/Ilmar7786/marzban-sdk/commit/c99dc9015a263a45c588c07cd8dc40b8cf7886db))
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Bump marzban-sdk to 4.0.0 by @Ilmar7786 ([14261aa3](https://github.com/Ilmar7786/marzban-sdk/commit/14261aa3129f4114eb267907f8e463ee90ef7933))
+- Drop merge commits, link each changelog entry to its commit by @Ilmar7786 ([c9c30177](https://github.com/Ilmar7786/marzban-sdk/commit/c9c30177feb3a1da4be5016b1265588baacf3af7))
+
 ## [sdk-v3.3.0] - 2026-08-31
 
 ### <!-- 1 -->🐛 Bug Fixes

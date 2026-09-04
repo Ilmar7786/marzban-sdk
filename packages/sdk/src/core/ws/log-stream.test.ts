@@ -83,6 +83,7 @@ describe('LogStream', () => {
       endpoint: '/api/core/logs',
       interval: 1,
       replay: 'dedup',
+      reconnect: { enabled: true, initial: false },
       handlers: { onMessage: vi.fn(), onError: vi.fn() },
       basePath: 'https://panel.example.com',
       authService,
@@ -358,6 +359,106 @@ describe('LogStream', () => {
       expect(socket.close).toHaveBeenCalled()
       expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('handshake timed out'), 'LogsStream')
       expect(isWsError(error)).toBe(true)
+    })
+  })
+
+  describe('reconnect.initial', () => {
+    it('retries a failed first connect through the same policy-gated loop a post-open drop uses, and eventually opens', async () => {
+      const stream = createStream({
+        reconnect: { enabled: true, initial: true },
+        tuning: { backoffBaseMs: 1, backoffMaxMs: 1 },
+      })
+      const opening = stream.open()
+
+      // The built-in "one re-auth retry" for a first connect — both fail.
+      ;(await waitForSocket(0)).emit('error', { message: '' })
+      ;(await waitForSocket(1)).emit('error', { message: '' })
+
+      // reconnect.initial kicks in: a further attempt through the loop succeeds.
+      ;(await waitForSocket(2)).emit('open')
+
+      await opening
+      expect(stream.state).toBe('open')
+    })
+
+    it('rejects connect*() when the initial retry loop exhausts its budget, without ever calling onClose', async () => {
+      const onClose = vi.fn()
+      const stream = createStream({
+        handlers: { onMessage: vi.fn(), onClose },
+        reconnect: { enabled: true, initial: true },
+        tuning: { backoffBaseMs: 1, backoffMaxMs: 1, reconnectBudgetMs: 0 },
+      })
+      const opening = stream.open().catch((err: unknown) => err)
+
+      ;(await waitForSocket(0)).emit('error', { message: '' })
+      ;(await waitForSocket(1)).emit('error', { message: '' })
+
+      const error = await opening
+      expect(isWsError(error) && error.code).toBe('WS_RETRIES_EXHAUSTED')
+      expect(onClose).not.toHaveBeenCalled()
+      expect(stream.state).toBe('closed')
+    })
+
+    it('closes without entering the retry loop when destroyed exactly as the first connect fails', async () => {
+      const stream = createStream({ reconnect: { enabled: true, initial: true } })
+      const opening = stream.open().catch((err: unknown) => err)
+
+      ;(await waitForSocket(0)).emit('error', { message: '' })
+      const second = await waitForSocket(1)
+      lifecycle.markDestroyed()
+      second.emit('error', { message: '' })
+
+      const error = await opening
+      expect(error).toBeInstanceOf(Error)
+      // No retry attempt was made — only the two built-in attempts happened.
+      expect(sockets).toHaveLength(2)
+    })
+  })
+
+  describe('reconnect option escape hatches', () => {
+    it('reconnect: false ends the stream at the first drop without opening a replacement socket', async () => {
+      const onError = vi.fn()
+      const onClose = vi.fn()
+      await openStream({
+        handlers: { onMessage: vi.fn(), onError, onClose },
+        reconnect: { enabled: false, initial: false },
+      })
+
+      sockets[0]!.emit('close', { code: 1006 })
+
+      await vi.waitFor(() => expect(onClose).toHaveBeenCalled())
+      expect(sockets).toHaveLength(1)
+      const error = onError.mock.calls[0]![0]
+      expect(isWsError(error) && error.code).toBe('WS_CONNECTION_LOST')
+      expect(onClose).toHaveBeenCalledExactlyOnceWith({ code: 1006, byCaller: false })
+    })
+
+    it('shouldReconnect returning false stops the loop at the first attempt, without sleeping or opening a replacement socket', async () => {
+      const shouldReconnect = vi.fn().mockReturnValue(false)
+      const onError = vi.fn()
+      await openStream({
+        handlers: { onMessage: vi.fn(), onError },
+        reconnect: { enabled: true, initial: false, shouldReconnect },
+      })
+
+      sockets[0]!.emit('close', { code: 1006 })
+
+      await vi.waitFor(() => expect(onError).toHaveBeenCalled())
+      expect(shouldReconnect).toHaveBeenCalledOnce()
+      expect(sleep).not.toHaveBeenCalled()
+      expect(sockets).toHaveLength(1)
+    })
+
+    it('shouldReconnect returning a number overrides the computed backoff delay', async () => {
+      const shouldReconnect = vi.fn().mockReturnValue(4_321)
+      await openStream({
+        handlers: { onMessage: vi.fn() },
+        reconnect: { enabled: true, initial: false, shouldReconnect },
+      })
+
+      sockets[0]!.emit('close', { code: 1006 })
+
+      await vi.waitFor(() => expect(sleep).toHaveBeenCalledWith(4_321))
     })
   })
 

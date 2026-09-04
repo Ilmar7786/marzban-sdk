@@ -16,6 +16,8 @@ import { BaseWebSocketClient, WebSocketClient } from './client'
 import type { LogOptions, WsCloseInfo, WsReconnectInfo } from './logs-stream'
 import { configurationUrlWs } from './utils'
 import { closeQuietly } from './utils/close-quietly'
+import { decideReconnect } from './utils/reconnect-decision'
+import { reconnectPolicyToTuning, type ResolvedReconnectPolicy } from './utils/reconnect-policy'
 import { createReplayFilter, type ReplayFilter, type ReplayMode } from './utils/replay'
 import { extractWsHandshakeStatus, getWsErrorMessage } from './utils/ws-error'
 
@@ -44,6 +46,8 @@ export interface LogStreamOptions {
   interval: number
   /** Already validated by `resolveReplayMode`. */
   replay: ReplayMode
+  /** Already validated and resolved by `resolveReconnectPolicy`. */
+  reconnect: ResolvedReconnectPolicy
   handlers: LogOptions
   basePath: string
   authService: AuthManager
@@ -71,6 +75,14 @@ type AttemptResult =
       timedOut: boolean
       event?: WebSocketEventMap['error']
     }
+
+/**
+ * Outcome of {@link LogStream.runReconnectLoop}: `'opened'` once a socket is
+ * genuinely open again, `'failed'` when the policy or the budget gives up,
+ * `'aborted'` when the stream went stale (closed, destroyed, or superseded)
+ * partway through — nothing to report either way.
+ */
+type ReconnectLoopOutcome = { outcome: 'opened' } | { outcome: 'aborted' } | { outcome: 'failed'; error: WsError }
 
 const DEFAULT_TUNING: LogStreamTuning = {
   connectTimeoutMs: WS_CONNECT_TIMEOUT_MS,
@@ -111,6 +123,8 @@ export class LogStream {
   private readonly lifecycle: Lifecycle
   private readonly onClosed: () => void
   private readonly tuning: LogStreamTuning
+  /** Non-timing parts of the reconnect policy — `tuning` carries the timing overrides instead (see the constructor). */
+  private readonly policy: ResolvedReconnectPolicy
 
   private readonly replay: ReplayFilter
   /** Safe-wrapped `onMessage` — call `emitMessage()` instead, which applies the replay filter first. */
@@ -144,7 +158,12 @@ export class LogStream {
     this.httpsAgent = options.httpsAgent
     this.lifecycle = options.lifecycle
     this.onClosed = options.onClosed
-    this.tuning = { ...DEFAULT_TUNING, ...options.tuning }
+    // `tuning` layering: module defaults < the policy's explicit timing
+    // overrides < the internal test-only seam, which must always win so
+    // logs-stream.server.test.ts's `tune(instance, {...})` isn't silently
+    // clobbered by a fully-populated policy.
+    this.tuning = { ...DEFAULT_TUNING, ...reconnectPolicyToTuning(options.reconnect), ...options.tuning }
+    this.policy = options.reconnect
     this.replay = createReplayFilter(options.replay)
 
     this.deliverMessage = safeCallback(options.handlers.onMessage, error =>
@@ -179,8 +198,15 @@ export class LogStream {
    * not merely constructed — so a misconfigured `baseUrl` or a panel that's
    * down fails loudly here instead of handing back a dead stream.
    *
+   * With `reconnect.initial`, a failed first connect is retried through the
+   * same policy-gated loop a post-open drop uses, instead of rejecting
+   * immediately — but a failure still only ever rejects this promise, never
+   * `onError`/`onClose`, since the stream never reached `open` (ADR-0016:
+   * reported exactly once).
+   *
    * @throws {WsError} When the handshake fails twice, the second time with a
-   * freshly issued token.
+   * freshly issued token — or, with `reconnect.initial`, when the retry loop
+   * itself gives up.
    * @throws {AuthError} When authenticating for the first attempt fails.
    */
   async open(): Promise<void> {
@@ -189,11 +215,33 @@ export class LogStream {
     try {
       await this.connectPhase(1)
     } catch (error) {
-      // A stream that never opened owns no resources worth keeping, and its
-      // caller is getting a rejection rather than a close handle — so it
-      // untracks itself here instead of relying on the caller to do it.
-      this.close()
-      throw error
+      if (!this.policy.initial || this.isStale(this.generation)) {
+        // A stream that never opened owns no resources worth keeping, and its
+        // caller is getting a rejection rather than a close handle — so it
+        // untracks itself here instead of relying on the caller to do it.
+        this.close()
+        throw error
+      }
+
+      this.dropStartedAt = this.tuning.now()
+      // connectPhase() only ever throws a WsError (see its @throws contract).
+      this.lastError = error as WsError
+      this.budgetDeadline = this.tuning.now() + this.tuning.reconnectBudgetMs
+
+      const outcome = await this.runReconnectLoop(this.budgetDeadline)
+
+      if (outcome.outcome === 'failed') {
+        this.logger.error(
+          `WebSocket stream never opened (${this.endpoint}): ${outcome.error.message}`,
+          outcome.error,
+          'LogsStream'
+        )
+        this.shutdown()
+        throw outcome.error
+      }
+      // 'opened' or 'aborted' fall through to the checks below, exactly like
+      // a direct first-attempt success — an 'aborted' loop is caught by the
+      // isStale() check right after.
     }
 
     // Destroyed while the handshake was in flight: the caller is holding a
@@ -491,53 +539,8 @@ export class LogStream {
     // for the same reason, so backoff keeps growing across a flap.
     this.budgetDeadline ??= this.tuning.now() + this.tuning.reconnectBudgetMs
 
-    void this.runReconnectLoop(this.budgetDeadline)
-  }
-
-  /**
-   * Retries with exponential backoff + jitter until the stream opens again,
-   * the budget runs out, or the panel positively refuses a freshly
-   * authenticated connection.
-   */
-  private async runReconnectLoop(budgetDeadline: number): Promise<void> {
-    for (;;) {
-      const generation = this.generation
-      this.reconnectAttempt++
-
-      const delay = computeBackoff(this.reconnectAttempt, {
-        baseMs: this.tuning.backoffBaseMs,
-        maxMs: this.tuning.backoffMaxMs,
-        jitter: true,
-      })
-
-      this.logger.debug(
-        `Reconnecting to ${this.endpoint} in ${Math.round(delay)}ms (attempt ${this.reconnectAttempt})`,
-        'LogsStream'
-      )
-      await this.tuning.sleep(delay)
-      if (this.isStale(generation)) return
-
-      if (this.tuning.now() >= budgetDeadline) {
-        // `lastError` is always set here: this loop only ever runs after
-        // `handleDrop()` set it, and it's the closest thing to "why" the
-        // budget ran out — reused as the best-effort event to report.
-        const lastError = this.lastError!
-        this.terminate(
-          new WsError(ERROR_CODES.WS_RETRIES_EXHAUSTED, {
-            phase: 'connection',
-            attempt: this.reconnectAttempt,
-            url: this.currentUrl,
-            closeCode: lastError.closeCode,
-            event: lastError.details?.event,
-          })
-        )
-        return
-      }
-
-      try {
-        await this.connectPhase(this.reconnectAttempt)
-        if (this.isStale(this.generation)) return
-
+    void this.runReconnectLoop(this.budgetDeadline).then(outcome => {
+      if (outcome.outcome === 'opened') {
         this.markOpen()
         this.logger.info(`WebSocket connection re-established: ${this.endpoint}`, 'LogsStream')
         this.emitOpen()
@@ -545,9 +548,80 @@ export class LogStream {
         // `handleDrop()`, which sets it right before the first iteration.
         this.emitReconnect({ attempt: this.reconnectAttempt, downtimeMs: this.tuning.now() - this.dropStartedAt! })
         this.armStableTimer()
-        return
+      } else if (outcome.outcome === 'failed') {
+        this.terminate(outcome.error)
+      }
+      // 'aborted': the loop already found the stream stale (closed,
+      // destroyed, or superseded) — nothing to report, same as before.
+    })
+  }
+
+  /**
+   * Retries with exponential backoff + jitter — gated by the reconnect
+   * policy on every attempt — until the stream opens again, the policy
+   * declines to continue, the budget runs out, or the panel positively
+   * refuses a freshly authenticated connection.
+   *
+   * Owns no state transitions or emits itself: it hands its outcome back to
+   * the caller, since a post-open drop (`handleDrop`) and a `reconnect.initial`
+   * retry of the very first connect (`open`) each have to report it
+   * differently (ADR-0016: a failure before the stream ever opened rejects
+   * `connect*()` directly, never through `onError`/`onClose`).
+   */
+  private async runReconnectLoop(budgetDeadline: number): Promise<ReconnectLoopOutcome> {
+    for (;;) {
+      const generation = this.generation
+      const attempt = this.reconnectAttempt + 1
+
+      const baseDelayMs = computeBackoff(attempt, {
+        baseMs: this.tuning.backoffBaseMs,
+        maxMs: this.tuning.backoffMaxMs,
+        jitter: true,
+      })
+      // `dropStartedAt` and `lastError` are always set here: this loop only
+      // ever runs after `handleDrop()` or `open()`'s `reconnect.initial`
+      // branch set them first.
+      const verdict = decideReconnect({
+        policy: this.policy,
+        attempt,
+        elapsedMs: this.tuning.now() - this.dropStartedAt!,
+        baseDelayMs,
+        error: this.lastError!,
+      })
+
+      if (!verdict.retry) return { outcome: 'failed', error: this.lastError! }
+
+      this.reconnectAttempt = attempt
+      this.logger.debug(
+        `Reconnecting to ${this.endpoint} in ${Math.round(verdict.delayMs)}ms (attempt ${attempt})`,
+        'LogsStream'
+      )
+      await this.tuning.sleep(verdict.delayMs)
+      if (this.isStale(generation)) return { outcome: 'aborted' }
+
+      if (this.tuning.now() >= budgetDeadline) {
+        // Reused as the best-effort event to report — nothing new happened,
+        // the budget simply ran out.
+        const lastError = this.lastError!
+        return {
+          outcome: 'failed',
+          error: new WsError(ERROR_CODES.WS_RETRIES_EXHAUSTED, {
+            phase: 'connection',
+            attempt: this.reconnectAttempt,
+            url: this.currentUrl,
+            closeCode: lastError.closeCode,
+            event: lastError.details?.event,
+          }),
+        }
+      }
+
+      try {
+        await this.connectPhase(this.reconnectAttempt)
+        if (this.isStale(this.generation)) return { outcome: 'aborted' }
+
+        return { outcome: 'opened' }
       } catch (error) {
-        if (this.isStale(this.generation)) return
+        if (this.isStale(this.generation)) return { outcome: 'aborted' }
 
         // Only a status the transport actually reported proves the panel
         // refused us; retrying that with a token we just refreshed is
@@ -561,8 +635,7 @@ export class LogStream {
             error,
             'LogsStream'
           )
-          this.terminate(error)
-          return
+          return { outcome: 'failed', error }
         }
       }
     }

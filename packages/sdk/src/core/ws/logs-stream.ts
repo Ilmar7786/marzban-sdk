@@ -6,10 +6,16 @@ import { Logger } from '@/core/logger'
 import { Lifecycle } from '../lifecycle'
 import { LogStream, type LogStreamState, type LogStreamTuning } from './log-stream'
 import { resolveLogInterval } from './utils/log-interval'
+import {
+  type ReconnectOption,
+  type ReconnectOptions,
+  resolveReconnectPolicy,
+  type ShouldReconnectContext,
+} from './utils/reconnect-policy'
 import { type ReplayMode, resolveReplayMode } from './utils/replay'
 import { createStreamHandle, type StreamHandle } from './utils/stream-handle'
 
-export type { ReplayMode }
+export type { ReconnectOption, ReconnectOptions, ReplayMode, ShouldReconnectContext }
 
 /** Handle returned by `connect*()`: callable (closes the stream), plus an explicit `close()` and a live `state`. */
 export type LogStreamHandle = StreamHandle<LogStreamState>
@@ -57,6 +63,12 @@ export interface LogOptions {
    *   that carries no previously-delivered line.
    */
   replay?: ReplayMode
+  /**
+   * Overrides the SDK-wide {@link LogsStreamOptions.reconnect} default for
+   * this stream. `false` disables reconnecting entirely; `true` or an
+   * options object enables it, with any explicit overrides.
+   */
+  reconnect?: ReconnectOption
 }
 
 /**
@@ -76,6 +88,12 @@ export interface LogsStreamOptions {
   httpsAgent?: HttpAgentLike
   /** Shared SDK-instance terminal-state flag. Defaults to a fresh, always-active one when omitted. */
   lifecycle?: Lifecycle
+  /**
+   * SDK-wide default reconnect policy for every stream opened through this
+   * instance — `LogOptions.reconnect` overrides it per call. Defaults to
+   * enabled, with no explicit timing overrides, when omitted.
+   */
+  reconnect?: ReconnectOption
   /**
    * Overrides for the reconnect policy's timing. Internal — used by this
    * package's own tests to exercise backoff/budget/timeout behavior without
@@ -102,17 +120,27 @@ export class LogsStream {
   private httpsAgent?: HttpAgentLike
   private lifecycle: Lifecycle
   private tuning?: Partial<LogStreamTuning>
+  private defaultReconnect?: ReconnectOption
 
   /**
    * Creates an API instance for handling logs via WebSocket.
    * @param options Configuration for the log stream. See {@link LogsStreamOptions}.
    */
-  constructor({ basePath, authService, logger, httpsAgent, lifecycle = new Lifecycle(), tuning }: LogsStreamOptions) {
+  constructor({
+    basePath,
+    authService,
+    logger,
+    httpsAgent,
+    lifecycle = new Lifecycle(),
+    reconnect,
+    tuning,
+  }: LogsStreamOptions) {
     this.basePath = basePath
     this.authService = authService
     this.logger = logger
     this.httpsAgent = httpsAgent
     this.lifecycle = lifecycle
+    this.defaultReconnect = reconnect
     this.tuning = tuning
     this.logger.debug('LogsStream initialized', 'LogsStream')
 
@@ -135,11 +163,15 @@ export class LogsStream {
 
     const interval = resolveLogInterval(options.interval)
     const replay = resolveReplayMode(options.replay)
+    // Per-call `reconnect` fully replaces the SDK-wide default when given,
+    // same as `interval`/`replay` — no field-by-field merging between the two.
+    const reconnect = resolveReconnectPolicy(options.reconnect ?? this.defaultReconnect)
 
     const stream = new LogStream({
       endpoint,
       interval,
       replay,
+      reconnect,
       handlers: options,
       basePath: this.basePath,
       authService: this.authService,
@@ -162,7 +194,7 @@ export class LogsStream {
    * @returns A {@link LogStreamHandle} — callable to close the stream (source-compatible with the
    * bare close function this used to return), plus an explicit `close()` and a live `state`.
    * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
-   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts, or `replay` is invalid.
+   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts, or `replay`/`reconnect` is invalid.
    * @throws {WsError} If the connection cannot be established.
    */
   async connectByCore(options: LogOptions) {
@@ -177,7 +209,7 @@ export class LogsStream {
    * @returns A {@link LogStreamHandle} — callable to close the stream (source-compatible with the
    * bare close function this used to return), plus an explicit `close()` and a live `state`.
    * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
-   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts, or `replay` is invalid.
+   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts, or `replay`/`reconnect` is invalid.
    * @throws {WsError} If the connection cannot be established.
    */
   async connectByNode(nodeId: number | string, options: LogOptions) {

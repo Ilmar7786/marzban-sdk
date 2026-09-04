@@ -1,5 +1,6 @@
 import { type HttpAgentLike, isBrowser } from '@/common'
 import { AuthManager } from '@/core/auth'
+import { WsError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
 import { Lifecycle } from '../lifecycle'
@@ -10,6 +11,22 @@ import { createStreamHandle, type StreamHandle } from './utils/stream-handle'
 /** Handle returned by `connect*()`: callable (closes the stream), plus an explicit `close()` and a live `state`. */
 export type LogStreamHandle = StreamHandle<LogStreamState>
 
+/** Passed to `LogOptions.onClose` once, when the logical stream ends for good. */
+export interface WsCloseInfo {
+  /** The WebSocket close code, when one is known — absent for a caller-initiated close. */
+  code?: number
+  /** `true` when the consumer ended the stream (the handle, `close()`, or `sdk.destroy()`); `false` when it died on its own. */
+  byCaller: boolean
+}
+
+/** Passed to `LogOptions.onReconnect` when a dropped stream successfully reopens. */
+export interface WsReconnectInfo {
+  /** 1-based reconnect attempt that succeeded. Carries over across a flapping connection. */
+  attempt: number
+  /** Time (ms) since the most recent drop — not the start of a longer flapping sequence. */
+  downtimeMs: number
+}
+
 /**
  * Options for configuring a WebSocket log stream.
  */
@@ -18,8 +35,14 @@ export interface LogOptions {
   interval?: number
   /** Callback triggered when a message is received */
   onMessage: (data: WebSocketEventMap['message']['data']) => void
-  /** Callback triggered when a connection error occurs */
-  onError?: (data: WebSocketEventMap['error']) => void
+  /** Called once the stream ends for good, with a typed error — never a raw transport event. */
+  onError?: (error: WsError) => void
+  /** Called every time the stream reaches `open` — the first connect and each successful reconnect. */
+  onOpen?: () => void
+  /** Called when a dropped stream successfully reopens. */
+  onReconnect?: (info: WsReconnectInfo) => void
+  /** Called once, when the stream ends for good — only if it ever reached `open`. */
+  onClose?: (info: WsCloseInfo) => void
 }
 
 /**

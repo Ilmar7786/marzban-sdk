@@ -7,13 +7,13 @@ import {
   WS_STABLE_AFTER_MS,
 } from '@/config'
 import { AuthManager } from '@/core/auth'
-import { ERROR_CODES, type FormatCode, SdkDestroyedError, WsError } from '@/core/errors'
+import { ERROR_CODES, SdkDestroyedError, WsError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
 import { computeBackoff } from '../backoff'
 import { Lifecycle } from '../lifecycle'
 import { BaseWebSocketClient, WebSocketClient } from './client'
-import type { LogOptions } from './logs-stream'
+import type { LogOptions, WsCloseInfo, WsReconnectInfo } from './logs-stream'
 import { configurationUrlWs } from './utils'
 import { closeQuietly } from './utils/close-quietly'
 import { extractWsHandshakeStatus, getWsErrorMessage } from './utils/ws-error'
@@ -110,18 +110,25 @@ export class LogStream {
   private readonly tuning: LogStreamTuning
 
   private readonly emitMessage: (data: AnyType) => void
-  private readonly emitError: (event: WebSocketEventMap['error']) => void
+  private readonly emitError: (error: WsError) => void
+  private readonly emitOpen: () => void
+  private readonly emitReconnect: (info: WsReconnectInfo) => void
+  private readonly emitClose: (info: WsCloseInfo) => void
 
   private _state: LogStreamState = 'connecting'
+  /** Set once the stream first reaches `open` — gates whether a self-inflicted end reports through `onError`/`onClose` at all (ADR-0016: a failure before that point is reported through the `connect*()` rejection alone). */
+  private everOpened = false
   /** Bumped for every new socket, so a superseded socket's late events are ignored. */
   private generation = 0
   private client?: BaseWebSocketClient
   private currentUrl = ''
   private reconnectAttempt = 0
   private budgetDeadline?: number
+  /** When the most recent drop happened — set by `handleDrop()`, read by a successful reconnect to compute `WsReconnectInfo.downtimeMs`. */
+  private dropStartedAt?: number
   private readonly timers = new Set<ReturnType<typeof setTimeout>>()
-  /** Kept so a terminal `onError` can forward a real event — `LogOptions.onError` still takes one (issue #89 changes that). */
-  private lastDropEvent?: WebSocketEventMap['error']
+  /** The most recent transport drop, wrapped as a `WsError` — reused as the best-effort event when the reconnect budget expires with nothing new to report. */
+  private lastError?: WsError
 
   constructor(options: LogStreamOptions) {
     this.endpoint = options.endpoint
@@ -139,6 +146,15 @@ export class LogStream {
     )
     this.emitError = safeCallback(options.handlers.onError, error =>
       this.logger.error(`onError callback threw (${this.endpoint})`, error, 'LogsStream')
+    )
+    this.emitOpen = safeCallback<void>(options.handlers.onOpen, error =>
+      this.logger.error(`onOpen callback threw (${this.endpoint})`, error, 'LogsStream')
+    )
+    this.emitReconnect = safeCallback(options.handlers.onReconnect, error =>
+      this.logger.error(`onReconnect callback threw (${this.endpoint})`, error, 'LogsStream')
+    )
+    this.emitClose = safeCallback(options.handlers.onClose, error =>
+      this.logger.error(`onClose callback threw (${this.endpoint})`, error, 'LogsStream')
     )
   }
 
@@ -181,17 +197,35 @@ export class LogStream {
     // is exactly what they asked for.
     if (this.isStale(this.generation)) return
 
-    this._state = 'open'
+    this.markOpen()
     this.logger.info(`WebSocket connection established: ${this.endpoint}`, 'LogsStream')
+    this.emitOpen()
+  }
+
+  /** Transitions into `open`, once and for all — first connect or a successful reconnect. */
+  private markOpen(): void {
+    this._state = 'open'
+    this.everOpened = true
   }
 
   /**
    * Terminal and idempotent: stops any in-flight reconnect at its next
    * checkpoint, closes the current socket, and drops every timer.
+   *
+   * Reports through `onClose({ byCaller: true })` — but only if the stream
+   * ever reached `open`; a first connect that never got there is reported
+   * through the `connect*()` rejection alone (ADR-0016).
    */
   close(): void {
     if (this._state === 'closed') return
 
+    const everOpened = this.everOpened
+    this.shutdown()
+    if (everOpened) this.emitClose({ byCaller: true })
+  }
+
+  /** State transition shared by `close()` and `terminate()`: stop, drop every timer and the socket, untrack. */
+  private shutdown(): void {
     this.logger.debug(`Closing WebSocket connection: ${this.endpoint}`, 'LogsStream')
     this._state = 'closed'
     // Bumped so an in-flight attempt's own listeners and post-await checks
@@ -427,7 +461,14 @@ export class LogStream {
     if (this.isStale(generation)) return
 
     this._state = 'reconnecting'
-    this.lastDropEvent = event
+    this.dropStartedAt = this.tuning.now()
+    this.lastError = new WsError(ERROR_CODES.WS_CONNECTION_LOST, {
+      phase: 'connection',
+      attempt: this.reconnectAttempt + 1,
+      url: this.currentUrl,
+      closeCode: (event as AnyType)?.code,
+      event,
+    })
 
     // An existing deadline is kept deliberately: a stream that flaps — opens,
     // drops, opens, drops — must not hand itself a fresh budget on every
@@ -463,7 +504,19 @@ export class LogStream {
       if (this.isStale(generation)) return
 
       if (this.tuning.now() >= budgetDeadline) {
-        this.terminate(ERROR_CODES.WS_RETRIES_EXHAUSTED)
+        // `lastError` is always set here: this loop only ever runs after
+        // `handleDrop()` set it, and it's the closest thing to "why" the
+        // budget ran out — reused as the best-effort event to report.
+        const lastError = this.lastError!
+        this.terminate(
+          new WsError(ERROR_CODES.WS_RETRIES_EXHAUSTED, {
+            phase: 'connection',
+            attempt: this.reconnectAttempt,
+            url: this.currentUrl,
+            closeCode: lastError.closeCode,
+            event: lastError.details?.event,
+          })
+        )
         return
       }
 
@@ -471,8 +524,12 @@ export class LogStream {
         await this.connectPhase(this.reconnectAttempt)
         if (this.isStale(this.generation)) return
 
-        this._state = 'open'
+        this.markOpen()
         this.logger.info(`WebSocket connection re-established: ${this.endpoint}`, 'LogsStream')
+        this.emitOpen()
+        // `dropStartedAt` is always set here: the only path into this loop is
+        // `handleDrop()`, which sets it right before the first iteration.
+        this.emitReconnect({ attempt: this.reconnectAttempt, downtimeMs: this.tuning.now() - this.dropStartedAt! })
         this.armStableTimer()
         return
       } catch (error) {
@@ -490,7 +547,7 @@ export class LogStream {
             error,
             'LogsStream'
           )
-          this.terminate(ERROR_CODES.WS_AUTH_FAILED, error.details?.event as WebSocketEventMap['error'])
+          this.terminate(error)
           return
         }
       }
@@ -508,12 +565,18 @@ export class LogStream {
     }, this.tuning.stableAfterMs)
   }
 
-  /** Ends the stream for good and tells the consumer, since their `connect*()` promise resolved long ago. */
-  private terminate(code: FormatCode, event?: WebSocketEventMap['error']): void {
-    this.logger.error(`WebSocket stream terminated (${this.endpoint}): ${code.message}`, null, 'LogsStream')
+  /**
+   * Ends the stream for good and tells the consumer, since their
+   * `connect*()` promise resolved long ago: `onError(error)` followed by
+   * `onClose({ byCaller: false })`. Only ever reached after the stream has
+   * opened at least once (both call sites are downstream of `handleDrop()`),
+   * so — unlike `close()` — this never needs to check `everOpened`.
+   */
+  private terminate(error: WsError): void {
+    this.logger.error(`WebSocket stream terminated (${this.endpoint}): ${error.message}`, error, 'LogsStream')
 
-    const failure = event ?? this.lastDropEvent ?? ({ type: 'error', message: code.message } as AnyType)
-    this.close()
-    this.emitError(failure)
+    this.shutdown()
+    this.emitError(error)
+    this.emitClose({ code: error.closeCode, byCaller: false })
   }
 }

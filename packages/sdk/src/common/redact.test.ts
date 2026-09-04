@@ -210,6 +210,33 @@ describe('redactSecrets', () => {
     })
   })
 
+  describe('URL-shaped strings', () => {
+    it('redacts a sensitive query parameter nested under a non-sensitive key', () => {
+      // The leak this closes: a `url` field isn't a sensitive key by name, so
+      // only scanning the string itself for URL query parameters catches the
+      // token carried inside it.
+      const result = redactSecrets({ target: { url: 'wss://host/logs?interval=1&token=eyJhbGciOi...' } })
+      expect(result).toEqual({ target: { url: 'wss://host/logs?interval=1&token=REDACTED' } })
+    })
+
+    it('leaves a URL with no sensitive query parameters unchanged', () => {
+      const url = 'wss://host/logs?interval=1'
+      expect(redactSecrets({ url })).toEqual({ url })
+    })
+
+    it('leaves a non-URL string unchanged even if it contains "token="', () => {
+      const message = 'auth failed: token=abc123 was rejected'
+      expect(redactSecrets(message)).toBe(message)
+    })
+
+    it('redacts a token nested inside an already-stringified JSON payload that itself carries a URL', () => {
+      const body = JSON.stringify({ callbackUrl: 'https://host/hook?token=secret' })
+      const result = redactSecrets(body) as string
+      expect(result).not.toContain('secret')
+      expect(JSON.parse(result)).toEqual({ callbackUrl: 'https://host/hook?token=REDACTED' })
+    })
+  })
+
   describe('realistic HTTP client error shape', () => {
     it('redacts an Authorization header and a request-body password while preserving useful fields', () => {
       const axiosLikeError = {

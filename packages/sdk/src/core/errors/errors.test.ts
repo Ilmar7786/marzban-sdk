@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import type { AnyType } from '@/common'
+
 import { AuthError, AuthTokenError } from './categories/auth.error'
 import { ConfigurationError } from './categories/configuration.error'
 import { HttpError } from './categories/http.error'
@@ -310,12 +312,19 @@ describe('WsError', () => {
     expect(err.url).not.toContain('secret')
   })
 
-  it('redacts secret-bearing keys inside a raw event carried under details.event', () => {
+  it('redacts secret-bearing keys and a token embedded in a nested URL inside details.event', () => {
     const err = new WsError(ERROR_CODES.WS_CONNECTION_LOST, {
       ...baseDetails,
       event: { message: 'boom', target: { url: 'wss://host?token=secret', headers: { Authorization: 'Bearer x' } } },
     })
-    expect(JSON.stringify(err.details)).not.toContain('Bearer x')
+    const serialized = JSON.stringify(err.details)
+    expect(serialized).not.toContain('Bearer x')
+    // The token isn't under a key named "token" here — it's a query parameter
+    // on a URL nested under "target.url" — so only redactUrlSecrets() (run on
+    // every string redactSecrets() walks) catches it; plain key-based
+    // redaction never would.
+    expect(serialized).not.toContain('token=secret')
+    expect((err.details as AnyType).event.target.url).toBe('wss://host/?token=REDACTED')
   })
 })
 

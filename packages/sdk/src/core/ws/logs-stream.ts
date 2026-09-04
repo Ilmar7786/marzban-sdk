@@ -3,9 +3,12 @@ import { AuthManager } from '@/core/auth'
 import { Logger } from '@/core/logger'
 
 import { Lifecycle } from '../lifecycle'
-import { LogStream, type LogStreamTuning } from './log-stream'
-import type { HandleCloseConnection } from './utils/connection-handle.types'
+import { LogStream, type LogStreamState, type LogStreamTuning } from './log-stream'
 import { resolveLogInterval } from './utils/log-interval'
+import { createStreamHandle, type StreamHandle } from './utils/stream-handle'
+
+/** Handle returned by `connect*()`: callable (closes the stream), plus an explicit `close()` and a live `state`. */
+export type LogStreamHandle = StreamHandle<LogStreamState>
 
 /**
  * Options for configuring a WebSocket log stream.
@@ -90,7 +93,7 @@ export class LogsStream {
    * Resolves only once the socket is genuinely open, so a failed first
    * connect rejects instead of handing back a handle to a dead stream.
    */
-  private async connect(endpoint: string, options: LogOptions): Promise<HandleCloseConnection> {
+  private async connect(endpoint: string, options: LogOptions): Promise<LogStreamHandle> {
     this.lifecycle.assertActive(`logs.connect(${endpoint})`)
 
     const interval = resolveLogInterval(options.interval)
@@ -111,13 +114,14 @@ export class LogsStream {
 
     await stream.open()
 
-    return () => stream.close()
+    return createStreamHandle(stream)
   }
 
   /**
    * Connects to the core logs (`/api/core/logs`).
    * @param options Connection options (callbacks, interval).
-   * @returns A function to close the WebSocket connection.
+   * @returns A {@link LogStreamHandle} — callable to close the stream (source-compatible with the
+   * bare close function this used to return), plus an explicit `close()` and a live `state`.
    * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
    * @throws {WsOptionsError} If `interval` is outside the range the panel accepts.
    * @throws {WsError} If the connection cannot be established.
@@ -131,7 +135,8 @@ export class LogsStream {
    * Connects to logs of a specific node (`/api/node/{nodeId}/logs`).
    * @param nodeId The ID of the node whose logs should be accessed.
    * @param options Connection options (callbacks, interval).
-   * @returns A function to close the WebSocket connection.
+   * @returns A {@link LogStreamHandle} — callable to close the stream (source-compatible with the
+   * bare close function this used to return), plus an explicit `close()` and a live `state`.
    * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
    * @throws {WsOptionsError} If `interval` is outside the range the panel accepts.
    * @throws {WsError} If the connection cannot be established.

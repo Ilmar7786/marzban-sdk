@@ -23,9 +23,11 @@ and runtime validation — isomorphic for Node.js and the browser.
 ---
 
 `marzban-sdk` bundles the infrastructure layer a serious Marzban integration
-needs — auth, retries, real-time logs, webhooks — so you ship features, not
-plumbing. Every endpoint, parameter and response is generated from the
-official OpenAPI spec and fully typed, with autocomplete across the whole API.
+needs — auth, retries, resilient WebSocket reconnects, webhooks, structured
+errors, and a clean shutdown lifecycle — so you ship features, not plumbing.
+The typed API surface itself is generated straight from the official OpenAPI
+spec, so every endpoint, parameter and response has full autocomplete and
+never drifts from what the panel actually accepts.
 
 ## Install
 
@@ -50,8 +52,8 @@ const sdk = await createMarzbanSDK({
 
 const { users } = await sdk.user.getUsers({ status: 'active', limit: 10 })
 
-// Stream real-time logs from the core over WebSocket
-const close = await sdk.logs.connectByCore({
+// Stream real-time logs from the core over WebSocket — auto-reconnects on drop
+const stream = await sdk.logs.connectByCore({
   onMessage: data => console.log(data),
 })
 ```
@@ -61,7 +63,7 @@ const close = await sdk.logs.connectByCore({
 - 🔠 **End-to-end type safety** — every endpoint, parameter and response is fully typed, generated straight from the official OpenAPI spec, with matching Zod schemas.
 - 🌐 **Truly cross-runtime** — one package, one identical API across Node.js, Bun, Deno and the browser.
 - 🔑 **Flexible authentication** — log in on init or hand it an existing JWT; expired sessions refresh transparently, so your code never touches a token.
-- 🔁 **Built-in resilience** — configurable exponential back-off for transient failures, plus automatic WebSocket reconnects.
+- 🔁 **Built-in resilience** — exponential back-off with jitter for transient HTTP failures, plus a full WebSocket reconnect state machine (time-budgeted, replay-deduplicated) for log streams.
 - 🎯 **Classified errors** — `AuthError`, `HttpError`, `ConfigurationError` and webhook errors all extend `SdkError` with a machine-readable code and type-guard helpers.
 - 📡 **Real-time logs & webhooks** — WebSocket log streams from the core and nodes, plus HMAC-verified inbound webhooks with typed event subscriptions.
 - 🔐 **Custom CA support** — pass a Node `httpsAgent` to trust a self-hosted panel's self-signed certificate, without disabling TLS verification.

@@ -15,7 +15,7 @@
 
 ---
 
-One typed API client for Marzban, and everything built on top of it. Fix a
+One TypeScript SDK for Marzban, and everything built on top of it. Fix a
 bug or add an endpoint in the SDK, and the MCP server, the CLI, and every app
 built on it get it for free.
 
@@ -42,12 +42,12 @@ drift from each other or from your own code.
 
 ## Packages
 
-| Package                          | npm                                                        | Docker                                                                    | What it is                                                            |
-| -------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [`packages/sdk`](./packages/sdk) | [`marzban-sdk`](https://www.npmjs.com/package/marzban-sdk) | —                                                                         | The typed API client — auth, retries, WebSocket log streams, webhooks |
-| [`packages/mcp`](./packages/mcp) | [`marzban-mcp`](https://www.npmjs.com/package/marzban-mcp) | [`ilmar7786/marzban-mcp`](https://hub.docker.com/r/ilmar7786/marzban-mcp) | An MCP server exposing Marzban operations as tools for AI agents      |
-| [`packages/cli`](./packages/cli) | —                                                          | —                                                                         | A CLI on top of the SDK — WIP, unpublished                            |
-| [`apps/docs`](./apps/docs)       | —                                                          | —                                                                         | The documentation site                                                |
+| Package                          | npm                                                        | Docker                                                                    | What it is                                                                              |
+| -------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| [`packages/sdk`](./packages/sdk) | [`marzban-sdk`](https://www.npmjs.com/package/marzban-sdk) | —                                                                         | The TypeScript SDK — auth, retries, resilient WebSocket reconnects, webhooks, lifecycle |
+| [`packages/mcp`](./packages/mcp) | [`marzban-mcp`](https://www.npmjs.com/package/marzban-mcp) | [`ilmar7786/marzban-mcp`](https://hub.docker.com/r/ilmar7786/marzban-mcp) | An MCP server exposing Marzban operations as tools for AI agents                        |
+| [`packages/cli`](./packages/cli) | —                                                          | —                                                                         | A CLI on top of the SDK — WIP, unpublished                                              |
+| [`apps/docs`](./apps/docs)       | —                                                          | —                                                                         | The documentation site                                                                  |
 
 Each publishable package has its own version, `README.md`, changelog and
 release tags (`sdk-v*`, `mcp-v*`, `cli-v*`).

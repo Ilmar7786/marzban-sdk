@@ -1,7 +1,7 @@
 {
   "name": "marzban-sdk",
   "version": "4.0.0",
-  "description": "The complete TypeScript SDK for the Marzban API — fully typed endpoints, auto token refresh, retries, WebSocket log streaming, webhooks and Zod validation. Isomorphic for Node.js and the browser.",
+  "description": "The complete TypeScript SDK for the Marzban API — fully typed endpoints, auto token refresh, resilient retries, a WebSocket reconnect state machine for log streaming, HMAC-verified webhooks, Zod validation and a terminal shutdown lifecycle. Isomorphic for Node.js and the browser.",
   "keywords": [
     "marzban-sdk",
     "marzban",
@@ -15,8 +15,10 @@
     "sdk",
     "typescript-sdk",
     "websocket",
+    "websocket-reconnect",
     "webhook",
     "zod",
+    "openapi",
     "vpn",
     "proxy",
     "shadowsocks",

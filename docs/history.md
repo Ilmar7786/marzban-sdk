@@ -74,9 +74,30 @@ stderr-only logger stream (stdout is reserved for JSON-RPC), so `index.ts`
 gained a `Logger` type export, `ERROR_CODES`, `redactSecrets`, and
 `validateConfig` as named exports, and `HttpError` gained typed accessors.
 
+## 9. WebSocket reconnect lifecycle, `destroy()` contract, and the v4.0.0 public surface (2026-09, breaking)
+
+`sdk.logs`'s WebSocket streams had no reconnect behavior: a dropped connection
+died silently, a rejected handshake was retried by matching the substring
+`'403'` in an error message (dead on the native `WebSocket`, which reports no
+message at all), and `destroy()` could resolve while a reconnect already in
+flight went on to open a new socket. Replaced with a `LogStream` state machine
+(`connecting → open → reconnecting → closed`) that classifies failures by
+connection phase instead of error text, reconnects with backoff bounded by a
+time budget, and checks a generation guard after every `await` — the same
+invariant a SDK-wide `Lifecycle` flag now uses to make `destroy()` idempotent
+and cancel in-flight WS work, with each subsystem's cleanup (WS, webhook,
+auth) running independently of the others' failures. The public surface
+followed: `WsError` instead of a raw DOM event, `onOpen`/`onReconnect`/
+`onClose` lifecycle callbacks, `replay: 'dedup'` to suppress the panel's
+re-delivered log lines after a reconnect, a public `reconnect` policy, and the
+access token moving to an `Authorization` header on the `ws`-package
+transport. See [ADR-0015](./adr/0015-sdk-destroy-terminal-lifecycle.md),
+[ADR-0016](./adr/0016-ws-stream-lifecycle-and-reconnect.md), and
+[ADR-0017](./adr/0017-ws-public-stream-surface.md).
+
 ## Where things stand
 
-The monorepo migration lives on `dev` and has not yet merged to `main` — CI
-and publish workflows on `main` are still the pre-monorepo, single-package
-versions. The `sdk-v*`/`mcp-v*` tag scheme is declared in `publish.yml` but
-hasn't produced a tag yet; the most recent actual release tag is `v3.0.1`.
+The monorepo pipeline (item 7) has been live for a while — `main` has shipped
+several releases through it since, most recently `sdk-v3.3.0`. `sdk-v4.0.0`
+(item 9 above) is complete on `dev` but not yet released: the version bump and
+`dev` → `main` merge are the last steps of the release checklist.

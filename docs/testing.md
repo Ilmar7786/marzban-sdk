@@ -161,9 +161,18 @@ timeout and a 10-minute reconnect budget.
 Small pure pieces live in `core/ws/utils/` next to `configuration-url-ws.ts`
 — `log-interval.ts` (validates `interval` against the panel's `0`–`10` range,
 throwing `WsOptionsError`), `close-quietly.ts` (closes a socket, collecting
-rather than propagating a throw from `close()` itself), and `ws-error.ts`
+rather than propagating a throw from `close()` itself), `ws-error.ts`
 (reads the handshake's HTTP status out of the error message, when the
-transport reported one). None are re-exported from `utils/index.ts` — only
+transport reported one), `replay.ts` (the `replay: 'dedup'/'skip'` line
+filter — every mode × armed/not-armed/hard-cap branch lives in
+`replay.test.ts` rather than in the state machine), and
+`reconnect-policy.ts`/`reconnect-decision.ts` (validating and resolving the
+public `reconnect` option, and the `shouldReconnect`/budget verdict —
+likewise fully covered as pure functions rather than through `LogStream`).
+`core/ws/client/select-transport.ts` is the same idea one level up: which
+transport `WebSocketClient.resolve()` picks, extracted so `LogStream` can
+ask the identical question before building a URL or headers for it. None
+are re-exported from `utils/index.ts`/`client/index.ts` — only
 `configurationUrlWs` is; everything else is imported by its own file path so
 it stays out of the package's public API.
 

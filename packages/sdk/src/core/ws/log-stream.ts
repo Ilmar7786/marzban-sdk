@@ -13,6 +13,7 @@ import { Logger } from '@/core/logger'
 import { computeBackoff } from '../backoff'
 import { Lifecycle } from '../lifecycle'
 import { BaseWebSocketClient, WebSocketClient } from './client'
+import { selectWsTransportKind, transportSupportsHeaders } from './client/select-transport'
 import type { LogOptions, WsCloseInfo, WsReconnectInfo } from './logs-stream'
 import { configurationUrlWs } from './utils'
 import { closeQuietly } from './utils/close-quietly'
@@ -395,11 +396,16 @@ export class LogStream {
     }
   }
 
-  private buildWsUrl(): string {
+  /**
+   * `token` goes into the URL query only when the transport can't carry it
+   * as a header instead (see `attemptOnce` — decided before this is called,
+   * never the other way around).
+   */
+  private buildWsUrl(token: string | undefined): string {
     const wsUrl = configurationUrlWs({
       basePath: this.basePath,
       endpoint: this.endpoint,
-      token: this.authService.accessToken,
+      token,
       interval: this.interval,
     })
 
@@ -421,13 +427,22 @@ export class LogStream {
     await this.ensureAuthenticated()
     if (this.isStale(generation)) return { outcome: 'aborted' }
 
-    const url = this.buildWsUrl()
+    // The transport decides first — a URL built before knowing it could put
+    // the token in the query on a client that was about to send it as a
+    // header instead (or vice versa), and the socket would carry neither.
+    const kind = selectWsTransportKind({ agent: this.httpsAgent })
+    const useHeader = transportSupportsHeaders(kind)
+    const token = this.authService.accessToken
+    const url = this.buildWsUrl(useHeader ? undefined : token)
     this.currentUrl = url
 
     // Resolved (not connected) so every listener is attached before `init()`
     // constructs the socket — a connect that fails before the first microtask
     // still reaches them instead of nobody (issue #86).
-    const client = WebSocketClient.resolve(url, undefined, { agent: this.httpsAgent })
+    const client = WebSocketClient.resolve(url, undefined, {
+      agent: this.httpsAgent,
+      headers: useHeader ? { Authorization: `Bearer ${token}` } : undefined,
+    })
     this.client = client
 
     this.logger.debug(`Establishing WebSocket connection to: ${this.endpoint} (attempt ${attempt})`, 'LogsStream')

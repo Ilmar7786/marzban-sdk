@@ -1,7 +1,12 @@
 interface Options {
   basePath: string
   endpoint: string
-  token: string
+  /**
+   * Omit when the token is going out as an `Authorization` header instead
+   * (the `ws`-package transport) — the native transport has no such option,
+   * so it always has to carry the token here.
+   */
+  token?: string
   interval: string | number
 }
 
@@ -17,7 +22,7 @@ export const configurationUrlWs = ({ basePath, endpoint, interval, token }: Opti
   const suffix = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
   url.pathname = `${basePrefix}${suffix}`
   url.searchParams.set('interval', interval.toString())
-  url.searchParams.set('token', token)
+  if (token !== undefined) url.searchParams.set('token', token)
 
   return url.toString()
 }

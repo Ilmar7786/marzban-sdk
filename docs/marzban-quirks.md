@@ -425,6 +425,28 @@ ambiguous keeps retrying within a time budget, so a restarting panel is not
 mistaken for a rejection. See
 [ADR-0016](./adr/0016-ws-stream-lifecycle-and-reconnect.md).
 
+## WebSocket log endpoints accept the token as a header, not just a query param
+
+**Verified against:** `gozargah/marzban:v0.8.4` source
+(`app/routers/core.py`/`node.py`):
+
+```py
+token = websocket.query_params.get("token") or websocket.headers.get(
+    "Authorization", ""
+).removeprefix("Bearer ")
+```
+
+The query parameter wins if both are present; the header is the fallback.
+`LogStream` (`core/ws/log-stream.ts`) sends `Authorization: Bearer <token>`
+on the `ws`-package transport instead of the query string, so the token
+never lands in a reverse proxy's access log on that path — verified
+directly against the running panel: the access log shows
+`"WebSocket /api/core/logs?interval=1" [accepted]`, no `token=`. The native
+`WebSocket` constructor has no headers option at all, so on that transport
+(every browser, and Node.js 21+ without a configured `httpsAgent`) the token
+still goes in the query string — a platform limit, not a choice. See
+[ADR-0017](./adr/0017-ws-public-stream-surface.md).
+
 ## Every new WebSocket log connection replays up to the last 100 log lines
 
 **Verified against:** `gozargah/marzban:v0.8.4`, `local/marzban/`.
@@ -442,5 +464,9 @@ means every reconnect re-delivers already-seen lines, and
 policy makes reconnects far more common than before.
 
 **Workaround:** client-side deduplication of recently delivered lines —
-[issue #89](https://github.com/Ilmar7786/marzban-sdk/issues/89)'s
-`replay: 'dedup'`, which is why that is the intended default.
+`LogOptions.replay: 'dedup'` (the default since `sdk-v4.0.0`), which tracks
+the last ~200 delivered lines and drops a leading run of already-seen ones
+after a reconnect. Per-line, not per-message: a batching `interval > 0`
+joins several lines into one message on the live stream, but the panel's
+replay buffer has no such grouping, so the two never line up. See
+[ADR-0017](./adr/0017-ws-public-stream-surface.md).

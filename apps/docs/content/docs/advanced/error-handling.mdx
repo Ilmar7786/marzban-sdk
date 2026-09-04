@@ -16,6 +16,7 @@ Error
     ├── HttpError            (code: NETWORK_HTTP_ERROR)
     ├── SdkDestroyedError    (code: SDK_DESTROYED)
     ├── WsOptionsError       (code: WS_OPTIONS_INVALID)
+    ├── WsError              (code: WS_HANDSHAKE_REJECTED | WS_AUTH_FAILED | WS_CONNECTION_LOST | WS_RETRIES_EXHAUSTED)
     └── WebhookError
         ├── WebhookSignatureError     (code: WEBHOOK_SIGNATURE_ERROR)
         ├── WebhookValidationError    (code: WEBHOOK_VALIDATION_ERROR)
@@ -49,7 +50,11 @@ class SdkError extends Error {
 | `CONFIG_INVALID` | `ConfigurationError` | Config fails Zod schema validation |
 | `NETWORK_HTTP_ERROR` | `HttpError` | HTTP request failed (4xx, 5xx, network timeout) |
 | `SDK_DESTROYED` | `SdkDestroyedError` | A guarded operation (`authorize()`, `logs.connect*()`, webhook processing, …) was called after [`sdk.destroy()`](/docs/advanced/lifecycle) |
-| `WS_OPTIONS_INVALID` | `WsOptionsError` | `LogOptions.interval` is outside the `0`–`10` range the panel accepts |
+| `WS_OPTIONS_INVALID` | `WsOptionsError` | `LogOptions.interval`/`replay`/`reconnect` is invalid |
+| `WS_HANDSHAKE_REJECTED` | `WsError` | The WebSocket handshake was rejected before the connection ever opened |
+| `WS_AUTH_FAILED` | `WsError` | Re-authenticating with a fresh token still failed to open the connection |
+| `WS_CONNECTION_LOST` | `WsError` | The connection was lost after opening (a transport drop) |
+| `WS_RETRIES_EXHAUSTED` | `WsError` | The reconnect budget ran out (or the [`reconnect` policy](/docs/realtime/websocket-logs#reconnect-behavior) gave up) before the stream reopened |
 | `WEBHOOK_SIGNATURE_ERROR` | `WebhookSignatureError` | Missing signature or HMAC mismatch |
 | `WEBHOOK_VALIDATION_ERROR` | `WebhookValidationError` | Webhook payload doesn't match expected schema |
 | `WEBHOOK_ENVIRONMENT_ERROR` | `WebhookEnvironmentError` | Signature verification called in a browser context |
@@ -82,6 +87,8 @@ import {
   isConfigurationError,
   isHttpError,
   isSdkDestroyedError,
+  isWsError,
+  isWsOptionsError,
   isWebhookSignatureError,
   isWebhookValidationError,
   isWebhookEnvironmentError,

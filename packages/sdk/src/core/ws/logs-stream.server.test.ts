@@ -69,7 +69,16 @@ describe.each(WS_TRANSPORTS)('LogsStream over the %s transport', transportName =
     const [handshake] = await panel.waitForHandshakes(1)
     expect(handshake!.pathname).toBe('/api/core/logs')
     expect(handshake!.interval).toBe('7')
-    expect(handshake!.token).toBe('mock-access-token')
+    // Only the ws-package transport can send a header — there, the token
+    // moves out of the URL entirely; the native transport has no such
+    // option, so it always carries it in the query string (issue #89).
+    if (transportName === 'ws-package') {
+      expect(handshake!.token).toBeNull()
+      expect(handshake!.headers.authorization).toBe('Bearer mock-access-token')
+    } else {
+      expect(handshake!.token).toBe('mock-access-token')
+      expect(handshake!.headers.authorization).toBeUndefined()
+    }
     expect(panel.logins).toEqual([{ username: 'admin', password: 'secret' }])
   })
 
@@ -112,7 +121,12 @@ describe.each(WS_TRANSPORTS)('LogsStream over the %s transport', transportName =
     await instance.logs.connectByCore({ onMessage: () => {} })
 
     const handshakes = await panel.waitForHandshakes(2)
-    expect(handshakes[1]?.token).toBe('second-token')
+    if (transportName === 'ws-package') {
+      expect(handshakes[1]?.token).toBeNull()
+      expect(handshakes[1]?.headers.authorization).toBe('Bearer second-token')
+    } else {
+      expect(handshakes[1]?.token).toBe('second-token')
+    }
   })
 
   it('rejects an out-of-range interval before opening a socket (issue #87)', async () => {
@@ -178,8 +192,14 @@ describe.each(WS_TRANSPORTS)('LogsStream over the %s transport', transportName =
 
     expect(isWsError(error) && error.phase).toBe('handshake')
     expect(isWsError(error) && error.attempt).toBe(2)
-    expect(isWsError(error) && error.url).toContain('token=REDACTED')
+    // Transport-agnostic invariant: the token is never in the URL, whether
+    // that's because it was redacted (native — it was there, in the query)
+    // or because it was never put there in the first place (ws-package — it
+    // went out as a header instead).
     expect(isWsError(error) && error.url).not.toContain('mock-access-token')
+    if (transportName === 'native') {
+      expect(isWsError(error) && error.url).toContain('token=REDACTED')
+    }
   })
 
   // ─── Reconnect after a transport drop (issue #88's headline case) ──────────

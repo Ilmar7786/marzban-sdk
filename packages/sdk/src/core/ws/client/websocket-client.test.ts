@@ -120,6 +120,54 @@ describe('WebSocketClient', () => {
     expect(receivedOptions).toEqual({ agent })
   })
 
+  it('forwards headers to the ws-backed client', async () => {
+    // No native WebSocket — the simplest way to force NodeWebSocketClient
+    // without an agent, so this test isolates headers specifically.
+    delete (globalThis as AnyType).WebSocket
+
+    let receivedOptions: AnyType
+    class FakeWs {
+      public readyState = 1
+      addEventListener = vi.fn()
+      constructor(
+        public url: string,
+        public protocols: string | string[] | undefined,
+        options: AnyType
+      ) {
+        receivedOptions = options
+      }
+    }
+    vi.doMock('ws', () => ({ default: FakeWs }))
+
+    const { WebSocketClient } = await import('./websocket-client')
+    const headers = { Authorization: 'Bearer token' }
+    const client = await WebSocketClient.create('wss://example.com', undefined, { headers })
+
+    expect(client.constructor.name).toBe('NodeWebSocketClient')
+    expect(receivedOptions).toEqual({ headers })
+  })
+
+  it('cannot forward headers to the browser-backed client — the native WebSocket constructor has no options parameter', async () => {
+    let receivedArgs: unknown[] = []
+    class FakeWebSocket {
+      public readyState = 1
+      addEventListener = vi.fn()
+      constructor(...args: unknown[]) {
+        receivedArgs = args
+      }
+    }
+    ;(globalThis as AnyType).WebSocket = FakeWebSocket
+
+    const { WebSocketClient } = await import('./websocket-client')
+    const headers = { Authorization: 'Bearer token' }
+    const client = await WebSocketClient.create('wss://example.com', 'proto', { headers })
+
+    expect(client.constructor.name).toBe('BrowserWebSocketClient')
+    // Only (url, protocols) ever reach the native constructor — structurally
+    // impossible for headers to leak through, not just unused.
+    expect(receivedArgs).toEqual(['wss://example.com', 'proto'])
+  })
+
   it('ignores the agent and still uses BrowserWebSocketClient in the browser', async () => {
     class FakeWebSocket {
       public readyState = 1

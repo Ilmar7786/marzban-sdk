@@ -1,11 +1,40 @@
 import { type HttpAgentLike, isBrowser } from '@/common'
 import { AuthManager } from '@/core/auth'
+import { WsError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
 import { Lifecycle } from '../lifecycle'
-import { LogStream, type LogStreamTuning } from './log-stream'
-import type { HandleCloseConnection } from './utils/connection-handle.types'
+import { LogStream, type LogStreamState, type LogStreamTuning } from './log-stream'
 import { resolveLogInterval } from './utils/log-interval'
+import {
+  type ReconnectOption,
+  type ReconnectOptions,
+  resolveReconnectPolicy,
+  type ShouldReconnectContext,
+} from './utils/reconnect-policy'
+import { type ReplayMode, resolveReplayMode } from './utils/replay'
+import { createStreamHandle, type StreamHandle } from './utils/stream-handle'
+
+export type { ReconnectOption, ReconnectOptions, ReplayMode, ShouldReconnectContext }
+
+/** Handle returned by `connect*()`: callable (closes the stream), plus an explicit `close()` and a live `state`. */
+export type LogStreamHandle = StreamHandle<LogStreamState>
+
+/** Passed to `LogOptions.onClose` once, when the logical stream ends for good. */
+export interface WsCloseInfo {
+  /** The WebSocket close code, when one is known — absent for a caller-initiated close. */
+  code?: number
+  /** `true` when the consumer ended the stream (the handle, `close()`, or `sdk.destroy()`); `false` when it died on its own. */
+  byCaller: boolean
+}
+
+/** Passed to `LogOptions.onReconnect` when a dropped stream successfully reopens. */
+export interface WsReconnectInfo {
+  /** 1-based reconnect attempt that succeeded. Carries over across a flapping connection. */
+  attempt: number
+  /** Time (ms) since the most recent drop — not the start of a longer flapping sequence. */
+  downtimeMs: number
+}
 
 /**
  * Options for configuring a WebSocket log stream.
@@ -15,8 +44,31 @@ export interface LogOptions {
   interval?: number
   /** Callback triggered when a message is received */
   onMessage: (data: WebSocketEventMap['message']['data']) => void
-  /** Callback triggered when a connection error occurs */
-  onError?: (data: WebSocketEventMap['error']) => void
+  /** Called once the stream ends for good, with a typed error — never a raw transport event. */
+  onError?: (error: WsError) => void
+  /** Called every time the stream reaches `open` — the first connect and each successful reconnect. */
+  onOpen?: () => void
+  /** Called when a dropped stream successfully reopens. */
+  onReconnect?: (info: WsReconnectInfo) => void
+  /** Called once, when the stream ends for good — only if it ever reached `open`. */
+  onClose?: (info: WsCloseInfo) => void
+  /**
+   * How to handle log lines the panel re-delivers after a reconnect — it
+   * seeds every new connection from a shared buffer of its last ~100 lines
+   * (docs/marzban-quirks.md), with no cursor to resume from instead.
+   *
+   * - `'dedup'` (default) — suppress lines already delivered before the drop.
+   * - `'all'` — deliver everything, duplicates included.
+   * - `'skip'` — drop every replayed message outright, until the first one
+   *   that carries no previously-delivered line.
+   */
+  replay?: ReplayMode
+  /**
+   * Overrides the SDK-wide {@link LogsStreamOptions.reconnect} default for
+   * this stream. `false` disables reconnecting entirely; `true` or an
+   * options object enables it, with any explicit overrides.
+   */
+  reconnect?: ReconnectOption
 }
 
 /**
@@ -36,6 +88,12 @@ export interface LogsStreamOptions {
   httpsAgent?: HttpAgentLike
   /** Shared SDK-instance terminal-state flag. Defaults to a fresh, always-active one when omitted. */
   lifecycle?: Lifecycle
+  /**
+   * SDK-wide default reconnect policy for every stream opened through this
+   * instance — `LogOptions.reconnect` overrides it per call. Defaults to
+   * enabled, with no explicit timing overrides, when omitted.
+   */
+  reconnect?: ReconnectOption
   /**
    * Overrides for the reconnect policy's timing. Internal — used by this
    * package's own tests to exercise backoff/budget/timeout behavior without
@@ -62,17 +120,27 @@ export class LogsStream {
   private httpsAgent?: HttpAgentLike
   private lifecycle: Lifecycle
   private tuning?: Partial<LogStreamTuning>
+  private defaultReconnect?: ReconnectOption
 
   /**
    * Creates an API instance for handling logs via WebSocket.
    * @param options Configuration for the log stream. See {@link LogsStreamOptions}.
    */
-  constructor({ basePath, authService, logger, httpsAgent, lifecycle = new Lifecycle(), tuning }: LogsStreamOptions) {
+  constructor({
+    basePath,
+    authService,
+    logger,
+    httpsAgent,
+    lifecycle = new Lifecycle(),
+    reconnect,
+    tuning,
+  }: LogsStreamOptions) {
     this.basePath = basePath
     this.authService = authService
     this.logger = logger
     this.httpsAgent = httpsAgent
     this.lifecycle = lifecycle
+    this.defaultReconnect = reconnect
     this.tuning = tuning
     this.logger.debug('LogsStream initialized', 'LogsStream')
 
@@ -90,14 +158,20 @@ export class LogsStream {
    * Resolves only once the socket is genuinely open, so a failed first
    * connect rejects instead of handing back a handle to a dead stream.
    */
-  private async connect(endpoint: string, options: LogOptions): Promise<HandleCloseConnection> {
+  private async connect(endpoint: string, options: LogOptions): Promise<LogStreamHandle> {
     this.lifecycle.assertActive(`logs.connect(${endpoint})`)
 
     const interval = resolveLogInterval(options.interval)
+    const replay = resolveReplayMode(options.replay)
+    // Per-call `reconnect` fully replaces the SDK-wide default when given,
+    // same as `interval`/`replay` — no field-by-field merging between the two.
+    const reconnect = resolveReconnectPolicy(options.reconnect ?? this.defaultReconnect)
 
     const stream = new LogStream({
       endpoint,
       interval,
+      replay,
+      reconnect,
       handlers: options,
       basePath: this.basePath,
       authService: this.authService,
@@ -111,15 +185,16 @@ export class LogsStream {
 
     await stream.open()
 
-    return () => stream.close()
+    return createStreamHandle(stream)
   }
 
   /**
    * Connects to the core logs (`/api/core/logs`).
    * @param options Connection options (callbacks, interval).
-   * @returns A function to close the WebSocket connection.
+   * @returns A {@link LogStreamHandle} — callable to close the stream (source-compatible with the
+   * bare close function this used to return), plus an explicit `close()` and a live `state`.
    * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
-   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts.
+   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts, or `replay`/`reconnect` is invalid.
    * @throws {WsError} If the connection cannot be established.
    */
   async connectByCore(options: LogOptions) {
@@ -131,9 +206,10 @@ export class LogsStream {
    * Connects to logs of a specific node (`/api/node/{nodeId}/logs`).
    * @param nodeId The ID of the node whose logs should be accessed.
    * @param options Connection options (callbacks, interval).
-   * @returns A function to close the WebSocket connection.
+   * @returns A {@link LogStreamHandle} — callable to close the stream (source-compatible with the
+   * bare close function this used to return), plus an explicit `close()` and a live `state`.
    * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
-   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts.
+   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts, or `replay`/`reconnect` is invalid.
    * @throws {WsError} If the connection cannot be established.
    */
   async connectByNode(nodeId: number | string, options: LogOptions) {

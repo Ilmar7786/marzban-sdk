@@ -82,14 +82,18 @@ describe('LogStream', () => {
     return new LogStream({
       endpoint: '/api/core/logs',
       interval: 1,
+      replay: 'dedup',
+      reconnect: { enabled: true, initial: false },
       handlers: { onMessage: vi.fn(), onError: vi.fn() },
       basePath: 'https://panel.example.com',
       authService,
       logger,
       lifecycle,
       onClosed,
-      tuning: { now: () => clock, sleep, ...overrides.tuning },
       ...overrides,
+      // Merged last: an override that only sets e.g. backoffBaseMs must not
+      // silently drop the fake now/sleep and fall back to real timers.
+      tuning: { now: () => clock, sleep, ...overrides.tuning },
     })
   }
 
@@ -358,6 +362,106 @@ describe('LogStream', () => {
     })
   })
 
+  describe('reconnect.initial', () => {
+    it('retries a failed first connect through the same policy-gated loop a post-open drop uses, and eventually opens', async () => {
+      const stream = createStream({
+        reconnect: { enabled: true, initial: true },
+        tuning: { backoffBaseMs: 1, backoffMaxMs: 1 },
+      })
+      const opening = stream.open()
+
+      // The built-in "one re-auth retry" for a first connect — both fail.
+      ;(await waitForSocket(0)).emit('error', { message: '' })
+      ;(await waitForSocket(1)).emit('error', { message: '' })
+
+      // reconnect.initial kicks in: a further attempt through the loop succeeds.
+      ;(await waitForSocket(2)).emit('open')
+
+      await opening
+      expect(stream.state).toBe('open')
+    })
+
+    it('rejects connect*() when the initial retry loop exhausts its budget, without ever calling onClose', async () => {
+      const onClose = vi.fn()
+      const stream = createStream({
+        handlers: { onMessage: vi.fn(), onClose },
+        reconnect: { enabled: true, initial: true },
+        tuning: { backoffBaseMs: 1, backoffMaxMs: 1, reconnectBudgetMs: 0 },
+      })
+      const opening = stream.open().catch((err: unknown) => err)
+
+      ;(await waitForSocket(0)).emit('error', { message: '' })
+      ;(await waitForSocket(1)).emit('error', { message: '' })
+
+      const error = await opening
+      expect(isWsError(error) && error.code).toBe('WS_RETRIES_EXHAUSTED')
+      expect(onClose).not.toHaveBeenCalled()
+      expect(stream.state).toBe('closed')
+    })
+
+    it('closes without entering the retry loop when destroyed exactly as the first connect fails', async () => {
+      const stream = createStream({ reconnect: { enabled: true, initial: true } })
+      const opening = stream.open().catch((err: unknown) => err)
+
+      ;(await waitForSocket(0)).emit('error', { message: '' })
+      const second = await waitForSocket(1)
+      lifecycle.markDestroyed()
+      second.emit('error', { message: '' })
+
+      const error = await opening
+      expect(error).toBeInstanceOf(Error)
+      // No retry attempt was made — only the two built-in attempts happened.
+      expect(sockets).toHaveLength(2)
+    })
+  })
+
+  describe('reconnect option escape hatches', () => {
+    it('reconnect: false ends the stream at the first drop without opening a replacement socket', async () => {
+      const onError = vi.fn()
+      const onClose = vi.fn()
+      await openStream({
+        handlers: { onMessage: vi.fn(), onError, onClose },
+        reconnect: { enabled: false, initial: false },
+      })
+
+      sockets[0]!.emit('close', { code: 1006 })
+
+      await vi.waitFor(() => expect(onClose).toHaveBeenCalled())
+      expect(sockets).toHaveLength(1)
+      const error = onError.mock.calls[0]![0]
+      expect(isWsError(error) && error.code).toBe('WS_CONNECTION_LOST')
+      expect(onClose).toHaveBeenCalledExactlyOnceWith({ code: 1006, byCaller: false })
+    })
+
+    it('shouldReconnect returning false stops the loop at the first attempt, without sleeping or opening a replacement socket', async () => {
+      const shouldReconnect = vi.fn().mockReturnValue(false)
+      const onError = vi.fn()
+      await openStream({
+        handlers: { onMessage: vi.fn(), onError },
+        reconnect: { enabled: true, initial: false, shouldReconnect },
+      })
+
+      sockets[0]!.emit('close', { code: 1006 })
+
+      await vi.waitFor(() => expect(onError).toHaveBeenCalled())
+      expect(shouldReconnect).toHaveBeenCalledOnce()
+      expect(sleep).not.toHaveBeenCalled()
+      expect(sockets).toHaveLength(1)
+    })
+
+    it('shouldReconnect returning a number overrides the computed backoff delay', async () => {
+      const shouldReconnect = vi.fn().mockReturnValue(4_321)
+      await openStream({
+        handlers: { onMessage: vi.fn() },
+        reconnect: { enabled: true, initial: false, shouldReconnect },
+      })
+
+      sockets[0]!.emit('close', { code: 1006 })
+
+      await vi.waitFor(() => expect(sleep).toHaveBeenCalledWith(4_321))
+    })
+  })
+
   describe('reconnect policy', () => {
     async function reconnectOnce(stream: LogStream): Promise<void> {
       sockets[0]!.emit('close', { code: 1006 })
@@ -469,11 +573,14 @@ describe('LogStream', () => {
       await opening
 
       // A close with no event payload at all — the terminal report still has
-      // to carry something for `onError`.
+      // to be a well-formed WsError even with nothing to forward.
       sockets[0]!.emit('close', undefined)
 
       await vi.waitFor(() => expect(onError).toHaveBeenCalled())
-      expect(onError.mock.calls[0]![0]).toMatchObject({ type: 'error' })
+      const error = onError.mock.calls[0]![0]
+      expect(isWsError(error) && error.code).toBe('WS_RETRIES_EXHAUSTED')
+      expect(isWsError(error) && error.phase).toBe('connection')
+      expect(isWsError(error) && error.details?.event).toBeUndefined()
       expect(stream.state).toBe('closed')
     })
 
@@ -497,6 +604,186 @@ describe('LogStream', () => {
       releaseSleep()
 
       await vi.waitFor(() => expect(sockets).toHaveLength(1))
+    })
+  })
+
+  describe('replay', () => {
+    it('suppresses a message replayed after a reconnect by default (dedup)', async () => {
+      const onMessage = vi.fn()
+      const stream = await openStream({ handlers: { onMessage }, tuning: { backoffBaseMs: 1, backoffMaxMs: 1 } })
+
+      sockets[0]!.emit('message', { data: 'line one' })
+
+      sockets[0]!.emit('close', { code: 1006 })
+      const replacement = await waitForSocket(1)
+      replacement.emit('open')
+      await vi.waitFor(() => expect(stream.state).toBe('open'))
+
+      // The panel re-delivers the same buffered line after reconnecting.
+      replacement.emit('message', { data: 'line one' })
+      replacement.emit('message', { data: 'a genuinely new line' })
+
+      await vi.waitFor(() => expect(onMessage).toHaveBeenCalledWith('a genuinely new line'))
+      expect(onMessage.mock.calls).toEqual([['line one'], ['a genuinely new line']])
+    })
+
+    it('delivers a replayed duplicate unfiltered when replay is "all"', async () => {
+      const onMessage = vi.fn()
+      const stream = await openStream({
+        handlers: { onMessage },
+        replay: 'all',
+        tuning: { backoffBaseMs: 1, backoffMaxMs: 1 },
+      })
+
+      sockets[0]!.emit('message', { data: 'line one' })
+
+      sockets[0]!.emit('close', { code: 1006 })
+      const replacement = await waitForSocket(1)
+      replacement.emit('open')
+      await vi.waitFor(() => expect(stream.state).toBe('open'))
+
+      replacement.emit('message', { data: 'line one' })
+
+      await vi.waitFor(() => expect(onMessage.mock.calls).toEqual([['line one'], ['line one']]))
+    })
+  })
+
+  describe('lifecycle callbacks', () => {
+    it('calls onOpen once on the first connect', async () => {
+      const onOpen = vi.fn()
+      await openStream({ handlers: { onMessage: vi.fn(), onOpen } })
+
+      expect(onOpen).toHaveBeenCalledTimes(1)
+    })
+
+    it('calls onOpen again, and onReconnect with the attempt and downtime, on a successful reconnect', async () => {
+      const onOpen = vi.fn()
+      const onReconnect = vi.fn()
+      const stream = await openStream({
+        handlers: { onMessage: vi.fn(), onOpen, onReconnect },
+        tuning: { backoffBaseMs: 1, backoffMaxMs: 1 },
+      })
+      onOpen.mockClear()
+
+      sockets[0]!.emit('close', { code: 1006 })
+      clock += 5_000
+      ;(await waitForSocket(1)).emit('open')
+      await vi.waitFor(() => expect(stream.state).toBe('open'))
+
+      expect(onOpen).toHaveBeenCalledTimes(1)
+      expect(onReconnect).toHaveBeenCalledExactlyOnceWith({ attempt: 1, downtimeMs: 5_000 })
+      // onOpen reports the state transition before onReconnect reports how it got there.
+      expect(onOpen.mock.invocationCallOrder[0]).toBeLessThan(onReconnect.mock.invocationCallOrder[0]!)
+    })
+
+    it('calls onClose({ byCaller: true }) exactly once when the caller closes an open stream', async () => {
+      const onClose = vi.fn()
+      const stream = await openStream({ handlers: { onMessage: vi.fn(), onClose } })
+
+      stream.close()
+      stream.close()
+
+      expect(onClose).toHaveBeenCalledExactlyOnceWith({ byCaller: true })
+    })
+
+    it('never calls onClose for a first connect that fails without ever opening', async () => {
+      const onClose = vi.fn()
+      const stream = createStream({ handlers: { onMessage: vi.fn(), onClose } })
+      const opening = stream.open().catch((error: unknown) => error)
+
+      ;(await waitForSocket(0)).emit('error', { message: '' })
+      ;(await waitForSocket(1)).emit('error', { message: '' })
+
+      expect(isWsError(await opening)).toBe(true)
+      expect(onClose).not.toHaveBeenCalled()
+    })
+
+    it('never calls onClose when destroyed while the handshake is in flight', async () => {
+      let releaseAuth: () => void = () => {}
+      authService.waitForCurrentAuth = vi.fn(
+        () =>
+          new Promise<void>(resolve => {
+            releaseAuth = resolve
+          })
+      )
+      const onClose = vi.fn()
+      const stream = createStream({ handlers: { onMessage: vi.fn(), onClose } })
+      const opening = stream.open()
+
+      lifecycle.markDestroyed()
+      releaseAuth()
+
+      await expect(opening).rejects.toThrow()
+      expect(onClose).not.toHaveBeenCalled()
+    })
+
+    it('calls onError then onClose({ byCaller: false }) in order when the stream terminates itself', async () => {
+      const onError = vi.fn()
+      const onClose = vi.fn()
+      const stream = createStream({
+        handlers: { onMessage: vi.fn(), onError, onClose },
+        tuning: { backoffBaseMs: 1, backoffMaxMs: 1, reconnectBudgetMs: 0 },
+      })
+      const opening = stream.open()
+      ;(await waitForSocket(0)).emit('open')
+      await opening
+
+      sockets[0]!.emit('close', { code: 1006 })
+
+      await vi.waitFor(() => expect(onClose).toHaveBeenCalled())
+      expect(onError).toHaveBeenCalledTimes(1)
+      // closeCode carries over from the drop that started this reconnect loop.
+      expect(onClose).toHaveBeenCalledExactlyOnceWith({ code: 1006, byCaller: false })
+      expect(onError.mock.invocationCallOrder[0]).toBeLessThan(onClose.mock.invocationCallOrder[0]!)
+      expect(stream.state).toBe('closed')
+    })
+
+    it('logs rather than throws when onOpen throws', async () => {
+      const onOpen = vi.fn(() => {
+        throw new Error('onOpen boom')
+      })
+      await openStream({ handlers: { onMessage: vi.fn(), onOpen } })
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('onOpen callback threw'),
+        expect.any(Error),
+        'LogsStream'
+      )
+    })
+
+    it('logs rather than throws when onReconnect throws', async () => {
+      const onReconnect = vi.fn(() => {
+        throw new Error('onReconnect boom')
+      })
+      const stream = await openStream({
+        handlers: { onMessage: vi.fn(), onReconnect },
+        tuning: { backoffBaseMs: 1, backoffMaxMs: 1 },
+      })
+
+      sockets[0]!.emit('close', { code: 1006 })
+      ;(await waitForSocket(1)).emit('open')
+      await vi.waitFor(() => expect(stream.state).toBe('open'))
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('onReconnect callback threw'),
+        expect.any(Error),
+        'LogsStream'
+      )
+    })
+
+    it('logs rather than throws when onClose throws', async () => {
+      const onClose = vi.fn(() => {
+        throw new Error('onClose boom')
+      })
+      const stream = await openStream({ handlers: { onMessage: vi.fn(), onClose } })
+
+      stream.close()
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('onClose callback threw'),
+        expect.any(Error),
+        'LogsStream'
+      )
     })
   })
 })

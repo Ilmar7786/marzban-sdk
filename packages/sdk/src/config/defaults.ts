@@ -74,3 +74,18 @@ export const WS_RECONNECT_BUDGET_MS = 600_000
  * reconnect attempt with a budget already exhausted by earlier flapping.
  */
 export const WS_STABLE_AFTER_MS = 30_000
+
+/**
+ * Default `LogOptions.replay` mode. The panel seeds every new WS connection
+ * from a shared `deque(maxlen=100)` (see docs/marzban-quirks.md), so a
+ * reconnect re-delivers up to 100 already-seen lines by default — `'dedup'`
+ * suppresses that.
+ */
+export const DEFAULT_WS_REPLAY = 'dedup'
+
+/**
+ * Size of the ring buffer a `'dedup'`/`'skip'` replay filter checks incoming
+ * lines against after a reconnect. Larger than the panel's own 100-line
+ * buffer above, so a full replay is never partially missed.
+ */
+export const WS_REPLAY_BUFFER_LINES = 200

@@ -167,12 +167,14 @@ export const typeGlossary: Record<string, TypeInfo> = {
 
   // ── Real-time logs ─────────────────────────────────────────────────────
   LogOptions: {
-    description: 'Options for a WebSocket log stream: onMessage, an optional onError, and a polling interval.',
+    description:
+      'Options for a WebSocket log stream: onMessage, lifecycle callbacks (onOpen/onReconnect/onClose/onError), interval, replay, and reconnect.',
     href: '/docs/realtime/websocket-logs#logoptions',
   },
-  ErrorEvent: {
+  WsError: {
     description:
-      "The runtime's global WebSocket error event, passed to a log stream's onError after retries are exhausted. A standard platform type (browser / Node `ws`), not an SDK type — so there's no SDK definition to link to.",
+      'Raised by a WS log stream instead of a raw transport event (codes WS_HANDSHAKE_REJECTED, WS_AUTH_FAILED, WS_CONNECTION_LOST, WS_RETRIES_EXHAUSTED). .url never contains the access token.',
+    href: '/docs/advanced/error-handling#error-codes-reference',
   },
 
   // ── Webhooks ───────────────────────────────────────────────────────────

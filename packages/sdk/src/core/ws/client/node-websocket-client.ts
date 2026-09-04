@@ -16,8 +16,12 @@ export class NodeWebSocketClient extends BaseWebSocketClient {
     const NodeWebSocket = this.wsConstructor!
     // The `ws` socket is EventTarget-compatible (addEventListener/send/close/
     // readyState) but its DOM typings differ, so we adapt it structurally —
-    // `agent` (our structural HttpAgentLike, not ws's own Agent type) the
-    // same way. `agent: undefined` when unset behaves identically to omitting it.
-    return new NodeWebSocket(this.url, this.protocols, { agent: this.agent as AnyType }) as AnyType as WebSocketLike
+    // `agent` (our structural HttpAgentLike, not ws's own Agent type) and
+    // `headers` the same way. Either being `undefined` when unset behaves
+    // identically to omitting it.
+    return new NodeWebSocket(this.url, this.protocols, {
+      agent: this.agent as AnyType,
+      headers: this.headers,
+    }) as AnyType as WebSocketLike
   }
 }

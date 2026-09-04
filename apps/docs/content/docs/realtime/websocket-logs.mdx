@@ -1,56 +1,56 @@
 ---
 title: WebSocket Logs
-description: Stream live logs from the Marzban Xray core and individual nodes over WebSocket, with automatic token refresh and reconnection via `sdk.logs`.
+description: Stream live logs from the Marzban Xray core and individual nodes over WebSocket, with automatic reconnection, deduplication, and lifecycle callbacks via `sdk.logs`.
 ---
 
-`sdk.logs` provides live log streaming over WebSocket. It supports both the **core Xray process** and **individual node** logs, with automatic token refresh on `403 Forbidden`.
+`sdk.logs` provides live log streaming over WebSocket. It supports both the **core Xray process** and **individual node** logs, with automatic reconnection, token refresh, and duplicate-line suppression after a drop.
 
 ## How it works
 
 Each `connect*` call:
 1. Ensures the SDK has a valid token (re-authenticates if needed).
-2. Opens a WebSocket connection to the Marzban backend.
-3. Returns a **close function** — call it to terminate the connection.
+2. Opens a WebSocket connection to the Marzban backend — the promise resolves only once the socket is genuinely open.
+3. Returns a **stream handle**: callable to close the stream, plus an explicit `.close()` and a live `.state`.
 
-Active connections are tracked internally. `sdk.destroy()` closes all of them at once.
+If the connection drops after opening, the stream reconnects on its own (exponential backoff, bounded by a time budget) and reports it through `onReconnect`/`onOpen`. Active streams are tracked internally — `sdk.destroy()` closes all of them at once.
 
 ## Connect to core logs
 
 ```ts
-const closeStream = await sdk.logs.connectByCore({
+const stream = await sdk.logs.connectByCore({
   interval: 1, // polling interval in seconds (default: 1)
   onMessage: (data) => {
     console.log('[Core log]', data)
   },
-  onError: (event) => {
-    console.error('WebSocket error:', event)
+  onError: (error) => {
+    console.error('WebSocket error:', error.code, error.message)
   },
 })
 
-// Later, close the stream
-closeStream()
+// Later, close the stream — the handle is callable, or use .close()
+stream()
 ```
 
 ## Connect to node logs
 
 ```ts
-const closeStream = await sdk.logs.connectByNode(nodeId, {
+const stream = await sdk.logs.connectByNode(nodeId, {
   interval: 1,
   onMessage: (data) => {
     console.log(`[Node ${nodeId} log]`, data)
   },
-  onError: (event) => {
-    console.error('Node log error:', event)
+  onError: (error) => {
+    console.error('Node log error:', error.code, error.message)
   },
 })
 
-closeStream()
+stream.close()
 ```
 
 ## Multiple concurrent streams
 
 ```ts
-const [closeCore, closeNode1, closeNode2] = await Promise.all([
+const [core, node1, node2] = await Promise.all([
   sdk.logs.connectByCore({ onMessage: d => process.stdout.write(d) }),
   sdk.logs.connectByNode(1, { onMessage: d => process.stdout.write(d) }),
   sdk.logs.connectByNode(2, { onMessage: d => process.stdout.write(d) }),
@@ -64,33 +64,78 @@ await sdk.destroy()
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `onMessage` | `(data: any) => void` | required | Called on each incoming log line |
-| `onError` | `(event: ErrorEvent) => void` | — | Called after max retries are exhausted |
+| `onMessage` | `(data: any) => void` | required | Called on each incoming log line (already deduplicated per `replay`) |
+| `onError` | `(error: WsError) => void` | — | Called once, when the stream ends for good — a typed error, never a raw transport event |
+| `onOpen` | `() => void` | — | Called every time the stream reaches `open` — the first connect and each successful reconnect |
+| `onReconnect` | `(info: { attempt: number; downtimeMs: number }) => void` | — | Called when a dropped stream successfully reopens |
+| `onClose` | `(info: { code?: number; byCaller: boolean }) => void` | — | Called once, when the stream ends for good — only if it ever reached `open`. `byCaller` is `true` when you closed it, `false` when it died on its own |
 | `interval` | `number` | `1` | Polling interval in seconds. Must be `0`–`10` (fractional values allowed); `0` disables batching and streams each line as it arrives |
+| `replay` | `'all' \| 'dedup' \| 'skip'` | `'dedup'` | How to handle log lines the panel re-delivers after a reconnect — see [Deduplication after a reconnect](#deduplication-after-a-reconnect) |
+| `reconnect` | `boolean \| object` | enabled | Per-call override of the [reconnect policy](#reconnect-behavior) |
 
-`interval` is validated before a socket is opened — a value outside `0`–`10` throws a `WsOptionsError` synchronously instead of round-tripping to the panel, which would otherwise reject it as a generic `403` (see [Error handling](/docs/advanced/error-handling#error-codes-reference)).
+`interval`/`replay`/`reconnect` are validated before a socket is opened — an invalid value throws a `WsOptionsError` synchronously instead of round-tripping to the panel, which would otherwise reject an out-of-range `interval` as a generic `403` (see [Error handling](/docs/advanced/error-handling#error-codes-reference)).
 
-A throwing `onMessage` or `onError` is caught and logged rather than propagated — it can't crash your process or stop later messages from arriving.
+A throwing callback is caught and logged rather than propagated — it can't crash your process or stop later events from arriving.
 
-## 403 / auth retry behaviour
+`onClose` never fires for a first connect that fails: that's reported through the `connect*()` rejection alone. A self-inflicted end (the budget runs out, the panel refuses a fresh token) reports `onError` then `onClose({ byCaller: false })`; closing the stream yourself reports `onClose({ byCaller: true })` with no `onError`.
 
-If the server returns `403 Forbidden` on a WebSocket connection, the SDK:
+## Reconnect behavior
 
-1. Closes the errored socket.
-2. Re-authenticates using stored credentials.
-3. Opens a new socket with the fresh token.
-4. Repeats up to `config.retries` times (default: 3).
-5. Calls `onError` if all retries are exhausted.
+A dropped stream reconnects automatically: exponential backoff with jitter, bounded by a 10-minute time budget that resets after 30 seconds of stable uptime. A **failed first connect** rejects `connect*()` immediately by default, so a misconfigured `baseUrl` or a down panel fails loudly instead of hanging.
+
+Override it per call with `reconnect`:
+
+```ts
+await sdk.logs.connectByCore({
+  onMessage: data => console.log(data),
+  reconnect: {
+    initial: true,        // also retry a failed *first* connect
+    maxElapsedMs: Infinity, // never give up (default: 10 minutes)
+    minDelayMs: 500,
+    maxDelayMs: 20_000,
+    shouldReconnect: ({ attempt, elapsedMs, error }) => {
+      if (attempt > 20) return false // give up after 20 attempts
+      return true // or return a number to override the delay
+    },
+  },
+})
+
+// Or disable it entirely for one stream:
+await sdk.logs.connectByCore({ onMessage: data => console.log(data), reconnect: false })
+```
+
+Set an SDK-wide default instead of repeating it per call — `LogOptions.reconnect` still overrides it:
+
+```ts
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://panel.example.com',
+  username: 'admin',
+  password: 'secret',
+  reconnect: { maxElapsedMs: Infinity },
+})
+```
+
+## Deduplication after a reconnect
+
+The panel re-seeds every new connection from a shared buffer of its last ~100 log lines — a reconnect naturally re-delivers lines your `onMessage` already saw. `replay: 'dedup'` (the default) suppresses them: it tracks the last ~200 delivered lines and drops a leading run of already-seen ones after a reconnect, until the first genuinely new line. A line that legitimately repeats (a heartbeat, `"OK"`) is never dropped once the replay has actually been worked through.
+
+```ts
+// See every line, duplicates included
+await sdk.logs.connectByCore({ onMessage: data => console.log(data), replay: 'all' })
+
+// Drop every replayed message outright, until the first clean one
+await sdk.logs.connectByCore({ onMessage: data => console.log(data), replay: 'skip' })
+```
 
 ## Cleanup
 
 Always close streams when you no longer need them to avoid resource leaks:
 
 ```ts
-// Close a single stream
-const close = await sdk.logs.connectByCore({ onMessage: handler })
+// Close a single stream — the handle is callable, or use .close()
+const stream = await sdk.logs.connectByCore({ onMessage: handler })
 // ...
-close()
+stream()
 
 // Close all active streams + release other SDK resources
 await sdk.destroy()
@@ -127,6 +172,8 @@ The WebSocket client auto-detects the runtime:
 
 No configuration required for that detection — it's fully transparent, **unless** you set `httpsAgent`, which forces the `ws`-backed client outside the browser (see above) regardless of what's natively available.
 
+The access token also travels differently depending on which client is used: the `ws`-backed client sends it as an `Authorization: Bearer` header, so it never appears in the URL. The native `WebSocket` constructor has no headers option at all — a platform limit, not a gap in this SDK — so on that client (every browser, and Node.js 21+ without a configured `httpsAgent`) the token stays in the URL's `token` query parameter.
+
 ## React / frontend example
 
 ```tsx
@@ -140,9 +187,9 @@ function NodeLogViewer({ sdk, nodeId }: { sdk: MarzbanSDK; nodeId: number }) {
     sdk.logs
       .connectByNode(nodeId, {
         onMessage: (data) => console.log(data),
-        onError: (e) => console.error('Stream error', e),
+        onError: (error) => console.error('Stream error', error.code, error.message),
       })
-      .then(fn => { close = fn })
+      .then(stream => { close = stream.close })
 
     return () => { close?.() }
   }, [sdk, nodeId])

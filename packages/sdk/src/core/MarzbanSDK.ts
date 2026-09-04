@@ -155,6 +155,7 @@ export class MarzbanSDK {
       logger: this._logger,
       httpsAgent: this._config.httpsAgent,
       lifecycle: this._lifecycle,
+      reconnect: this._config.reconnect,
     })
     this.webhook = new WebhookManager({ ...this._config.webhook, logger: this._logger, lifecycle: this._lifecycle })
 

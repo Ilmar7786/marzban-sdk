@@ -1,18 +1,23 @@
 ---
 title: WebSocket Logs
-description: Stream live logs from the Marzban Xray core and individual nodes over WebSocket, with automatic reconnection, deduplication, and lifecycle callbacks via `sdk.logs`.
+description: Stream live logs from the Marzban Xray core and individual nodes over WebSocket via sdk.logs — connecting, the LogOptions reference, cleanup, and browser support.
 ---
 
 `sdk.logs` provides live log streaming over WebSocket. It supports both the **core Xray process** and **individual node** logs, with automatic reconnection, token refresh, and duplicate-line suppression after a drop.
+
+<Cards>
+  <Card title="Reconnect & Stream Lifecycle" href="/docs/realtime/reconnect" description="Backoff, the time budget, ReconnectOptions, shouldReconnect, and LogStreamState" />
+  <Card title="Replay & Deduplication" href="/docs/realtime/replay" description="How replayed log lines after a reconnect are filtered — ReplayMode" />
+</Cards>
 
 ## How it works
 
 Each `connect*` call:
 1. Ensures the SDK has a valid token (re-authenticates if needed).
 2. Opens a WebSocket connection to the Marzban backend — the promise resolves only once the socket is genuinely open.
-3. Returns a **stream handle**: callable to close the stream, plus an explicit `.close()` and a live `.state`.
+3. Returns a **stream handle**: callable to close the stream, plus an explicit `.close()` and a live `.state` (see [Stream state](/docs/realtime/reconnect#stream-state)).
 
-If the connection drops after opening, the stream reconnects on its own (exponential backoff, bounded by a time budget) and reports it through `onReconnect`/`onOpen`. Active streams are tracked internally — `sdk.destroy()` closes all of them at once.
+If the connection drops after opening, the stream reconnects on its own (exponential backoff, bounded by a time budget) and reports it through `onReconnect`/`onOpen` — see [Reconnect & Stream Lifecycle](/docs/realtime/reconnect). Active streams are tracked internally — `sdk.destroy()` closes all of them at once.
 
 ## Connect to core logs
 
@@ -67,65 +72,21 @@ await sdk.destroy()
 | `onMessage` | `(data: any) => void` | required | Called on each incoming log line (already deduplicated per `replay`) |
 | `onError` | `(error: WsError) => void` | — | Called once, when the stream ends for good — a typed error, never a raw transport event |
 | `onOpen` | `() => void` | — | Called every time the stream reaches `open` — the first connect and each successful reconnect |
-| `onReconnect` | `(info: { attempt: number; downtimeMs: number }) => void` | — | Called when a dropped stream successfully reopens |
-| `onClose` | `(info: { code?: number; byCaller: boolean }) => void` | — | Called once, when the stream ends for good — only if it ever reached `open`. `byCaller` is `true` when you closed it, `false` when it died on its own |
+| `onReconnect` | `(info: WsReconnectInfo) => void` | — | Called when a dropped stream successfully reopens |
+| `onClose` | `(info: WsCloseInfo) => void` | — | Called once, when the stream ends for good — only if it ever reached `open` |
 | `interval` | `number` | `1` | Polling interval in seconds. Must be `0`–`10` (fractional values allowed); `0` disables batching and streams each line as it arrives |
-| `replay` | `'all' \| 'dedup' \| 'skip'` | `'dedup'` | How to handle log lines the panel re-delivers after a reconnect — see [Deduplication after a reconnect](#deduplication-after-a-reconnect) |
-| `reconnect` | `boolean \| object` | enabled | Per-call override of the [reconnect policy](#reconnect-behavior) |
+| `replay` | `ReplayMode` | `'dedup'` | How to handle log lines the panel re-delivers after a reconnect — see [Replay & Deduplication](/docs/realtime/replay) |
+| `reconnect` | `ReconnectOption` | enabled | Per-call override of the [reconnect policy](/docs/realtime/reconnect) |
+
+`WsReconnectInfo` is `{ attempt: number; downtimeMs: number }` — `attempt` is the 1-based reconnect attempt that succeeded (carries over across a flapping connection); `downtimeMs` is the time since the most recent drop.
+
+`WsCloseInfo` is `{ code?: number; byCaller: boolean }` — `code` is the WebSocket close code when one is known (absent for a caller-initiated close); `byCaller` is `true` when you closed the stream yourself, `false` when it died on its own.
 
 `interval`/`replay`/`reconnect` are validated before a socket is opened — an invalid value throws a `WsOptionsError` synchronously instead of round-tripping to the panel, which would otherwise reject an out-of-range `interval` as a generic `403` (see [Error handling](/docs/advanced/error-handling#error-codes-reference)).
 
 A throwing callback is caught and logged rather than propagated — it can't crash your process or stop later events from arriving.
 
-`onClose` never fires for a first connect that fails: that's reported through the `connect*()` rejection alone. A self-inflicted end (the budget runs out, the panel refuses a fresh token) reports `onError` then `onClose({ byCaller: false })`; closing the stream yourself reports `onClose({ byCaller: true })` with no `onError`.
-
-## Reconnect behavior
-
-A dropped stream reconnects automatically: exponential backoff with jitter, bounded by a 10-minute time budget that resets after 30 seconds of stable uptime. A **failed first connect** rejects `connect*()` immediately by default, so a misconfigured `baseUrl` or a down panel fails loudly instead of hanging.
-
-Override it per call with `reconnect`:
-
-```ts
-await sdk.logs.connectByCore({
-  onMessage: data => console.log(data),
-  reconnect: {
-    initial: true,        // also retry a failed *first* connect
-    maxElapsedMs: Infinity, // never give up (default: 10 minutes)
-    minDelayMs: 500,
-    maxDelayMs: 20_000,
-    shouldReconnect: ({ attempt, elapsedMs, error }) => {
-      if (attempt > 20) return false // give up after 20 attempts
-      return true // or return a number to override the delay
-    },
-  },
-})
-
-// Or disable it entirely for one stream:
-await sdk.logs.connectByCore({ onMessage: data => console.log(data), reconnect: false })
-```
-
-Set an SDK-wide default instead of repeating it per call — `LogOptions.reconnect` still overrides it:
-
-```ts
-const sdk = await createMarzbanSDK({
-  baseUrl: 'https://panel.example.com',
-  username: 'admin',
-  password: 'secret',
-  reconnect: { maxElapsedMs: Infinity },
-})
-```
-
-## Deduplication after a reconnect
-
-The panel re-seeds every new connection from a shared buffer of its last ~100 log lines — a reconnect naturally re-delivers lines your `onMessage` already saw. `replay: 'dedup'` (the default) suppresses them: it tracks the last ~200 delivered lines and drops a leading run of already-seen ones after a reconnect, until the first genuinely new line. A line that legitimately repeats (a heartbeat, `"OK"`) is never dropped once the replay has actually been worked through.
-
-```ts
-// See every line, duplicates included
-await sdk.logs.connectByCore({ onMessage: data => console.log(data), replay: 'all' })
-
-// Drop every replayed message outright, until the first clean one
-await sdk.logs.connectByCore({ onMessage: data => console.log(data), replay: 'skip' })
-```
+`onClose` never fires for a first connect that fails: that's reported through the `connect*()` rejection alone. A self-inflicted end (the budget runs out, the panel refuses a fresh token) reports `onError` then `onClose({ byCaller: false })`; closing the stream yourself reports `onClose({ byCaller: true })` with no `onError`. See [Reconnect & Stream Lifecycle](/docs/realtime/reconnect#lifecycle-callback-sequence) for the full callback sequence across a drop-and-recover cycle.
 
 ## Cleanup
 
@@ -168,7 +129,7 @@ This is Node-only: neither the browser's native `WebSocket` nor Node's own globa
 The WebSocket client auto-detects the runtime:
 
 - **Modern environments** (browser, Deno, Bun, Node.js 21+) — uses the native `WebSocket` global.
-- **Older Node.js (18–20)** — falls back to the `ws` package (included as an optional dependency).
+- **Older Node.js (19–20)** — falls back to the `ws` package (a regular dependency — installed automatically, no extra setup needed).
 
 No configuration required for that detection — it's fully transparent, **unless** you set `httpsAgent`, which forces the `ws`-backed client outside the browser (see above) regardless of what's natively available.
 
@@ -197,3 +158,8 @@ function NodeLogViewer({ sdk, nodeId }: { sdk: MarzbanSDK; nodeId: number }) {
   return <pre>watching node {nodeId} logs...</pre>
 }
 ```
+
+## See also
+
+- [Reconnect & Stream Lifecycle](/docs/realtime/reconnect) — backoff, the time budget, `ReconnectOptions`, `shouldReconnect`, and `LogStreamState`
+- [Replay & Deduplication](/docs/realtime/replay) — how replayed log lines after a reconnect are filtered

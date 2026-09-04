@@ -70,7 +70,7 @@ The signing key lives only in the server process's memory — a restart invalida
 | `always` | Confirm every single call, with no memory of what was already confirmed | Shared or interactive environments where even one accumulated trust is undesirable |
 | `off` | Skip confirmation entirely, from the very first call | Fully automated, unattended environments only — there is no safety net once this is set |
 
-Trust in `auto` mode is granted per tool *and* per exact call arguments, not per tool name alone — confirming a delete for `alice` does **not** trust a delete for `bob`, and confirming `marzban_users_reset_traffic { username: "alice" }` does not trust the same tool called with `{ all: true }`. Each grant also expires after the same 5-minute window a confirm token uses, so a tool whose arguments never vary (`marzban_core_restart` always takes `{}`) can't turn one confirmation into unlimited free re-runs for the rest of the connection. Every call that proceeds on accumulated trust — rather than a freshly verified token — is logged to stderr.
+Trust in `auto` mode is granted per tool *and* per exact call arguments, not per tool name alone — confirming a delete for `alice` does **not** trust a delete for `bob`, and confirming `marzban_users_reset_traffic { username: "alice" }` does not trust the same tool called with `{ all: true }`. Each grant also expires after the same 5-minute window a confirm token uses, so a tool whose arguments never vary (`marzban_core_restart` always takes `{}`) can't turn one confirmation into unlimited free re-runs for the rest of the connection. Every call that proceeds on accumulated trust — rather than a freshly verified token — is logged at `info` level (the default `MARZBAN_MCP_LOG_LEVEL=warn` suppresses it — set it to `info` or lower to see these).
 
 ## Credential masking
 
@@ -96,7 +96,7 @@ Related to the credentials rule above but worth calling out on its own: nothing 
 
 ## Transport hygiene
 
-All server logs go to stderr, never stdout — stdout is reserved exclusively for the JSON-RPC protocol, and a single stray log line there would corrupt the connection. Errors surfaced back to the model reuse `marzban-sdk`'s own secret redaction, so a failure that happens to embed a header or request body never leaks a raw credential into the model's context either.
+All server logs go to stderr, never stdout — stdout is reserved exclusively for the JSON-RPC protocol, and a single stray log line there would corrupt the connection. Errors surfaced back to the model pass through a narrow, MCP-side text redactor (bearer headers, raw JWTs, and `password`/`token`/`access_token`/`secret` JSON fields), so a failure that happens to embed one of these never leaks a raw credential into the model's context either. This is a defense-in-depth scrub of already-flattened error text, not a full port of `marzban-sdk`'s own object-level redaction (which only covers structured `SdkError.details`, not arbitrary rendered text).
 
 ## What's never exposed
 

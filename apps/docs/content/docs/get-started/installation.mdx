@@ -46,13 +46,13 @@ MarzbanSDK is published to npm and works in **Node.js**, **Bun**, **Deno**, **br
 
 | Runtime | Minimum version |
 |---------|----------------|
-| Node.js | 18+ |
+| Node.js | 19+ |
 | Bun | 1.0+ |
 | Deno | 1.38+ |
 | Browser | Any modern browser (Chrome 90+, Firefox 90+, Safari 15+) |
 
 <Callout type="info">
-  Node.js 18+ is required because the SDK uses the **Web Crypto API** (`crypto.subtle`) for webhook signature verification. Native `WebSocket` is available from Node.js 21+; older Node versions automatically fall back to the `ws` package (bundled as an optional peer dependency).
+  Node.js 19+ is required because the SDK uses the **Web Crypto API** (`crypto.subtle`) for webhook signature verification. Native `WebSocket` is available from Node.js 21+; older Node versions automatically fall back to the `ws` package (bundled as a regular dependency — installed automatically, no extra setup needed).
 </Callout>
 
 ## What's included
@@ -61,7 +61,7 @@ The package ships with:
 
 - **ESM** and **CJS** dual-format bundles — no configuration required.
 - Full **TypeScript** declarations (`.d.ts`) generated from the OpenAPI spec.
-- **Tree-shakeable** helpers and utilities in separate export paths.
+- **Tree-shakeable** named exports — unused helpers are dropped by your bundler even though everything ships from a single entry point.
 
 ## Next steps
 

@@ -1,0 +1,116 @@
+---
+title: Reconnect & Stream Lifecycle
+description: How sdk.logs recovers from a dropped WebSocket connection — exponential backoff, the reconnect time budget, ReconnectOptions overrides, shouldReconnect, and the LogStreamState lifecycle.
+---
+
+A dropped stream reconnects automatically: exponential backoff with jitter, bounded by a 10-minute time budget that resets after 30 seconds of stable uptime. A **failed first connect** rejects `connect*()` immediately by default, so a misconfigured `baseUrl` or a down panel fails loudly instead of hanging.
+
+## Reconnect behavior
+
+Override it per call with `reconnect`:
+
+```ts
+await sdk.logs.connectByCore({
+  onMessage: data => console.log(data),
+  reconnect: {
+    initial: true,        // also retry a failed *first* connect
+    maxElapsedMs: Infinity, // never give up (default: 10 minutes)
+    minDelayMs: 500,
+    maxDelayMs: 20_000,
+    shouldReconnect: ({ attempt, elapsedMs, error }) => {
+      if (attempt > 20) return false // give up after 20 attempts
+      return true // or return a number to override the delay
+    },
+  },
+})
+
+// Or disable it entirely for one stream:
+await sdk.logs.connectByCore({ onMessage: data => console.log(data), reconnect: false })
+```
+
+Set an SDK-wide default instead of repeating it per call — `LogOptions.reconnect` still overrides it:
+
+```ts
+const sdk = await createMarzbanSDK({
+  baseUrl: 'https://panel.example.com',
+  username: 'admin',
+  password: 'secret',
+  reconnect: { maxElapsedMs: Infinity },
+})
+```
+
+`config.reconnect` and `LogOptions.reconnect` don't merge field-by-field — a per-call value fully replaces the SDK-wide one, the same model `interval` and `replay` already use. If you set `config.reconnect = { maxElapsedMs: Infinity }` and then pass `reconnect: { initial: true }` on one call, that call gets **only** `initial: true` — not `maxElapsedMs: Infinity` as well.
+
+A dropped connection is classified by whether it ever reached `open`:
+
+| Situation | Outcome |
+|-----------|---------|
+| First connect's handshake fails (rejected, refused, or timed out) | Re-authenticate once and retry with a fresh token — the panel collapses an expired token into the same generic rejection as everything else |
+| First connect fails twice in a row | Terminal by default: `connect*()` rejects with a `WsError`. With `reconnect.initial`, it instead enters the same reconnect loop a post-open drop uses |
+| A socket that had reached `open` drops | Reconnect with exponential backoff + jitter, gated by `shouldReconnect` on every attempt, bounded by the time budget |
+| The panel positively refuses a handshake carrying a freshly refreshed token | Gives up early — retrying with the token we just refreshed can't help (e.g. a revoked or non-sudo admin). Anything ambiguous (a refused connection, a timeout, or any failure on the native `WebSocket` transport, which never reports an HTTP status) keeps retrying instead, so a restarting panel is never mistaken for a rejection |
+
+## Reconnect options reference
+
+`reconnect` accepts `false` (disable reconnecting entirely), `true` (enable with defaults), or a `ReconnectOptions` object with any of these fields:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `initial` | `boolean` | `false` | Also retries a failed **first** connect instead of rejecting `connect*()` immediately |
+| `maxElapsedMs` | `number` | `600_000` (10 min) | Total downtime budget before giving up. `Infinity` disables the budget — retries forever |
+| `stableAfterMs` | `number` | `30_000` (30 s) | How long a reconnected stream must stay open before the backoff counter and the budget reset |
+| `minDelayMs` | `number` | `1_000` (1 s) | Base exponential-backoff delay |
+| `maxDelayMs` | `number` | `30_000` (30 s) | Backoff delay cap |
+| `shouldReconnect` | `(ctx: ShouldReconnectContext) => boolean \| number \| undefined` | — | Full custom control over whether — and how long — to wait before the next attempt |
+
+A stream that flaps (opens, drops, opens, drops) doesn't get a fresh budget on every drop — only a stretch of uptime past `stableAfterMs` clears the deadline and resets backoff to `minDelayMs`. That's deliberate: a flapping connection should still eventually give up.
+
+`shouldReconnect` sits beside the budget, not inside it — a hard-capped budget check runs independently of what `shouldReconnect` returns. If you want "never give up," set `maxElapsedMs: Infinity`; returning `true` forever from `shouldReconnect` doesn't override the budget.
+
+### The shouldReconnect callback
+
+Called with a `ShouldReconnectContext` before each reconnect attempt (including the first, when `reconnect.initial` is set):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `attempt` | `number` | 1-based attempt about to run |
+| `elapsedMs` | `number` | Time (ms) spent reconnecting since the current drop |
+| `error` | `WsError` | Why the previous attempt — or the connection itself — failed |
+
+Its return value controls the next attempt: `false` stops reconnecting, `true` or `undefined` accepts the computed backoff delay, and a `number` overrides that delay outright.
+
+## Stream state
+
+A stream handle's `.state` is a `LogStreamState`, reflecting where the underlying socket is right now:
+
+| State | Meaning |
+|-------|---------|
+| `connecting` | The first `connect*()` handshake is in flight |
+| `open` | The socket is live — messages are flowing |
+| `reconnecting` | The previous socket dropped and the reconnect loop is running |
+| `closed` | Terminal. Reached from any of the other states — a caller `close()`, `sdk.destroy()`, or the reconnect budget running out |
+
+```ts
+const stream = await sdk.logs.connectByCore({ onMessage: data => console.log(data) })
+
+console.log(stream.state) // 'open'
+stream.close()
+console.log(stream.state) // 'closed'
+```
+
+### Lifecycle callback sequence
+
+Putting `onOpen`/`onReconnect`/`onError`/`onClose` together across a drop-and-recover cycle:
+
+1. First connect succeeds → state becomes `open` → `onOpen()`
+2. Connection drops → state becomes `reconnecting` (no callback fires yet — a drop alone isn't reported)
+3. Reconnect succeeds → state becomes `open` again → `onOpen()` fires again, then `onReconnect({ attempt, downtimeMs })`
+4. The budget runs out or the policy gives up → state becomes `closed` → `onError(error)`, then `onClose({ byCaller: false })`
+5. You call the handle, `.close()`, or `sdk.destroy()` → state becomes `closed` → `onClose({ byCaller: true })`, with no `onError`
+
+`onClose` fires **at most once** per logical stream, and only if it ever reached `open` — a first connect that never opens is reported through the `connect*()` rejection alone, never through `onError`/`onClose`.
+
+## See also
+
+- [WebSocket Logs](/docs/realtime/websocket-logs) — connecting, the full `LogOptions` reference, and browser support
+- [Replay & Deduplication](/docs/realtime/replay) — how repeated log lines after a reconnect are filtered

@@ -101,7 +101,7 @@ export async function createUser(formData: FormData) {
 
 ## Webhook Route Handler
 
-See [Webhooks → Next.js](/docs/webhooks/nextjs) for the full webhook integration with raw body and signature verification.
+Marzban signs webhook payloads with HMAC-SHA256, so a Route Handler must read the **raw** request body — not `req.json()` — before the signature can be checked: `req.arrayBuffer()` gives you those raw bytes. Pass it, along with the `x-signature` header, to `sdk.webhook.handleWebhook(rawBody, signature)`, which verifies the signature and emits each event to any listener registered with `sdk.webhook.on(action, handler)`. See [Webhooks → Next.js](/docs/webhooks/nextjs) for the full handler, including Pages Router support and error handling.
 
 ## Environment variables
 

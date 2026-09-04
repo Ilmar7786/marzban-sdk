@@ -16,11 +16,11 @@ The `Config` object is passed to `createMarzbanSDK` or the `MarzbanSDK` construc
 | `authenticateOnInit` | `boolean` | No | `true` | When `true`, `createMarzbanSDK` calls `authorize()` before returning. Set to `false` for deferred or manual auth. |
 | `timeout` | `number` | No | `30000` | HTTP request timeout in milliseconds. Pass `0` to disable (wait forever). |
 | `retries` | `number` | No | `3` | Number of automatic retries for failed HTTP requests. Uses exponential backoff. WebSocket log streams don't use this — see `reconnect` below. |
-| `logger` | `false \| LoggerOptions \| Logger` | No | env-aware | Logging configuration. See [Logging](/docs/configuration/logging). |
+| `logger` | `false \| LoggerOptions \| Logger` | No | env-aware | Controls the SDK's internal logging. `false` disables it entirely; a `LoggerOptions` object configures the built-in console logger (level, timestamps); pass your own `Logger` implementation (e.g. Winston, Pino) to route SDK logs through it instead. Left unset, the level defaults to `info` in development and `error` in production. Full reference: [Logging](/docs/configuration/logging). |
 | `webhook` | `{ secret?: string }` | No | — | Webhook configuration. Set `secret` to enable HMAC-SHA256 signature verification. |
 | `httpAgent` | `HttpAgentLike` | No | — | Node.js `http.Agent` (or compatible) used for `http:` requests. Ignored in browsers. |
 | `httpsAgent` | `HttpAgentLike` | No | — | Node.js `https.Agent` (or compatible) used for `https:` requests and the WebSocket log stream. Ignored in browsers. See [Self-signed certificates](#self-signed-certificates--custom-ca) below. |
-| `reconnect` | `boolean \| object` | No | enabled | SDK-wide default WS reconnect policy — `LogOptions.reconnect` overrides it per call. `false` disables reconnecting entirely. See [WebSocket Logs → Reconnect behavior](/docs/realtime/websocket-logs#reconnect-behavior). |
+| `reconnect` | `ReconnectOption` | No | enabled | Auto-reconnects a dropped `sdk.logs` WebSocket stream: exponential backoff, bounded by a 10-minute time budget by default. `false` disables reconnecting entirely; `true` enables it with defaults; pass an object to tune the backoff, budget, or attempt count. This is the SDK-wide default — a `logs.connect*()` call's own `reconnect` option overrides it. Full reference: [Reconnect & Stream Lifecycle](/docs/realtime/reconnect). |
 
 ## Minimal config
 
@@ -111,7 +111,7 @@ When `retries > 0`, failed HTTP requests are retried with **exponential backoff*
 Only safe methods (GET, HEAD, OPTIONS) are retried — see
 [HTTP & Retry](/docs/advanced/http-retry) for the full method/status breakdown.
 
-WebSocket log streams don't use `retries` — they have their own `reconnect` policy (backoff + a time budget instead of an attempt count). See [WebSocket Logs → Reconnect behavior](/docs/realtime/websocket-logs#reconnect-behavior).
+WebSocket log streams don't use `retries` — they have their own `reconnect` policy (backoff + a time budget instead of an attempt count). See [Reconnect & Stream Lifecycle](/docs/realtime/reconnect#reconnect-behavior).
 
 Set `retries: 0` to disable automatic HTTP retries.
 

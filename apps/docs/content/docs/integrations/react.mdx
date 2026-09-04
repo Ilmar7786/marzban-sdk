@@ -126,23 +126,27 @@ export function useCreateUser() {
 ```tsx
 import { useEffect, useRef } from 'react'
 import { useMarzban } from '../context/MarzbanContext'
+import type { LogStreamHandle } from 'marzban-sdk'
 
 export function CoreLogViewer() {
   const sdk = useMarzban()
   const ref = useRef<HTMLPreElement>(null)
 
   useEffect(() => {
-    let close: (() => void) | undefined
+    let stream: LogStreamHandle | undefined
 
     sdk.logs.connectByCore({
       onMessage: (data) => {
         if (ref.current) ref.current.textContent += data + '\n'
       },
-    }).then(fn => { close = fn })
+      onError: (error) => console.error('Stream error', error.code, error.message),
+    }).then(s => { stream = s })
 
-    return () => { close?.() }
+    return () => { stream?.close() }
   }, [sdk])
 
   return <pre ref={ref} style={{ height: 400, overflow: 'auto' }} />
 }
 ```
+
+See [Reconnect & Stream Lifecycle](/docs/realtime/reconnect) for what `stream.state` reflects and how a drop is retried before `onError` ever fires.

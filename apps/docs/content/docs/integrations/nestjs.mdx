@@ -142,4 +142,4 @@ import { UsersModule } from './users/users.module'
 export class AppModule {}
 ```
 
-For webhook handling in NestJS, see the [Webhooks → NestJS](/docs/webhooks/nestjs) guide.
+The `webhook.secret` passed to `createMarzbanSDK` above enables HMAC-SHA256 verification of incoming Marzban webhook payloads: `sdk.webhook.handleWebhook(rawBody, signature)` checks the signature, then emits each event to any listener registered with `sdk.webhook.on(action, handler)` (typed `WebhookType` payloads — `user_created`, `user_expired`, `reached_usage_percent`, and so on). For a full NestJS controller wiring up a raw-body route and registering those listeners, see the [Webhooks → NestJS](/docs/webhooks/nestjs) guide.

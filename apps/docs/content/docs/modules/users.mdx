@@ -76,7 +76,15 @@ Payload for `modifyUser` — the same fields as `UserCreate` minus `username` (w
 import type { UserModify } from 'marzban-sdk'
 ```
 
-It also accepts a few modify-only fields: `sub_updated_at`, `sub_last_user_agent`, `online_at`, `auto_delete_in_days`, and `next_plan`.
+It also accepts a few modify-only fields, not present on `UserCreate`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sub_updated_at` | `string \| null` | Timestamp of the last subscription config fetch. Server-managed; set it manually only to correct or reset tracked state |
+| `sub_last_user_agent` | `string \| null` | Client user-agent recorded on the last subscription fetch |
+| `online_at` | `string \| null` | Last-seen timestamp. Set it manually to correct or clear tracked presence |
+| `auto_delete_in_days` | `number \| null` | Days after expiry/data-limit before Marzban auto-deletes the user; `null` disables auto-delete |
+| `next_plan` | `NextPlanModel \| null` | A plan to apply automatically once the current one is exhausted — `data_limit`, `expire`, `add_remaining_traffic` (carry over unused traffic into the next plan, default `false`), and `fire_on_either` (switch as soon as either limit is hit, default `true`) |
 
 ### `UserUsagesResponse`
 

@@ -40,7 +40,7 @@ export const features: LandingFeature[] = [
   {
     icon: RotateCcw,
     title: 'Built-in retry logic',
-    desc: 'Configurable exponential back-off for transient network failures and WebSocket reconnects — no boilerplate in your code.',
+    desc: 'Configurable exponential back-off for transient network failures, plus a full reconnect state machine for WebSocket log streams — no boilerplate in your code.',
   },
   {
     icon: ShieldAlert,

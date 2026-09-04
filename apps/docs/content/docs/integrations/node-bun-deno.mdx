@@ -1,9 +1,9 @@
 ---
 title: Node.js / Bun / Deno
-description: Use MarzbanSDK in plain server runtimes — Node.js 18+, Bun 1.0+, and Deno 1.38+ — with no framework and zero extra configuration.
+description: Use MarzbanSDK in plain server runtimes — Node.js 19+, Bun 1.0+, and Deno 1.38+ — with no framework and zero extra configuration.
 ---
 
-MarzbanSDK works out of the box in Node.js 18+, Bun 1.0+, and Deno 1.38+ with no additional configuration.
+MarzbanSDK works out of the box in Node.js 19+, Bun 1.0+, and Deno 1.38+ with no additional configuration.
 
 ## Node.js (TypeScript)
 
@@ -119,8 +119,9 @@ import { createMarzbanSDK } from 'marzban-sdk'
 
 const sdk = await createMarzbanSDK({ /* ... */ })
 
-// Start log streaming
-const closeLog = await sdk.logs.connectByCore({
+// Start log streaming — the returned handle isn't needed here since
+// sdk.destroy() below closes every active stream at once
+await sdk.logs.connectByCore({
   onMessage: (data) => process.stdout.write(data),
 })
 

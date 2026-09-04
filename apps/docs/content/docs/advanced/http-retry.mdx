@@ -85,7 +85,7 @@ const stream = await sdk.logs.connectByCore({
 })
 ```
 
-If the connection drops after opening, the SDK re-authenticates and reconnects automatically until it succeeds or the budget runs out. A **failed first connect** rejects `connect*()` immediately by default (`reconnect.initial` opts into retrying that too). See [WebSocket Logs → Reconnect behavior](/docs/realtime/websocket-logs#reconnect-behavior) for the full policy, including the `config.reconnect` SDK-wide default and per-call overrides.
+If the connection drops after opening, the SDK re-authenticates and reconnects automatically until it succeeds or the budget runs out. A **failed first connect** rejects `connect*()` immediately by default (`reconnect.initial` opts into retrying that too). See [Reconnect & Stream Lifecycle](/docs/realtime/reconnect#reconnect-behavior) for the full policy, including the `config.reconnect` SDK-wide default and per-call overrides.
 
 ## Multiple SDK instances
 

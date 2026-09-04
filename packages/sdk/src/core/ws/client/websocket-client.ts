@@ -1,8 +1,7 @@
-import { hasNativeWebSocket, isBrowser } from '@/common'
-
 import { BaseWebSocketClient, WebSocketClientOptions } from './base-websocket-client'
 import { BrowserWebSocketClient } from './browser-websocket-client'
 import { NodeWebSocketClient } from './node-websocket-client'
+import { selectWsTransportKind } from './select-transport'
 
 export class WebSocketClient {
   /**
@@ -23,11 +22,14 @@ export class WebSocketClient {
    * browser the agent is structurally impossible to honor and is silently
    * ignored here — this class has no logger of its own, so callers that want
    * to warn their users do so themselves (see `LogsStream`).
+   *
+   * The decision itself lives in {@link selectWsTransportKind}, so a caller
+   * that needs to know the transport ahead of building a URL or headers for
+   * it (see `LogStream.attemptOnce`) evaluates the exact same function on
+   * the exact same inputs — it can never disagree with what this resolves to.
    */
   static resolve(url: string, protocols?: string | string[], options?: WebSocketClientOptions): BaseWebSocketClient {
-    const needsAgentCapableClient = Boolean(options?.agent) && !isBrowser()
-
-    return needsAgentCapableClient || !hasNativeWebSocket()
+    return selectWsTransportKind(options) === 'ws-package'
       ? new NodeWebSocketClient(url, protocols, options)
       : new BrowserWebSocketClient(url, protocols, options)
   }

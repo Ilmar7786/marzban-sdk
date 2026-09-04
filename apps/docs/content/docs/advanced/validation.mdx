@@ -9,7 +9,7 @@ MarzbanSDK uses **Zod 4** for runtime validation at every boundary: SDK configur
 
 | Location | What's validated | Schema |
 |----------|-----------------|--------|
-| `createMarzbanSDK(config)` | Config object fields and types | `configSchema` |
+| `createMarzbanSDK(config)` | Config object fields and types | internal — not exported; validated via `validateConfig()`, which throws `ConfigurationError` |
 | Every API response | Response payload structure | Auto-generated per-endpoint schemas |
 | `sdk.webhook.parseWebhook(body)` | Webhook payload structure | `WebhookSchema` / `WebhookArraySchema` |
 | `sdk.webhook.handleWebhook(body)` | Same as `parseWebhook` + signature | — |
@@ -30,7 +30,7 @@ try {
 } catch (err) {
   if (isConfigurationError(err)) {
     console.error(err.message)  // "Invalid SDK configuration"
-    console.error(err.details)  // Zod's ZodError with issue paths
+    console.error(err.details)  // Array of Zod issues (ZodError.issues), e.g. [{ path: ['baseUrl'], message: '...' }]
   }
 }
 ```

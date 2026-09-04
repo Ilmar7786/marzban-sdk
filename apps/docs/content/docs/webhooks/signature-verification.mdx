@@ -6,7 +6,7 @@ description: Verify Marzban webhook signatures with HMAC-SHA256 using the Web Cr
 When Marzban is configured with a webhook secret, it signs each request body with **HMAC-SHA256** and sends the signature in the `x-signature` header. MarzbanSDK verifies this signature automatically when you provide the same secret.
 
 <Callout type="warn">
-  Signature verification uses the **Web Crypto API** (`crypto.subtle`). It is available in Node.js 18+, Bun, Deno, and all modern browsers — but the SDK **blocks** verification from the browser main thread to prevent secret exposure. Always handle webhooks in a server-side runtime.
+  Signature verification uses the **Web Crypto API** (`crypto.subtle`). It is available in Node.js 19+, Bun, Deno, and all modern browsers — but the SDK **blocks** verification from the browser main thread to prevent secret exposure. Always handle webhooks in a server-side runtime.
 </Callout>
 
 ## Configure the secret
@@ -64,7 +64,7 @@ const isValid = await verifyWebhookSignature(
 ## Error handling
 
 ```ts
-import { isWebhookSignatureError, isWebhookEnvironmentError } from 'marzban-sdk'
+import { isWebhookSignatureError, isWebhookValidationError, isWebhookEnvironmentError } from 'marzban-sdk'
 
 try {
   await sdk.webhook.handleWebhook(rawBody, signature)
@@ -72,6 +72,9 @@ try {
   if (isWebhookSignatureError(err)) {
     // Missing signature, wrong format, or HMAC mismatch
     res.status(401).send('Invalid signature')
+  } else if (isWebhookValidationError(err)) {
+    // Body isn't valid JSON, or doesn't match the expected webhook schema
+    res.status(400).send('Invalid payload')
   } else if (isWebhookEnvironmentError(err)) {
     // Called from a browser context — move webhook handling to a server
     console.error('Webhook verification is server-side only')

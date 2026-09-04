@@ -84,7 +84,8 @@ If you're using the Pages Router, disable the default body parser and read the r
 // pages/api/webhook.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import getRawBody from 'raw-body'
-import { getSDK, isWebhookSignatureError } from 'marzban-sdk'
+import { isWebhookSignatureError } from 'marzban-sdk'
+import { getSDK } from '@/lib/marzban'
 
 export const config = { api: { bodyParser: false } }
 

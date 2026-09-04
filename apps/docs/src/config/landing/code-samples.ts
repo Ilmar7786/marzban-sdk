@@ -12,8 +12,8 @@ const sdk = await createMarzbanSDK({
 const { users } = await sdk.user.getUsers({ status: 'active', limit: 10 })
 const stats = await sdk.system.getSystemStats()
 
-// Stream real-time logs from the core over WebSocket
-const close = await sdk.logs.connectByCore({
+// Stream real-time logs from the core over WebSocket — auto-reconnects on drop
+const stream = await sdk.logs.connectByCore({
   onMessage: (data) => console.log(data),
 })
 

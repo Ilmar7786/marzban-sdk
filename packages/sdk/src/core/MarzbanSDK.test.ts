@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AnyType } from '@/common'
 
-import { HttpError } from './errors'
+import { HttpError, isSdkDestroyedError } from './errors'
+import { Lifecycle } from './lifecycle'
 import { LoggerConfig } from './logger'
 
 // ─── Shared mock references ───────────────────────────────────────────────────
@@ -33,9 +34,10 @@ class MockAuthManager {
   authenticate = vi.fn().mockResolvedValue(undefined)
   waitForCurrentAuth = vi.fn().mockResolvedValue(undefined)
   setPublicClient = vi.fn()
+  close = vi.fn()
 
-  constructor(storage: AnyType, logger: AnyType) {
-    mockAuthManagerCtor(storage, logger)
+  constructor(storage: AnyType, logger: AnyType, lifecycle: AnyType) {
+    mockAuthManagerCtor(storage, logger, lifecycle)
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     mockAuthInstance = this
   }
@@ -143,7 +145,8 @@ describe('MarzbanSDK', () => {
 
       expect(mockAuthManagerCtor).toHaveBeenCalledWith(
         { username: 'admin', password: 's3cr3t', accessToken: 'existing-token' },
-        expect.any(Object) // logger
+        expect.any(Object), // logger
+        expect.any(Lifecycle)
       )
     })
 
@@ -152,8 +155,21 @@ describe('MarzbanSDK', () => {
 
       expect(mockAuthManagerCtor).toHaveBeenCalledWith(
         expect.objectContaining({ accessToken: undefined }),
-        expect.anything()
+        expect.anything(),
+        expect.any(Lifecycle)
       )
+    })
+
+    it('passes the same Lifecycle instance shared with LogsStream and WebhookManager', () => {
+      new MarzbanSDK(BASE_CONFIG)
+
+      const [, , authLifecycle] = mockAuthManagerCtor.mock.calls[0]!
+      const { lifecycle: logsLifecycle } = mockLogsStreamCtor.mock.calls[0]![0]
+      const { lifecycle: webhookLifecycle } = mockWebhookManagerCtor.mock.calls[0]![0]
+
+      expect(authLifecycle).toBeInstanceOf(Lifecycle)
+      expect(logsLifecycle).toBe(authLifecycle)
+      expect(webhookLifecycle).toBe(authLifecycle)
     })
 
     it('registers the public HTTP client on the auth service', () => {
@@ -214,7 +230,7 @@ describe('MarzbanSDK', () => {
         basePath: BASE_CONFIG.baseUrl,
         authService: expect.any(MockAuthManager),
         logger: expect.any(Object),
-        maxRetries: undefined, // config.retries is filled by validateConfig in production
+        lifecycle: expect.any(Lifecycle),
       })
     })
 
@@ -306,6 +322,37 @@ describe('MarzbanSDK', () => {
       expect(mockLogsStreamInstance.closeAllConnections).toHaveBeenCalledOnce()
     })
 
+    it('closes webhook listeners and clears the stored access token as independent steps', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+
+      await sdk.destroy()
+
+      expect(mockWebhookInstance.close).toHaveBeenCalledOnce()
+      expect(mockAuthInstance.close).toHaveBeenCalledOnce()
+    })
+
+    it('marks the shared lifecycle destroyed, which every subsystem observes', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+      const [, , lifecycle] = mockAuthManagerCtor.mock.calls[0]! as [unknown, unknown, Lifecycle]
+
+      await sdk.destroy()
+
+      expect(lifecycle.destroyed).toBe(true)
+    })
+
+    it('is idempotent: a second call returns the same promise and does not re-run cleanup', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+
+      const first = sdk.destroy()
+      const second = sdk.destroy()
+      await first
+
+      expect(second).toBe(first)
+      expect(mockLogsStreamInstance.closeAllConnections).toHaveBeenCalledOnce()
+      expect(mockWebhookInstance.close).toHaveBeenCalledOnce()
+      expect(mockAuthInstance.close).toHaveBeenCalledOnce()
+    })
+
     it('resolves successfully even when closeAllConnections throws', async () => {
       const sdk = new MarzbanSDK(BASE_CONFIG)
       mockLogsStreamInstance.closeAllConnections.mockImplementation(() => {
@@ -333,11 +380,77 @@ describe('MarzbanSDK', () => {
       })
 
       await expect(sdk.destroy()).resolves.toBeUndefined()
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Failed to close connections during destroy',
-        'string failure',
-        'MarzbanSDK'
-      )
+      expect(mockLogger.error).toHaveBeenCalledWith('Failed to clean up during destroy', 'string failure', 'MarzbanSDK')
+    })
+
+    it('runs webhook.close() and authService.close() even when closeAllConnections throws', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+      mockLogsStreamInstance.closeAllConnections.mockImplementation(() => {
+        throw new Error('logs step failed')
+      })
+
+      await sdk.destroy()
+
+      expect(mockWebhookInstance.close).toHaveBeenCalledOnce()
+      expect(mockAuthInstance.close).toHaveBeenCalledOnce()
+    })
+
+    it('runs closeAllConnections() and authService.close() even when webhook.close() throws', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+      mockWebhookInstance.close.mockImplementation(() => {
+        throw new Error('webhook step failed')
+      })
+
+      await sdk.destroy()
+
+      expect(mockLogsStreamInstance.closeAllConnections).toHaveBeenCalledOnce()
+      expect(mockAuthInstance.close).toHaveBeenCalledOnce()
+      expect(mockLogger.error).toHaveBeenCalledWith('webhook step failed', expect.anything(), 'MarzbanSDK')
+    })
+
+    it('runs closeAllConnections() and webhook.close() even when authService.close() throws', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+      mockAuthInstance.close.mockImplementation(() => {
+        throw new Error('auth step failed')
+      })
+
+      await sdk.destroy()
+
+      expect(mockLogsStreamInstance.closeAllConnections).toHaveBeenCalledOnce()
+      expect(mockWebhookInstance.close).toHaveBeenCalledOnce()
+      expect(mockLogger.error).toHaveBeenCalledWith('auth step failed', expect.anything(), 'MarzbanSDK')
+    })
+
+    it('rejects authorize() with SdkDestroyedError once destroyed', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+      await sdk.destroy()
+
+      let thrown: unknown
+      try {
+        sdk.authorize()
+      } catch (err) {
+        thrown = err
+      }
+
+      expect(isSdkDestroyedError(thrown)).toBe(true)
+    })
+
+    it('rejects getAuthToken() with SdkDestroyedError once destroyed', async () => {
+      const sdk = new MarzbanSDK(BASE_CONFIG)
+      await sdk.destroy()
+
+      await expect(sdk.getAuthToken()).rejects.toEqual(expect.objectContaining({ code: 'SDK_DESTROYED' }))
+    })
+
+    it('never touches caller-supplied httpAgent/httpsAgent — the SDK does not own their lifecycle', async () => {
+      const httpAgent = { destroy: vi.fn() }
+      const httpsAgent = { destroy: vi.fn() }
+      const sdk = new MarzbanSDK({ ...BASE_CONFIG, httpAgent, httpsAgent })
+
+      await sdk.destroy()
+
+      expect(httpAgent.destroy).not.toHaveBeenCalled()
+      expect(httpsAgent.destroy).not.toHaveBeenCalled()
     })
   })
 })

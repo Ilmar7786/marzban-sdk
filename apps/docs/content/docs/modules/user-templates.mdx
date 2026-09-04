@@ -50,6 +50,15 @@ Payload for `modifyUserTemplate` — the same fields as `UserTemplateCreate`, al
 import type { UserTemplateModify } from 'marzban-sdk'
 ```
 
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string \| null` | Display name of the template |
+| `data_limit` | `number \| null` | Data limit in bytes; `0` or `null` = unlimited |
+| `expire_duration` | `number \| null` | Subscription duration in seconds; `0` or `null` = no expiry |
+| `inbounds` | `Record<string, string[]>` | Inbound tags per protocol |
+| `username_prefix` | `string \| null` | Auto-applied prefix when generating usernames |
+| `username_suffix` | `string \| null` | Auto-applied suffix when generating usernames |
+
 ---
 
 ## Methods

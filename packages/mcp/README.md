@@ -65,7 +65,7 @@ and the tools below become available.
 - ✅ **Confirmation on every destructive call** — the first call only describes the consequences and returns a one-time token; nothing runs until a human-approved second call repeats it, and confirming one call never authorizes a different target or a wider version of the same call.
 - 🙈 **Credentials masked by default** — `proxies`, `subscription_url` and `links` stay hidden unless you explicitly opt in.
 - 🧭 **21 tools, 3 prompts** — full user lifecycle, config, hosts, nodes, system stats and subscriptions, plus ready-made investigations that chain several tools together.
-- 🛠️ **Built on `marzban-sdk`** — the same typed client, auth and retry behavior as the SDK, just exposed as MCP tools.
+- 🛠️ **Built on `marzban-sdk`** — the same auth, retry and reconnect behavior as the SDK itself, just exposed as MCP tools.
 
 ## Configuration
 

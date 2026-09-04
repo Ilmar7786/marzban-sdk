@@ -101,6 +101,7 @@ onMounted(async () => {
 // composables/useUsers.ts
 import { ref, onMounted } from 'vue'
 import { useMarzban } from '../plugins/marzban'
+import { SdkError } from 'marzban-sdk'
 import type { UserResponse } from 'marzban-sdk'
 
 export function useUsers() {
@@ -108,7 +109,7 @@ export function useUsers() {
   const users = ref<UserResponse[]>([])
   const total = ref(0)
   const loading = ref(false)
-  const error = ref<Error | null>(null)
+  const error = ref<SdkError | null>(null)
 
   async function fetchUsers(page = 0, limit = 50) {
     loading.value = true
@@ -118,7 +119,8 @@ export function useUsers() {
       users.value = result.users
       total.value = result.total
     } catch (e) {
-      error.value = e as Error
+      // sdk.user.* rejects with an SdkError subclass (HttpError, AuthError, ...)
+      error.value = e instanceof SdkError ? e : null
     } finally {
       loading.value = false
     }
@@ -136,24 +138,29 @@ export function useUsers() {
 // composables/useCoreLogs.ts
 import { ref, onUnmounted } from 'vue'
 import { useMarzban } from '../plugins/marzban'
+import type { LogStreamHandle, WsError } from 'marzban-sdk'
 
 export function useCoreLogs() {
   const sdk = useMarzban()
   const logs = ref<string[]>([])
-  let close: (() => void) | undefined
+  const error = ref<WsError | null>(null)
+  let stream: LogStreamHandle | undefined
 
   async function start() {
-    close = await sdk.logs.connectByCore({
+    stream = await sdk.logs.connectByCore({
       onMessage: (data) => { logs.value.push(String(data)) },
+      onError: (err) => { error.value = err },
     })
   }
 
   function stop() {
-    close?.()
+    stream?.close()
   }
 
   onUnmounted(stop)
 
-  return { logs, start, stop }
+  return { logs, error, start, stop }
 }
 ```
+
+See [Reconnect & Stream Lifecycle](/docs/realtime/reconnect) for what `stream.state` reflects and how a drop is retried before `onError` ever fires.

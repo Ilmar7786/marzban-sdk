@@ -63,7 +63,7 @@ Tokens are kept **in memory only** — never written to disk, `localStorage`, or
 | Field | Default | Effect |
 |-------|---------|--------|
 | `authenticateOnInit` | `true` | Call `authorize()` before `createMarzbanSDK` returns |
-| `retries` | `3` | Max re-auth attempts on repeated 401 responses |
+| `retries` | `3` | Automatic retries for failed HTTP requests (network errors, 429, 5xx) — unrelated to 401 handling, which always re-authenticates and retries exactly once regardless of this value |
 
 ## What if credentials are wrong?
 

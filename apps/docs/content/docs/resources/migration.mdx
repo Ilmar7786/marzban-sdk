@@ -1,11 +1,106 @@
 ---
 title: Migration guide
-description: Step-by-step guide for migrating MarzbanSDK from v2 to v3.0.0, covering the async webhook API and server-side-only signature verification — the only breaking release in the SDK's history so far.
+description: Step-by-step guides for migrating MarzbanSDK across its breaking releases — v3.0.0's async webhook API, and v4.0.0's WebSocket reconnect lifecycle and destroy() contract.
 ---
+
+## v3.0.0 → v4.0.0
+
+Shipped in `marzban-sdk@4.0.0`, bundling three issues that all forced the same major:
+[#84](https://github.com/Ilmar7786/marzban-sdk/issues/84) (a terminal `destroy()` lifecycle contract),
+[#88](https://github.com/Ilmar7786/marzban-sdk/issues/88) (a WebSocket reconnect state machine
+replacing `sdk.logs`'s "request that either succeeds or fails" model), and
+[#89](https://github.com/Ilmar7786/marzban-sdk/issues/89) (the resulting public surface — lifecycle
+callbacks, replay dedup, reconnect options, header auth). See
+[ADR-0015](https://github.com/Ilmar7786/marzban-sdk/blob/main/docs/adr/0015-sdk-destroy-terminal-lifecycle.md),
+[ADR-0016](https://github.com/Ilmar7786/marzban-sdk/blob/main/docs/adr/0016-ws-stream-lifecycle-and-reconnect.md),
+and [ADR-0017](https://github.com/Ilmar7786/marzban-sdk/blob/main/docs/adr/0017-ws-public-stream-surface.md)
+for the full design rationale.
+
+**Breaking changes:**
+
+- **A failed first `connect*()` now rejects instead of resolving.** Previously it always resolved with
+  a close handle, even to a socket that never opened.
+- **`connect*()` resolves only once the socket is genuinely `open`,** not merely constructed.
+- **`onError` receives a `WsError`, never a raw DOM event.** `err.url` is redacted; it never carries the
+  access token.
+- **`replay: 'dedup'` is the new default,** suppressing log lines the panel re-delivers after a
+  reconnect. If you relied on seeing every replayed line, opt into `replay: 'all'`.
+- **`LogsStreamOptions.maxRetries` is gone.** WS reconnects use their own internal time budget instead
+  of `config.retries`; there's no equivalent option to set.
+- **Any SDK operation called after `destroy()` now rejects with `SdkDestroyedError`** instead of
+  silently succeeding or (for WS) silently reconnecting: `authorize()`, `getAuthToken()`,
+  `logs.connect*()`, and `webhook.parseWebhook()`/`handleWebhook()`/`dispatch()`.
+  `webhook.on()`/`once()`/`off()` are unaffected — unsubscribing after shutdown still works.
+
+See the [Changelog](/docs/resources/changelog) for full release notes.
+
+### 1. Handle a rejected first connect
+
+```ts
+import { isWsError } from 'marzban-sdk'
+
+// v3 — always resolved, even on a failed handshake
+const stream = await sdk.logs.connectByCore({ onMessage: handler })
+
+// v4 — a failed first connect now rejects; handle it
+try {
+  const stream = await sdk.logs.connectByCore({ onMessage: handler })
+} catch (err) {
+  if (isWsError(err)) console.error('Failed to connect:', err.code, err.message)
+}
+```
+
+### 2. Update onError handlers to expect a WsError
+
+```ts
+// v3 — a raw DOM event, potentially carrying the token in event.target.url
+onError: (event) => console.error(event.message)
+
+// v4 — a typed, redacted error
+onError: (error: WsError) => console.error(error.code, error.message)
+```
+
+### 3. Opt back into every replayed line, if you relied on it
+
+```ts
+// v4 default is 'dedup' — add this to restore v3's behavior
+await sdk.logs.connectByCore({ onMessage: handler, replay: 'all' })
+```
+
+### 4. Drop maxRetries, use the reconnect option if you need custom timing
+
+```ts
+// v3
+await sdk.logs.connectByCore({ onMessage: handler, maxRetries: 5 })
+
+// v4 — reconnects are budget-based, not attempt-based; shouldReconnect gives full control
+await sdk.logs.connectByCore({
+  onMessage: handler,
+  reconnect: { shouldReconnect: ({ attempt }) => attempt <= 5 },
+})
+```
+
+### 5. Catch SdkDestroyedError for calls that might race a shutdown
+
+```ts
+import { isSdkDestroyedError } from 'marzban-sdk'
+
+await sdk.destroy()
+
+// v3 — this would silently succeed or hang
+// v4 — rejects with SdkDestroyedError
+try {
+  await sdk.authorize()
+} catch (err) {
+  if (isSdkDestroyedError(err)) {
+    /* expected post-shutdown */
+  }
+}
+```
 
 ## v2 → v3.0.0
 
-Shipped in `marzban-sdk@3.0.0` by a single commit ([`fix!: make webhook crypto cross-runtime and keep node:crypto out of browser bundles`](https://github.com/Ilmar7786/marzban-sdk/commit/ebbeec4b385f275ac55c124bb97b6d085d753138)) — the only commit in the SDK's git history ever marked as a breaking change. Every release since, v3.0.1 through v3.3.0, is additive: once you're past this guide there's nothing further to migrate.
+Shipped in `marzban-sdk@3.0.0` by a single commit ([`fix!: make webhook crypto cross-runtime and keep node:crypto out of browser bundles`](https://github.com/Ilmar7786/marzban-sdk/commit/ebbeec4b385f275ac55c124bb97b6d085d753138)) — the only breaking-change commit in the 3.x line. Every release from v3.0.1 through v3.3.0 is additive. v4.0.0, however, is another breaking release — see the guide above if you're upgrading past it.
 
 **Breaking changes:**
 

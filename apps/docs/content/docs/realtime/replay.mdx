@@ -1,0 +1,38 @@
+---
+title: Replay & Deduplication
+description: How MarzbanSDK filters the log lines Marzban's panel re-delivers after a WebSocket reconnect — the ReplayMode options 'dedup', 'all', and 'skip', and how the dedup window actually works.
+---
+
+The panel re-seeds every new connection from a shared buffer of its last ~100 log lines, with no cursor to resume from — a reconnect naturally re-delivers lines your `onMessage` already saw. `LogOptions.replay` controls what happens to them.
+
+## ReplayMode reference
+
+| Mode | Behavior |
+|------|----------|
+| `'dedup'` (default) | Suppresses a leading run of already-delivered lines after a reconnect, until the first genuinely new line. Tracks the last ~200 delivered lines |
+| `'all'` | Delivers everything, duplicates included — no filtering at all |
+| `'skip'` | Drops every replayed message outright, until the first one that carries no previously-delivered line |
+
+```ts
+// See every line, duplicates included
+await sdk.logs.connectByCore({ onMessage: data => console.log(data), replay: 'all' })
+
+// Drop every replayed message outright, until the first clean one
+await sdk.logs.connectByCore({ onMessage: data => console.log(data), replay: 'skip' })
+```
+
+`replay` is validated before a socket is opened — an invalid value throws a `WsOptionsError` synchronously (see [Error handling](/docs/advanced/error-handling#error-codes-reference)).
+
+## How the dedup window works
+
+A few details that matter if you're relying on exact `'dedup'` behavior:
+
+- **Filtering operates per line, not per message.** A batching `interval > 0` joins several lines into one message on the live stream, but the panel's replay buffer has no such grouping — comparing whole messages would rarely match, so `'dedup'`/`'skip'` always split incoming data on newlines first.
+- **The window is armed only by a drop**, never by the first connect (there's nothing to replay yet on a fresh connection), and disarms itself the moment it sees a line it hasn't delivered before — a line that legitimately repeats (a heartbeat, `"OK"`) is never dropped once the replay has actually been worked through.
+- **A hard cap on lines scanned while armed forces a disarm regardless.** Without it, a stream of identical lines (e.g. a noisy heartbeat) could hold the suppression window open forever, silently swallowing genuinely new content that happens to match.
+- **Binary frames are never filtered.** They're uncomparable as text, so the window disarms and delivers them as-is rather than guessing.
+
+## See also
+
+- [WebSocket Logs](/docs/realtime/websocket-logs) — connecting, the full `LogOptions` reference, and browser support
+- [Reconnect & Stream Lifecycle](/docs/realtime/reconnect) — backoff, the time budget, and `LogStreamState`

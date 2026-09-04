@@ -1,4 +1,5 @@
 import http from 'node:http'
+import net from 'node:net'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { WebSocket as WsClient } from 'ws'
@@ -189,6 +190,25 @@ describe('mock-panel', () => {
 
       await new Promise(resolve => setTimeout(resolve, 50))
       expect(settled).toBe(false)
+    })
+
+    it('survives a client that resets the connection mid-handshake', async () => {
+      panel.setHandshake({ mode: 'hang' })
+
+      // A raw socket reset (rather than a clean close) makes the server's
+      // upgrade socket emit ECONNRESET. Without a handler on it that would be
+      // an uncaught exception — and the reconnect tests reset connections
+      // constantly.
+      const raw = net.connect(Number(new URL(panel.baseUrl).port), '127.0.0.1')
+      await new Promise(resolve => raw.once('connect', resolve))
+      raw.write('GET /api/core/logs HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n')
+      await panel.waitForHandshakes(1)
+      raw.resetAndDestroy()
+
+      await new Promise(resolve => setTimeout(resolve, 50))
+      // Still serving after the reset.
+      const client = connect(panel, '/api/core/logs')
+      expect(client).toBeDefined()
     })
 
     it('accepts after a delay', async () => {

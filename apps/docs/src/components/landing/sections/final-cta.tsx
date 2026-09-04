@@ -13,7 +13,7 @@ export function FinalCta() {
         </h2>
         <p className="mt-4 max-w-xl text-fd-muted-foreground">
           Read the SDK quick-start to build in code, or the MCP server docs to wire it up for an AI agent — either way
-          you&rsquo;re running the same battle-tested client underneath.
+          you&rsquo;re running the same battle-tested SDK underneath.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link

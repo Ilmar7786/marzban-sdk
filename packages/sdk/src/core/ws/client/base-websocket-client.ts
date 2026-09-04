@@ -27,6 +27,13 @@ export interface WebSocketClientOptions {
    * concept of a custom agent, so {@link BrowserWebSocketClient} ignores it.
    */
   agent?: HttpAgentLike
+  /**
+   * Request headers for the WebSocket upgrade. Only honored by
+   * {@link NodeWebSocketClient} — the native `WebSocket` constructor
+   * (browsers, Deno, Bun, Node.js 21+) has no headers option at all, a
+   * platform limit {@link BrowserWebSocketClient} cannot work around.
+   */
+  headers?: Record<string, string>
 }
 
 type BufferedListener = { event: keyof WebSocketEventMap; listener: (event: AnyType) => void }
@@ -36,6 +43,7 @@ export abstract class BaseWebSocketClient {
   protected url: string
   protected protocols?: string | string[]
   protected agent?: HttpAgentLike
+  protected headers?: Record<string, string>
 
   private pendingListeners: BufferedListener[] = []
   private pendingClose?: { code?: number; reason?: string }
@@ -44,6 +52,7 @@ export abstract class BaseWebSocketClient {
     this.url = url
     this.protocols = protocols
     this.agent = options?.agent
+    this.headers = options?.headers
   }
 
   /** Override to await whatever the transport needs before construction (e.g. a lazy `import`). */

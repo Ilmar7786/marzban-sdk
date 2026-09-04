@@ -32,6 +32,6 @@ export const mcpFeatures: LandingFeature[] = [
   {
     icon: Bot,
     title: 'Built on marzban-sdk',
-    desc: 'The same typed client, auth and retry behavior as the SDK, just exposed as MCP tools — no drift between them.',
+    desc: 'The same auth, retry and reconnect behavior as the SDK itself, just exposed as MCP tools — no drift between them.',
   },
 ]

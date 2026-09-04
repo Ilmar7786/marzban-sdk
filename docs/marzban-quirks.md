@@ -408,14 +408,65 @@ models the panel-side collapse for the remaining cases: its `reject`
 handshake policy always closes before `websocket.accept()`, regardless of
 the reason a real caller configures it to simulate.
 
-**Open:** `LogsStream` still treats every remaining 403 (expired token,
-non-sudo) as an expired token and retries with re-authentication, including
-the non-sudo case where retrying can never succeed. Separately, the native
-`WebSocket` global's `error` event carries no message text in Node
-(verified on Node 24) — only the `ws`-package fallback's error includes
-"403" — so today's substring-of-the-error-message classification silently
-never recognizes a 403 as retryable on the native transport at all; it
-falls straight through to `onError` with no retry attempt. Both are
-tracked in [issue #88](https://github.com/Ilmar7786/marzban-sdk/issues/88),
-which replaces this classification with one based on connection phase
-instead.
+The handshake's HTTP status is not reliably visible to a client either. The
+native `WebSocket` global reports an empty `error` message and close code
+`1006` (verified on Node 24), which is exactly what it reports for a refused
+connection — only the `ws`-package fallback surfaces the status, as
+`Unexpected server response: 403`. A client on the native transport therefore
+cannot tell "the panel refused me" from "the panel is restarting" at all.
+
+`LogsStream` no longer classifies by error text. It re-authenticates once on
+any failure to reach `open` — that is the only way to distinguish an expired
+token from the other causes — and treats a repeat failure as terminal for the
+initial connect. It gives up on an established stream early only when a
+status was actually reported _and_ the refusal survived a freshly issued
+token (the non-sudo case, where retrying can never succeed); everything
+ambiguous keeps retrying within a time budget, so a restarting panel is not
+mistaken for a rejection. See
+[ADR-0016](./adr/0016-ws-stream-lifecycle-and-reconnect.md).
+
+## WebSocket log endpoints accept the token as a header, not just a query param
+
+**Verified against:** `gozargah/marzban:v0.8.4` source
+(`app/routers/core.py`/`node.py`):
+
+```py
+token = websocket.query_params.get("token") or websocket.headers.get(
+    "Authorization", ""
+).removeprefix("Bearer ")
+```
+
+The query parameter wins if both are present; the header is the fallback.
+`LogStream` (`core/ws/log-stream.ts`) sends `Authorization: Bearer <token>`
+on the `ws`-package transport instead of the query string, so the token
+never lands in a reverse proxy's access log on that path — verified
+directly against the running panel: the access log shows
+`"WebSocket /api/core/logs?interval=1" [accepted]`, no `token=`. The native
+`WebSocket` constructor has no headers option at all, so on that transport
+(every browser, and Node.js 21+ without a configured `httpsAgent`) the token
+still goes in the query string — a platform limit, not a choice. See
+[ADR-0017](./adr/0017-ws-public-stream-surface.md).
+
+## Every new WebSocket log connection replays up to the last 100 log lines
+
+**Verified against:** `gozargah/marzban:v0.8.4`, `local/marzban/`.
+
+`get_logs()` (`app/xray/core.py`) seeds each new connection's buffer from a
+process-wide `deque(maxlen=100)`, so a freshly opened stream immediately
+receives up to 100 lines that predate it — on a quiet panel, that can be the
+Xray startup banner from hours earlier.
+
+The consequence is a trade-off rather than a bug: a gap shorter than 100
+lines loses nothing (a reconnect recovers what was missed), but a longer one
+is unrecoverable, since the API exposes no cursor to resume from. It also
+means every reconnect re-delivers already-seen lines, and
+[ADR-0016](./adr/0016-ws-stream-lifecycle-and-reconnect.md)'s reconnect
+policy makes reconnects far more common than before.
+
+**Workaround:** client-side deduplication of recently delivered lines —
+`LogOptions.replay: 'dedup'` (the default since `sdk-v4.0.0`), which tracks
+the last ~200 delivered lines and drops a leading run of already-seen ones
+after a reconnect. Per-line, not per-message: a batching `interval > 0`
+joins several lines into one message on the live stream, but the panel's
+replay buffer has no such grouping, so the two never line up. See
+[ADR-0017](./adr/0017-ws-public-stream-surface.md).

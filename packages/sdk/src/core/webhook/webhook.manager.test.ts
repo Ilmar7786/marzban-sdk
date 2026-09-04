@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { WebhookSignatureError, WebhookValidationError } from '@/core/errors'
+import { isSdkDestroyedError, WebhookSignatureError, WebhookValidationError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 
+import { Lifecycle } from '../lifecycle'
 import { WebhookManager } from './webhook.manager'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -344,6 +345,67 @@ describe('WebhookManager', () => {
       await manager.dispatch('user_updated' as never, payload as never)
       expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('Dispatching'), 'WebhookManager')
       expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('Event dispatched'), 'WebhookManager')
+    })
+  })
+
+  // ─── close ────────────────────────────────────────────────────────────────
+
+  describe('close', () => {
+    it('removes every registered listener', async () => {
+      const payload = makePayload()
+      mockValidate.mockReturnValue([payload] as never)
+      const wildcardListener = vi.fn()
+      const batchListener = vi.fn()
+      manager.on('*', wildcardListener)
+      manager.on('batch', batchListener)
+
+      manager.close()
+      const result = await manager.handleWebhook([payload])
+
+      expect(result).toBe(false)
+      expect(wildcardListener).not.toHaveBeenCalled()
+      expect(batchListener).not.toHaveBeenCalled()
+    })
+
+    it('logs debug when closed', () => {
+      manager.close()
+      expect(logger.debug).toHaveBeenCalledWith('WebhookManager closed, all listeners removed', 'WebhookManager')
+    })
+  })
+
+  // ─── lifecycle guard ────────────────────────────────────────────────────────
+
+  describe('when the owning SDK is destroyed', () => {
+    let lifecycle: Lifecycle
+    let destroyedManager: WebhookManager
+
+    beforeEach(() => {
+      lifecycle = new Lifecycle()
+      destroyedManager = new WebhookManager({ logger, lifecycle })
+      lifecycle.markDestroyed()
+    })
+
+    it('parseWebhook() rejects with SdkDestroyedError', async () => {
+      await expect(destroyedManager.parseWebhook([])).rejects.toSatisfy(isSdkDestroyedError)
+    })
+
+    it('handleWebhook() rejects with SdkDestroyedError, not WebhookValidationError', async () => {
+      await expect(destroyedManager.handleWebhook([])).rejects.toSatisfy(isSdkDestroyedError)
+    })
+
+    it('dispatch() rejects with SdkDestroyedError', async () => {
+      await expect(destroyedManager.dispatch('user_created' as never, {} as never)).rejects.toSatisfy(
+        isSdkDestroyedError
+      )
+    })
+
+    it('off() still works — unsubscribing after shutdown stays safe', () => {
+      const listener = vi.fn()
+      expect(() => destroyedManager.off('*', listener)).not.toThrow()
+    })
+
+    it('on() still works — a new subscription after shutdown does not throw', () => {
+      expect(() => destroyedManager.on('*', vi.fn())).not.toThrow()
     })
   })
 })

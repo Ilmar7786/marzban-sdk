@@ -58,6 +58,11 @@ export const typeGlossary: Record<string, TypeInfo> = {
       'One node entry inside a usages array: node_id, node_name and used_traffic (bytes consumed on that node).',
     href: '/docs/modules/users#userusagesresponse',
   },
+  NextPlanModel: {
+    description:
+      'Payload for UserModify.next_plan — schedules a plan (data_limit, expire, add_remaining_traffic, fire_on_either) to apply automatically once the current one is exhausted.',
+    href: '/docs/modules/users#usermodify',
+  },
 
   // ── Nodes ──────────────────────────────────────────────────────────────
   NodeResponse: {
@@ -167,12 +172,49 @@ export const typeGlossary: Record<string, TypeInfo> = {
 
   // ── Real-time logs ─────────────────────────────────────────────────────
   LogOptions: {
-    description: 'Options for a WebSocket log stream: onMessage, an optional onError, and a polling interval.',
+    description:
+      'Options for a WebSocket log stream: onMessage, lifecycle callbacks (onOpen/onReconnect/onClose/onError), interval, replay, and reconnect.',
     href: '/docs/realtime/websocket-logs#logoptions',
   },
-  ErrorEvent: {
+  WsError: {
     description:
-      "The runtime's global WebSocket error event, passed to a log stream's onError after retries are exhausted. A standard platform type (browser / Node `ws`), not an SDK type — so there's no SDK definition to link to.",
+      'Raised by a WS log stream instead of a raw transport event (codes WS_HANDSHAKE_REJECTED, WS_AUTH_FAILED, WS_CONNECTION_LOST, WS_RETRIES_EXHAUSTED). .url never contains the access token.',
+    href: '/docs/advanced/error-handling#error-codes-reference',
+  },
+  LogStreamState: {
+    description:
+      "A stream handle's .state: connecting → open → reconnecting → closed. closed is terminal and reachable from any of the other states.",
+    href: '/docs/realtime/reconnect#stream-state',
+  },
+  ReplayMode: {
+    description:
+      "LogOptions.replay: 'all' (deliver everything, duplicates included), 'dedup' (default — suppress lines already delivered before a drop), or 'skip' (drop every replayed message until the first clean one).",
+    href: '/docs/realtime/replay#replaymode-reference',
+  },
+  ReconnectOption: {
+    description:
+      'The type of LogOptions.reconnect and the SDK-wide default: false disables reconnecting entirely; true or a ReconnectOptions object enables it, with any explicit overrides.',
+    href: '/docs/realtime/reconnect#reconnect-behavior',
+  },
+  ReconnectOptions: {
+    description:
+      'Explicit reconnect overrides — initial, maxElapsedMs, stableAfterMs, minDelayMs, maxDelayMs, and a custom shouldReconnect callback. All fields optional.',
+    href: '/docs/realtime/reconnect#reconnect-options-reference',
+  },
+  ShouldReconnectContext: {
+    description:
+      'Passed to a custom shouldReconnect callback before each reconnect attempt: the 1-based attempt number, elapsedMs since the drop, and the error that triggered it.',
+    href: '/docs/realtime/reconnect#the-shouldreconnect-callback',
+  },
+  WsCloseInfo: {
+    description:
+      'Passed to LogOptions.onClose once, when the stream ends for good: an optional WebSocket close code, plus byCaller (true when you closed it, false when it died on its own).',
+    href: '/docs/realtime/websocket-logs#logoptions',
+  },
+  WsReconnectInfo: {
+    description:
+      'Passed to LogOptions.onReconnect when a dropped stream successfully reopens: the 1-based attempt that succeeded, and downtimeMs since the drop.',
+    href: '/docs/realtime/websocket-logs#logoptions',
   },
 
   // ── Webhooks ───────────────────────────────────────────────────────────
@@ -239,6 +281,10 @@ export const typeGlossary: Record<string, TypeInfo> = {
     description:
       'Signature verification was called in a browser context, which is unsupported (code WEBHOOK_ENVIRONMENT_ERROR).',
     href: '/docs/advanced/error-handling#error-codes-reference',
+  },
+  SdkDestroyedError: {
+    description: 'Thrown by a guarded operation called after sdk.destroy() (code SDK_DESTROYED).',
+    href: '/docs/advanced/lifecycle#what-rejects-after-destroy',
   },
 
   // ── Loose / dynamic values ─────────────────────────────────────────────

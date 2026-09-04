@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import type { MarzbanSDK } from '../../src/index'
-import { WsOptionsError } from '../../src/index'
+import { isWsError, WsOptionsError } from '../../src/index'
 import { createTestSdk } from './helpers/client'
 
 // The only smoke coverage of the WS module against a real panel — the
@@ -37,6 +37,17 @@ describe('logs integration (WebSocket log streaming)', () => {
     close()
 
     expect(errors).toEqual([])
+  })
+
+  it('rejects with a WsError when the panel refuses the handshake (#88)', async () => {
+    // An unknown node id is rejected before websocket.accept(), which uvicorn
+    // collapses into a generic 403 (see docs/marzban-quirks.md). The stream
+    // re-authenticates once, is refused again with a demonstrably fresh
+    // token, and reports that instead of resolving with a handle to a stream
+    // that never opened.
+    const connecting = sdk.logs.connectByNode(999_999, { onMessage: () => {} })
+
+    await expect(connecting).rejects.toSatisfy(isWsError)
   })
 
   it('rejects an interval > 10 client-side, without ever reaching the panel', async () => {

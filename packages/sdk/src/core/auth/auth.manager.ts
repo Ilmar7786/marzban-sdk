@@ -4,11 +4,13 @@ import { AuthError, AuthTokenError } from '@/core/errors'
 import { Logger } from '@/core/logger'
 import { adminApi } from '@/gen/api'
 
+import { Lifecycle } from '../lifecycle'
 import { Storage } from './auth.types'
 
 export class AuthManager {
   private readonly storage: Storage
   private readonly logger: Logger
+  private readonly lifecycle: Lifecycle
   /** When set, used for login (adminToken) instead of global client. */
   private httpClient!: Client
 
@@ -19,9 +21,10 @@ export class AuthManager {
     return this._authPromise
   }
 
-  constructor(storage: Storage, logger: Logger) {
+  constructor(storage: Storage, logger: Logger, lifecycle: Lifecycle = new Lifecycle()) {
     this.storage = storage
     this.logger = logger
+    this.lifecycle = lifecycle
     this.logger.debug('AuthManager initialized', 'AuthManager')
   }
 
@@ -31,7 +34,10 @@ export class AuthManager {
     return this
   }
 
+  /** @throws {SdkDestroyedError} If the owning SDK has been destroyed. */
   authenticate(username: string, password: string): Promise<void> {
+    this.lifecycle.assertActive('authenticate')
+
     if (this._authPromise) {
       this.logger.debug('Authentication already in progress, returning existing promise', 'AuthManager')
       return this._authPromise
@@ -111,5 +117,15 @@ export class AuthManager {
       this._authPromise = null
       this.logger.debug('Authentication process completed', 'AuthManager')
     }
+  }
+
+  /**
+   * Clears the stored access token reference. Does not touch the stored
+   * username/password — those belong to the caller's `ValidatedConfig`, and
+   * `authenticate()` is rejected once the owning SDK is destroyed anyway.
+   */
+  close(): void {
+    this.storage.accessToken = undefined
+    this.logger.debug('Access token cleared', 'AuthManager')
   }
 }

@@ -67,6 +67,12 @@ describe('configurationUrlWs', () => {
       const url = new URL(result)
       expect(url.searchParams.get('token')).toBe('abc123')
     })
+
+    it('omits the token query param entirely when token is undefined', () => {
+      const result = configurationUrlWs({ ...base, token: undefined })
+      const url = new URL(result)
+      expect(url.searchParams.has('token')).toBe(false)
+    })
   })
 
   describe('host preservation', () => {

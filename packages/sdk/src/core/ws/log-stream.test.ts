@@ -82,6 +82,7 @@ describe('LogStream', () => {
     return new LogStream({
       endpoint: '/api/core/logs',
       interval: 1,
+      replay: 'dedup',
       handlers: { onMessage: vi.fn(), onError: vi.fn() },
       basePath: 'https://panel.example.com',
       authService,
@@ -502,6 +503,47 @@ describe('LogStream', () => {
       releaseSleep()
 
       await vi.waitFor(() => expect(sockets).toHaveLength(1))
+    })
+  })
+
+  describe('replay', () => {
+    it('suppresses a message replayed after a reconnect by default (dedup)', async () => {
+      const onMessage = vi.fn()
+      const stream = await openStream({ handlers: { onMessage }, tuning: { backoffBaseMs: 1, backoffMaxMs: 1 } })
+
+      sockets[0]!.emit('message', { data: 'line one' })
+
+      sockets[0]!.emit('close', { code: 1006 })
+      const replacement = await waitForSocket(1)
+      replacement.emit('open')
+      await vi.waitFor(() => expect(stream.state).toBe('open'))
+
+      // The panel re-delivers the same buffered line after reconnecting.
+      replacement.emit('message', { data: 'line one' })
+      replacement.emit('message', { data: 'a genuinely new line' })
+
+      await vi.waitFor(() => expect(onMessage).toHaveBeenCalledWith('a genuinely new line'))
+      expect(onMessage.mock.calls).toEqual([['line one'], ['a genuinely new line']])
+    })
+
+    it('delivers a replayed duplicate unfiltered when replay is "all"', async () => {
+      const onMessage = vi.fn()
+      const stream = await openStream({
+        handlers: { onMessage },
+        replay: 'all',
+        tuning: { backoffBaseMs: 1, backoffMaxMs: 1 },
+      })
+
+      sockets[0]!.emit('message', { data: 'line one' })
+
+      sockets[0]!.emit('close', { code: 1006 })
+      const replacement = await waitForSocket(1)
+      replacement.emit('open')
+      await vi.waitFor(() => expect(stream.state).toBe('open'))
+
+      replacement.emit('message', { data: 'line one' })
+
+      await vi.waitFor(() => expect(onMessage.mock.calls).toEqual([['line one'], ['line one']]))
     })
   })
 

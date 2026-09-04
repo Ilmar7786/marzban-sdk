@@ -16,6 +16,7 @@ import { BaseWebSocketClient, WebSocketClient } from './client'
 import type { LogOptions, WsCloseInfo, WsReconnectInfo } from './logs-stream'
 import { configurationUrlWs } from './utils'
 import { closeQuietly } from './utils/close-quietly'
+import { createReplayFilter, type ReplayFilter, type ReplayMode } from './utils/replay'
 import { extractWsHandshakeStatus, getWsErrorMessage } from './utils/ws-error'
 
 /**
@@ -41,6 +42,8 @@ export interface LogStreamOptions {
   endpoint: string
   /** Already validated against the panel's own range by `resolveLogInterval`. */
   interval: number
+  /** Already validated by `resolveReplayMode`. */
+  replay: ReplayMode
   handlers: LogOptions
   basePath: string
   authService: AuthManager
@@ -109,7 +112,9 @@ export class LogStream {
   private readonly onClosed: () => void
   private readonly tuning: LogStreamTuning
 
-  private readonly emitMessage: (data: AnyType) => void
+  private readonly replay: ReplayFilter
+  /** Safe-wrapped `onMessage` — call `emitMessage()` instead, which applies the replay filter first. */
+  private readonly deliverMessage: (data: AnyType) => void
   private readonly emitError: (error: WsError) => void
   private readonly emitOpen: () => void
   private readonly emitReconnect: (info: WsReconnectInfo) => void
@@ -140,8 +145,9 @@ export class LogStream {
     this.lifecycle = options.lifecycle
     this.onClosed = options.onClosed
     this.tuning = { ...DEFAULT_TUNING, ...options.tuning }
+    this.replay = createReplayFilter(options.replay)
 
-    this.emitMessage = safeCallback(options.handlers.onMessage, error =>
+    this.deliverMessage = safeCallback(options.handlers.onMessage, error =>
       this.logger.error(`onMessage callback threw (${this.endpoint})`, error, 'LogsStream')
     )
     this.emitError = safeCallback(options.handlers.onError, error =>
@@ -160,6 +166,12 @@ export class LogStream {
 
   get state(): LogStreamState {
     return this._state
+  }
+
+  /** Applies the replay filter, then delivers to `onMessage` if it isn't a suppressed replay of an already-seen line. */
+  private emitMessage(data: AnyType): void {
+    const decision = this.replay.accept(data)
+    if (decision.deliver) this.deliverMessage(decision.data as AnyType)
   }
 
   /**
@@ -462,6 +474,8 @@ export class LogStream {
 
     this._state = 'reconnecting'
     this.dropStartedAt = this.tuning.now()
+    // Armed only here — never on the first connect, where the ring is empty anyway.
+    this.replay.arm()
     this.lastError = new WsError(ERROR_CODES.WS_CONNECTION_LOST, {
       phase: 'connection',
       attempt: this.reconnectAttempt + 1,

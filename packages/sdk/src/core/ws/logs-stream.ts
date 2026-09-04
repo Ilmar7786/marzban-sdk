@@ -6,7 +6,10 @@ import { Logger } from '@/core/logger'
 import { Lifecycle } from '../lifecycle'
 import { LogStream, type LogStreamState, type LogStreamTuning } from './log-stream'
 import { resolveLogInterval } from './utils/log-interval'
+import { type ReplayMode, resolveReplayMode } from './utils/replay'
 import { createStreamHandle, type StreamHandle } from './utils/stream-handle'
+
+export type { ReplayMode }
 
 /** Handle returned by `connect*()`: callable (closes the stream), plus an explicit `close()` and a live `state`. */
 export type LogStreamHandle = StreamHandle<LogStreamState>
@@ -43,6 +46,17 @@ export interface LogOptions {
   onReconnect?: (info: WsReconnectInfo) => void
   /** Called once, when the stream ends for good — only if it ever reached `open`. */
   onClose?: (info: WsCloseInfo) => void
+  /**
+   * How to handle log lines the panel re-delivers after a reconnect — it
+   * seeds every new connection from a shared buffer of its last ~100 lines
+   * (docs/marzban-quirks.md), with no cursor to resume from instead.
+   *
+   * - `'dedup'` (default) — suppress lines already delivered before the drop.
+   * - `'all'` — deliver everything, duplicates included.
+   * - `'skip'` — drop every replayed message outright, until the first one
+   *   that carries no previously-delivered line.
+   */
+  replay?: ReplayMode
 }
 
 /**
@@ -120,10 +134,12 @@ export class LogsStream {
     this.lifecycle.assertActive(`logs.connect(${endpoint})`)
 
     const interval = resolveLogInterval(options.interval)
+    const replay = resolveReplayMode(options.replay)
 
     const stream = new LogStream({
       endpoint,
       interval,
+      replay,
       handlers: options,
       basePath: this.basePath,
       authService: this.authService,
@@ -146,7 +162,7 @@ export class LogsStream {
    * @returns A {@link LogStreamHandle} — callable to close the stream (source-compatible with the
    * bare close function this used to return), plus an explicit `close()` and a live `state`.
    * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
-   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts.
+   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts, or `replay` is invalid.
    * @throws {WsError} If the connection cannot be established.
    */
   async connectByCore(options: LogOptions) {
@@ -161,7 +177,7 @@ export class LogsStream {
    * @returns A {@link LogStreamHandle} — callable to close the stream (source-compatible with the
    * bare close function this used to return), plus an explicit `close()` and a live `state`.
    * @throws {SdkDestroyedError} If the owning SDK has been destroyed.
-   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts.
+   * @throws {WsOptionsError} If `interval` is outside the range the panel accepts, or `replay` is invalid.
    * @throws {WsError} If the connection cannot be established.
    */
   async connectByNode(nodeId: number | string, options: LogOptions) {

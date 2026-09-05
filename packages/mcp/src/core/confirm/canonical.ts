@@ -22,6 +22,16 @@ export function hashCallArgs(args: unknown): string {
   return createHash('sha256').update(canonicalize(rest)).digest('hex')
 }
 
+/**
+ * Identifies one specific call — this tool, these exact arguments. The single
+ * definition of "the same call" in this server: `confirm.ts` keys its `auto`
+ * trust cache by it, `core/idempotency` keys its dedup store by it, and both
+ * therefore agree on what counts as a repeat.
+ */
+export function callKey(toolName: string, args: unknown): string {
+  return `${toolName}:${hashCallArgs(args)}`
+}
+
 function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeysDeep)
   if (value !== null && typeof value === 'object') {

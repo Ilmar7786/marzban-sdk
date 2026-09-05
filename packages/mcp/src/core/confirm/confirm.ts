@@ -1,5 +1,5 @@
 import type { ConfirmDecision, ConfirmFn } from '../tool'
-import { hashCallArgs } from './canonical'
+import { callKey } from './canonical'
 import { CONFIRM_TOKEN_TTL_SECONDS, createConfirmTokenCodec } from './token'
 
 function extractConfirmToken(args: unknown): string | undefined {
@@ -26,10 +26,6 @@ function buildConfirmationMessage(consequences: string, token: string): string {
     `Do not call this tool again until the user has explicitly said yes. Once they have, repeat the exact same call with confirmToken: "${token}" added.`,
     `The token is only valid for this tool and these exact arguments, and expires in ${Math.round(CONFIRM_TOKEN_TTL_SECONDS / 60)} minutes.`,
   ].join(' ')
-}
-
-function callKey(toolName: string, args: unknown): string {
-  return `${toolName}:${hashCallArgs(args)}`
 }
 
 /**

@@ -33,8 +33,10 @@ other.
 - **Consumers can grow the SDK's public API, but only by widening the barrel.**
   When `marzban-mcp` needed logger types, error codes, or `redactSecrets`, those
   were added as named exports to `index.ts` — not read off SDK internals by
-  duck-typing. The one exception (`HttpError.details` read via optional
-  chaining in MCP's error mapper) is tracked as debt, not the pattern to copy.
+  duck-typing. When `marzban-mcp` needed to know whether a failed request had
+  been answered at all, it used `HttpError`'s public `status`/`method`
+  getters; anything those getters don't expose (the transport-level error
+  code, say) is a gap to close in the SDK, not to reach past.
 - **No package depends on another consumer package.** If `mcp` and `cli` ever
   need to share logic, it belongs in the SDK, not in a new cross-dependency.
 

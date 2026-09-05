@@ -17,7 +17,7 @@ export const mcpFeatures: LandingFeature[] = [
   {
     icon: ShieldCheck,
     title: 'Confirmation on destructive actions',
-    desc: 'The first call only describes the consequences and returns a one-time token; nothing runs until a human-approved second call repeats it.',
+    desc: 'The first call only describes the consequences and returns a one-time token; nothing runs until a human-approved second call repeats it — and a call retried after a timeout replays its recorded result instead of running a second time.',
   },
   {
     icon: EyeOff,

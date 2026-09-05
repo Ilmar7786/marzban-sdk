@@ -63,6 +63,7 @@ and the tools below become available.
 - 🔒 **Env-only credentials** — the panel URL, username and password are never accepted as a tool argument, so a compromised or confused model can't redirect the server elsewhere.
 - 🎯 **Profile-gated tools** — a tool outside the active profile never appears in `tools/list` at all, not just hidden behind a hint.
 - ✅ **Confirmation on every destructive call** — the first call only describes the consequences and returns a one-time token; nothing runs until a human-approved second call repeats it, and confirming one call never authorizes a different target or a wider version of the same call.
+- 🔁 **A retried destructive call doesn't run twice** — an identical repeat within 5 minutes returns the recorded result of the first one instead of restarting the core again; a call whose outcome was never observed says so plainly rather than guessing.
 - 🙈 **Credentials masked by default** — `proxies`, `subscription_url` and `links` stay hidden unless you explicitly opt in.
 - 🧭 **21 tools, 3 prompts** — full user lifecycle, config, hosts, nodes, system stats and subscriptions, plus ready-made investigations that chain several tools together.
 - 🛠️ **Built on `marzban-sdk`** — the same auth, retry and reconnect behavior as the SDK itself, just exposed as MCP tools.
@@ -103,6 +104,15 @@ controls how often this is required: `auto` (default, once per tool _and_
 exact arguments, for 5 minutes — a different target or a wider call always
 needs its own confirmation), `always` (every call), or `off` (unattended
 environments only — no safety net once set).
+
+Confirmation decides whether a call may run; it doesn't decide whether it has
+already run. So each destructive call is also remembered for 5 minutes: an
+identical repeat — the kind a client sends after a timeout — returns the
+recorded result of the first one, with a note saying so, and never reaches
+the panel. When a request went out and no answer came back, the outcome is
+reported as unknown, with instructions to check the state with a read-only
+tool rather than retry. A fresh confirmation still runs the operation for
+real, and restarting the server clears the memory.
 
 ## Documentation
 

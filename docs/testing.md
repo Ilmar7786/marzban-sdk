@@ -54,10 +54,15 @@ pnpm --filter marzban-sdk test:coverage
   suite stays deliberately smaller than `sdk`'s — not a re-run of `sdk`'s
   edge cases, since the mocked-SDK unit tests in `packages/mcp/src/modules/**`
   already prove each tool calls the SDK correctly; what they can't catch is
-  drift between an MCP tool's zod schema and the SDK's real types.
-  `smoke.integration.test.ts` covers that at the smallest scope: one
-  passthrough tool, one with MCP-only logic, one destructive tool through
-  the confirm-flow. `users-lifecycle.integration.test.ts` covers the full
+  drift between an MCP tool's zod schema and the SDK's real types — including
+  drift a mocked `.safeParse()` can't see at all, like an `outputSchema`
+  claiming a JSON Schema `format` a real response value doesn't hold to (see
+  ADR-0018 and the `output-schema-regression.test.ts` unit test for the rest
+  of that guard). `smoke.integration.test.ts` covers that at the smallest
+  scope: one passthrough tool, one with MCP-only logic, one destructive tool
+  through the confirm-flow, one output validated against a real ajv instance
+  the way a strict MCP client validates `structuredContent`.
+  `users-lifecycle.integration.test.ts` covers the full
   path GitHub issue #65's Definition of Done asked for — create → extend →
   deactivate → activate → usage → delete through the actual MCP tools, plus
   reading and dry-running a core config change. Real Marzban behavior these

@@ -214,9 +214,17 @@ an explicit marker — a silent cut reads to the model as "this is everything."
 To add a tool:
 
 1. Add `xxxInputSchema`/`xxxOutputSchema` (Zod v4) to
-   `modules/<area>/<area>.schemas.ts` — reuse SDK-exported schemas where
-   possible. `outputSchema` must be a single object type. Destructive tools
-   need a `confirmToken` field.
+   `modules/<area>/<area>.schemas.ts` — reuse SDK-exported schemas for
+   structure where possible, but never for an `outputSchema`'s format claims:
+   an SDK schema is written to _parse_ Marzban's response and can carry a
+   JSON Schema `format` (e.g. `date-time`) the wire format doesn't actually
+   guarantee — see ADR-0018. For a response containing a Marzban user, use
+   `mcpUserResponseSchema`/`mcpSubscriptionUserResponseSchema` from
+   `shared/schemas.ts` instead of `userResponseSchema`/
+   `subscriptionUserResponseSchema` directly. `output-schema-regression.test.ts`
+   fails on any tool whose `outputSchema` emits `format` at all, so this is
+   enforced, not just documented. `outputSchema` must be a single object
+   type. Destructive tools need a `confirmToken` field.
 2. Add a `View<T>` to `modules/<area>/<area>.views.ts`.
 3. Call `defineTool({...})` in `modules/<area>/<area>.tools.ts`. The tool
    name must start with `marzban_`.

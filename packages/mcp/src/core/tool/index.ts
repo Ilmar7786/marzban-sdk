@@ -1,5 +1,6 @@
 export type { ToolContext } from './context'
 export { defineTool, type ToolDefinition, type ToolScope } from './define-tool'
+export { toolOutputJsonSchema } from './json-schema'
 export {
   alwaysProceed,
   type ConfirmDecision,

@@ -470,3 +470,29 @@ after a reconnect. Per-line, not per-message: a batching `interval > 0`
 joins several lines into one message on the live stream, but the panel's
 replay buffer has no such grouping, so the two never line up. See
 [ADR-0017](./adr/0017-ws-public-stream-surface.md).
+
+## User-object datetime fields come back without a UTC offset
+
+**Verified against:** `gozargah/marzban:v0.8.4`, `local/marzban/`, the
+published `ilmar7786/marzban-mcp` Docker image wired into Claude Desktop.
+
+`created_at`, `sub_updated_at`, `online_at`, and `on_hold_timeout` on
+`UserResponse`/`SubscriptionUserResponse` are plain naive-datetime strings —
+`"2026-09-02T14:00:57.764445"` — never `Z`, never `+00:00`. Confirmed via a
+direct `GET /api/user/{username}` call with the admin token right after
+`addUser`.
+
+This is fine for the SDK, which parses these fields with
+`z.iso.datetime({ local: true })` specifically because of this
+(`packages/sdk/kubb.config.ts`). It stopped being fine at the MCP boundary:
+`packages/mcp` reused those same SDK schemas as tool `outputSchema`s, and
+`local: true` still lowers to a JSON Schema `format: "date-time"` — an
+RFC 3339 claim of an offset that isn't there. A strict MCP client validating
+`structuredContent` against that schema rejected every real response
+(github.com/Ilmar7786/marzban-sdk#112).
+
+**Workaround:** none needed on the SDK side — `local: true` is correct there.
+At the MCP boundary, use `mcpUserResponseSchema`/
+`mcpSubscriptionUserResponseSchema` (`packages/mcp/src/shared/schemas.ts`),
+which override these four fields to plain `z.string()`. See
+[ADR-0018](./adr/0018-mcp-output-schemas-no-format-keyword.md).

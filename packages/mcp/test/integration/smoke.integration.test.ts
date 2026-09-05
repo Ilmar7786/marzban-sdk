@@ -1,15 +1,28 @@
 import { randomUUID } from 'node:crypto'
 
 import type { ServerContext } from '@modelcontextprotocol/server'
+import Ajv2020 from 'ajv/dist/2020'
+import addFormats from 'ajv-formats'
 import { isHttpError } from 'marzban-sdk'
 import { afterAll, describe, expect, it } from 'vitest'
 
 import { createConfirmFn } from '../../src/core/confirm'
-import type { ToolContext } from '../../src/core/tool'
+import { type ToolContext, toolOutputJsonSchema } from '../../src/core/tool'
 import { nodesListTool } from '../../src/modules/nodes/nodes.tools'
-import { usersDeleteTool, usersExtendTool } from '../../src/modules/users/users.tools'
+import { usersCreateTool, usersDeleteTool, usersExtendTool } from '../../src/modules/users/users.tools'
 import { createTestToolContext } from './helpers/client'
 import { freshConnectionConfig, removeUserTolerantly } from './helpers/quirks'
+
+// Same validator shape a strict MCP client applies to structuredContent: a
+// real ajv instance with format assertions ON, checking the exact JSON
+// Schema @modelcontextprotocol/server derives from a tool's outputSchema
+// (see src/core/tool/json-schema.ts). A zod .safeParse() can't reproduce
+// this — it's oblivious to the `format` keyword entirely, which is exactly
+// how #112 shipped unnoticed. `strict: false` because the concern here is
+// format *assertion*, not ajv's opinions on schema-authoring style — kubb's
+// generated schemas aren't written for ajv's strict mode and that's a
+// separate axis from the bug this test exists to catch.
+const strictClientValidator = addFormats(new Ajv2020({ strict: false }))
 
 const SHADOWSOCKS_PROXY = { shadowsocks: {} }
 const fakeServerCtx = {} as ServerContext
@@ -89,5 +102,27 @@ describe('MCP tool smoke tests (real SDK, real panel)', () => {
     }
 
     await expect(ctx.sdk.user.getUser(username, freshConnectionConfig())).rejects.toMatchObject({ status: 404 })
+  })
+
+  it('marzban_users_create: structuredContent validates under a strict client, even though Marzban returns created_at without a UTC offset (#112)', async () => {
+    ctx = await createTestToolContext()
+    const username = uniqueUsername('datetime')
+
+    try {
+      const result = await usersCreateTool.handler({ username, status: 'active', proxies: SHADOWSOCKS_PROXY }, ctx)
+
+      // Guards the guard: if Marzban ever starts sending an offset, this
+      // assertion fails first — signaling the check below stopped exercising
+      // the thing #112 was actually about.
+      expect(result.created_at).not.toMatch(/(Z|[+-]\d{2}:\d{2})$/)
+
+      const validate = strictClientValidator.compile(toolOutputJsonSchema(usersCreateTool.outputSchema))
+      const valid = validate(result)
+
+      expect(validate.errors ?? []).toEqual([])
+      expect(valid).toBe(true)
+    } finally {
+      await removeUserTolerantly(ctx.sdk, username)
+    }
   })
 })

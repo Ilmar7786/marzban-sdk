@@ -23,7 +23,7 @@ function makeUser(overrides: Partial<UserResponse> = {}): UserResponse {
     username: 'alice',
     status: 'active',
     used_traffic: 0,
-    created_at: '2026-01-01T00:00:00Z',
+    created_at: '2026-01-01T00:00:00',
     ...overrides,
   }
 }
@@ -62,7 +62,7 @@ describe('userView (single user)', () => {
 
   it('full row includes note/reset-strategy/created_at on top of the compact fields', () => {
     const row = userView.full!(makeUser({ note: 'vip', data_limit_reset_strategy: 'month' }), HIDE) as ViewRow
-    expect(row).toMatchObject({ note: 'vip', data_limit_reset_strategy: 'month', created_at: '2026-01-01T00:00:00Z' })
+    expect(row).toMatchObject({ note: 'vip', data_limit_reset_strategy: 'month', created_at: '2026-01-01T00:00:00' })
   })
 
   it('defaults reset strategy display to no_reset when unset', () => {

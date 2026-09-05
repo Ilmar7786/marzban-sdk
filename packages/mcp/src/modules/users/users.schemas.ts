@@ -1,9 +1,10 @@
-import { userResponseSchema, userUsageResponseSchema } from 'marzban-sdk'
+import { userUsageResponseSchema } from 'marzban-sdk'
 import { z } from 'zod'
 
 import {
   confirmTokenSchema,
   durationMsInputSchema,
+  mcpUserResponseSchema,
   sizeInputSchema,
   timestampInputSchema,
   usernameSchema,
@@ -35,7 +36,7 @@ export const usersListInputSchema = z.object({
 })
 
 export const usersListOutputSchema = z.object({
-  users: z.array(userResponseSchema),
+  users: z.array(mcpUserResponseSchema),
   total: z.number(),
   note: z.string(),
 })
@@ -54,7 +55,7 @@ export const userSummarySchema = z.object({
 })
 
 export const usersGetOutputSchema = z.object({
-  user: userResponseSchema,
+  user: mcpUserResponseSchema,
   summary: userSummarySchema,
 })
 
@@ -85,7 +86,7 @@ export const usersCreateInputSchema = z.object({
     ),
 })
 
-export const usersCreateOutputSchema = userResponseSchema
+export const usersCreateOutputSchema = mcpUserResponseSchema
 
 // --- users_update ----------------------------------------------------------
 
@@ -99,15 +100,15 @@ export const usersUpdateInputSchema = z.object({
   inbounds: inboundsInputSchema,
 })
 
-export const usersUpdateOutputSchema = userResponseSchema
+export const usersUpdateOutputSchema = mcpUserResponseSchema
 
 // --- users_activate / deactivate / hold -------------------------------------
 
 export const usersActivateInputSchema = z.object({ username: usernameSchema })
-export const usersActivateOutputSchema = userResponseSchema
+export const usersActivateOutputSchema = mcpUserResponseSchema
 
 export const usersDeactivateInputSchema = z.object({ username: usernameSchema })
-export const usersDeactivateOutputSchema = userResponseSchema
+export const usersDeactivateOutputSchema = mcpUserResponseSchema
 
 export const usersHoldInputSchema = z.object({
   username: usernameSchema,
@@ -118,7 +119,7 @@ export const usersHoldInputSchema = z.object({
     .optional()
     .describe('Seconds the user may stay on_hold before expiring, counted from their first connection.'),
 })
-export const usersHoldOutputSchema = userResponseSchema
+export const usersHoldOutputSchema = mcpUserResponseSchema
 
 // --- users_extend ----------------------------------------------------------
 
@@ -138,7 +139,7 @@ export const usersExtendInputSchema = z
   })
 
 export const usersExtendOutputSchema = z.object({
-  user: userResponseSchema,
+  user: mcpUserResponseSchema,
   note: z.string(),
 })
 

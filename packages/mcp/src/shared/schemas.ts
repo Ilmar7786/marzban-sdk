@@ -1,4 +1,10 @@
-import { parseSize } from 'marzban-sdk'
+import {
+  parseSize,
+  type SubscriptionUserResponse,
+  subscriptionUserResponseSchema,
+  type UserResponse,
+  userResponseSchema,
+} from 'marzban-sdk'
 import { z } from 'zod'
 
 import { isDurationString, parseDurationMs } from './duration'
@@ -57,3 +63,46 @@ export const timestampInputSchema = z.union([z.string(), z.number().int().nonneg
   }
   return Math.floor(asDate.getTime() / 1000)
 })
+
+// --- output-side: SDK response schemas made wire-honest ------------------
+
+/**
+ * `UserResponse`/`SubscriptionUserResponse`'s four datetime fields, as the
+ * MCP layer should declare them in an `outputSchema` — plain `z.string()`,
+ * deliberately NOT the SDK's `z.iso.datetime({ local: true })`.
+ *
+ * `local: true` is the *correct* choice on the SDK side (`kubb.config.ts`):
+ * Marzban returns these fields without a UTC offset —
+ * `created_at: "2026-09-02T14:00:57.764445"`, no `Z`, no `+00:00` — and the
+ * SDK has to parse that. But converting `z.iso.datetime({ local: true })` to
+ * JSON Schema still emits `format: "date-time"` (RFC 3339, offset required)
+ * alongside a `pattern` that *does* allow the missing offset — and a strict
+ * client validates `structuredContent` against `format`, not `pattern`. It
+ * rejects Marzban's real response even though the call succeeded
+ * (github.com/Ilmar7786/marzban-sdk#112). Plain `z.string()` makes no format
+ * claim the wire format can't back up.
+ *
+ * Never reuse an SDK response schema wholesale as an MCP `outputSchema`
+ * without overriding these — see `mcpUserResponseSchema`/
+ * `mcpSubscriptionUserResponseSchema` below, and the "no `format` keyword in
+ * any outputSchema" invariant in `output-schema-regression.test.ts`.
+ */
+const WIRE_DATETIME_FIELDS = {
+  created_at: z.string(),
+  sub_updated_at: z.string().nullable().optional(),
+  online_at: z.string().nullable().optional(),
+  on_hold_timeout: z.string().nullable().optional(),
+}
+
+// kubb types these exports as opaque `z.ZodType<X>` (see e.g.
+// packages/sdk/src/gen/schemas/userResponseSchema.ts) even though they're
+// `ZodObject`s at runtime — the cast below is what makes `.extend()`
+// reachable. Every other field (present now or added later) is inherited
+// from the SDK schema unchanged; only the four above are overridden.
+export const mcpUserResponseSchema = (userResponseSchema as unknown as z.ZodObject<z.ZodRawShape>).extend(
+  WIRE_DATETIME_FIELDS
+) as unknown as z.ZodType<UserResponse>
+
+export const mcpSubscriptionUserResponseSchema = (
+  subscriptionUserResponseSchema as unknown as z.ZodObject<z.ZodRawShape>
+).extend(WIRE_DATETIME_FIELDS) as unknown as z.ZodType<SubscriptionUserResponse>

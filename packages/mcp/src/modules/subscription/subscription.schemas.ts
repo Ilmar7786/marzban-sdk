@@ -1,7 +1,11 @@
-import { subscriptionUserResponseSchema, userResponseSchema } from 'marzban-sdk'
 import { z } from 'zod'
 
-import { confirmTokenSchema, usernameSchema } from '@/shared/schemas'
+import {
+  confirmTokenSchema,
+  mcpSubscriptionUserResponseSchema,
+  mcpUserResponseSchema,
+  usernameSchema,
+} from '@/shared/schemas'
 
 export const subscriptionInfoInputSchema = z.object({
   subscriptionToken: z
@@ -12,11 +16,11 @@ export const subscriptionInfoInputSchema = z.object({
     ),
 })
 
-export const subscriptionInfoOutputSchema = subscriptionUserResponseSchema
+export const subscriptionInfoOutputSchema = mcpSubscriptionUserResponseSchema
 
 export const usersRevokeSubscriptionInputSchema = z.object({
   username: usernameSchema,
   confirmToken: confirmTokenSchema,
 })
 
-export const usersRevokeSubscriptionOutputSchema = userResponseSchema
+export const usersRevokeSubscriptionOutputSchema = mcpUserResponseSchema

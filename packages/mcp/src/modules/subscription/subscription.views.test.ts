@@ -13,7 +13,7 @@ function makeSubscriptionUser(overrides: Partial<SubscriptionUserResponse> = {})
     username: 'alice',
     status: 'active',
     used_traffic: 0,
-    created_at: '2026-01-01T00:00:00Z',
+    created_at: '2026-01-01T00:00:00', // Marzban's real wire format — no offset, see #112
     ...overrides,
   }
 }

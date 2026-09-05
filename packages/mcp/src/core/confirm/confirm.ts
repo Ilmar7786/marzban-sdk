@@ -55,7 +55,7 @@ export function createConfirmFn(): ConfirmFn {
   }
 
   return async function confirm({ tool, args, ctx, serverCtx }): Promise<ConfirmDecision> {
-    if (ctx.config.confirm === 'off') return { proceed: true }
+    if (ctx.config.confirm === 'off') return { proceed: true, reason: 'off' }
 
     const key = callKey(tool.name, args)
 
@@ -64,7 +64,7 @@ export function createConfirmFn(): ConfirmFn {
       pruneExpired(now)
       if (trustedCalls.has(key)) {
         ctx.logger.info(`Proceeding on accumulated confirm trust for ${tool.name} (same call, still within TTL).`)
-        return { proceed: true }
+        return { proceed: true, reason: 'trusted' }
       }
     }
 
@@ -75,7 +75,12 @@ export function createConfirmFn(): ConfirmFn {
         if (ctx.config.confirm === 'auto') {
           trustedCalls.set(key, Date.now() + CONFIRM_TOKEN_TTL_SECONDS * 1000)
         }
-        return { proceed: true }
+        // `token` and not `trusted`: a single-use token verified just now is
+        // a human saying yes to this operation a moment ago, which is what
+        // lets `core/idempotency` run it again rather than replay a recorded
+        // outcome. An accidental retry never lands here — it re-sends the
+        // consumed token, which fails verification as `reused`.
+        return { proceed: true, reason: 'token' }
       }
       ctx.logger.warn(`Rejected confirmToken for ${tool.name}: ${result.reason}`)
     }

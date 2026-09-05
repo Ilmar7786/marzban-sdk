@@ -9,7 +9,7 @@ import type { View } from '@/format/views/types'
 import { ToolError } from '../errors'
 import type { ToolContext } from './context'
 import { defineTool } from './define-tool'
-import { alwaysProceed, type ConfirmFn, registerTools, selectTools } from './registry'
+import { alwaysExecute, alwaysProceed, type ConfirmFn, type DedupFn, registerTools, selectTools } from './registry'
 
 type RegisteredEntry = {
   config: { title?: string; description?: string; annotations?: Record<string, unknown> }
@@ -132,6 +132,7 @@ describe('registerTools', () => {
       tools: [readTool, destructiveTool],
       ctx: makeContext({ profile: 'standard' }),
       confirm: alwaysProceed,
+      dedup: alwaysExecute,
     })
 
     expect(selected.map(t => t.name)).toEqual(['marzban_read_one'])
@@ -144,7 +145,7 @@ describe('registerTools', () => {
     const { server, registered } = createFakeServer()
     const tool = makeTool({ annotations: { idempotentHint: true, openWorldHint: false } })
 
-    registerTools({ server, tools: [tool], ctx: makeContext(), confirm: alwaysProceed })
+    registerTools({ server, tools: [tool], ctx: makeContext(), confirm: alwaysProceed, dedup: alwaysExecute })
 
     expect(registered.get('marzban_test_tool')!.config.annotations).toMatchObject({
       readOnlyHint: true,
@@ -157,7 +158,13 @@ describe('registerTools', () => {
     const { server, registered } = createFakeServer()
     const tool = makeTool()
 
-    registerTools({ server, tools: [tool], ctx: makeContext({ format: 'json' }), confirm: alwaysProceed })
+    registerTools({
+      server,
+      tools: [tool],
+      ctx: makeContext({ format: 'json' }),
+      confirm: alwaysProceed,
+      dedup: alwaysExecute,
+    })
 
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
     expect(result.content).toEqual([{ type: 'text', text: '{"echoed":"hi"}' }])
@@ -167,7 +174,7 @@ describe('registerTools', () => {
   it('never calls confirm for a read-scope tool', async () => {
     const { server, registered } = createFakeServer()
     const confirm = vi.fn<ConfirmFn>(() => ({ proceed: true }))
-    registerTools({ server, tools: [makeTool({ scope: 'read' })], ctx: makeContext(), confirm })
+    registerTools({ server, tools: [makeTool({ scope: 'read' })], ctx: makeContext(), confirm, dedup: alwaysExecute })
 
     await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
     expect(confirm).not.toHaveBeenCalled()
@@ -181,6 +188,7 @@ describe('registerTools', () => {
       tools: [makeTool({ scope: 'destructive' })],
       ctx: makeContext({ profile: 'full' }),
       confirm,
+      dedup: alwaysExecute,
     })
 
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
@@ -198,6 +206,7 @@ describe('registerTools', () => {
       tools: [makeTool({ scope: 'destructive', handler })],
       ctx: makeContext({ profile: 'full' }),
       confirm,
+      dedup: alwaysExecute,
     })
 
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
@@ -215,6 +224,7 @@ describe('registerTools', () => {
       tools: [makeTool({ scope: 'destructive' })],
       ctx: makeContext({ profile: 'full' }),
       confirm,
+      dedup: alwaysExecute,
     })
 
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
@@ -230,6 +240,7 @@ describe('registerTools', () => {
       tools: [makeTool({ scope: 'destructive', skipConfirm })],
       ctx: makeContext({ profile: 'full' }),
       confirm,
+      dedup: alwaysExecute,
     })
 
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'skip' }, fakeServerCtx)
@@ -246,6 +257,7 @@ describe('registerTools', () => {
       tools: [makeTool({ scope: 'destructive', skipConfirm })],
       ctx: makeContext({ profile: 'full' }),
       confirm,
+      dedup: alwaysExecute,
     })
 
     await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
@@ -259,17 +271,142 @@ describe('registerTools', () => {
         throw new ToolError('INTERNAL_ERROR', 'handler failed')
       },
     })
-    registerTools({ server, tools: [tool], ctx: makeContext(), confirm: alwaysProceed })
+    registerTools({ server, tools: [tool], ctx: makeContext(), confirm: alwaysProceed, dedup: alwaysExecute })
 
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
     expect(result.isError).toBe(true)
     expect(result.content).toEqual([{ type: 'text', text: 'handler failed' }])
   })
 
+  it('never calls dedup for a non-destructive tool', async () => {
+    const { server, registered } = createFakeServer()
+    const dedup = vi.fn<DedupFn>(async ({ run }) => ({ kind: 'executed', data: await run() }))
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'write' })],
+      ctx: makeContext({ profile: 'full' }),
+      confirm: alwaysProceed,
+      dedup,
+    })
+
+    await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    expect(dedup).not.toHaveBeenCalled()
+  })
+
+  it('never calls dedup for a call the tool itself says needs no confirmation', async () => {
+    const { server, registered } = createFakeServer()
+    const dedup = vi.fn<DedupFn>(async ({ run }) => ({ kind: 'executed', data: await run() }))
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive', skipConfirm: () => true })],
+      ctx: makeContext({ profile: 'full' }),
+      confirm: alwaysProceed,
+      dedup,
+    })
+
+    const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    expect(dedup).not.toHaveBeenCalled()
+    expect(result.structuredContent).toEqual({ echoed: 'hi' })
+  })
+
+  it('evaluates skipConfirm once per call, not once per guarded stage', async () => {
+    const { server, registered } = createFakeServer()
+    const skipConfirm = vi.fn(() => false)
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive', skipConfirm })],
+      ctx: makeContext({ profile: 'full' }),
+      confirm: alwaysProceed,
+      dedup: alwaysExecute,
+    })
+
+    await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    expect(skipConfirm).toHaveBeenCalledTimes(1)
+  })
+
+  it('tells dedup to bypass its record only when a fresh token was just verified', async () => {
+    const { server, registered } = createFakeServer()
+    const dedup = vi.fn<DedupFn>(async ({ run }) => ({ kind: 'executed', data: await run() }))
+    const confirm = vi.fn<ConfirmFn>(() => ({ proceed: true, reason: 'token' }))
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive' })],
+      ctx: makeContext({ profile: 'full' }),
+      confirm,
+      dedup,
+    })
+
+    await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    expect(dedup.mock.calls[0][0].bypass).toBe(true)
+  })
+
+  it('does not bypass when the call proceeds on accumulated trust', async () => {
+    const { server, registered } = createFakeServer()
+    const dedup = vi.fn<DedupFn>(async ({ run }) => ({ kind: 'executed', data: await run() }))
+    const confirm = vi.fn<ConfirmFn>(() => ({ proceed: true, reason: 'trusted' }))
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive' })],
+      ctx: makeContext({ profile: 'full' }),
+      confirm,
+      dedup,
+    })
+
+    await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    expect(dedup.mock.calls[0][0].bypass).toBe(false)
+  })
+
+  it('flags a replayed outcome in the text while keeping the recorded structuredContent', async () => {
+    const { server, registered } = createFakeServer()
+    const handler = vi.fn(async () => ({ echoed: 'should not run' }))
+    const dedup = vi.fn<DedupFn>(async () => ({
+      kind: 'replayed',
+      data: { echoed: 'recorded' },
+      notice: 'NOTE: this already ran.',
+    }))
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive', handler })],
+      ctx: makeContext({ profile: 'full', format: 'json' }),
+      confirm: alwaysProceed,
+      dedup,
+    })
+
+    const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    expect(handler).not.toHaveBeenCalled()
+    expect(result.content).toEqual([
+      { type: 'text', text: 'NOTE: this already ran.' },
+      { type: 'text', text: '{"echoed":"recorded"}' },
+    ])
+    expect(result.structuredContent).toEqual({ echoed: 'recorded' })
+    expect(result.isError).toBeFalsy()
+  })
+
+  it('returns an unknown outcome as an error result with no structuredContent', async () => {
+    const { server, registered } = createFakeServer()
+    const dedup = vi.fn<DedupFn>(async () => ({ kind: 'unknown', message: 'Verify the state first.' }))
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive' })],
+      ctx: makeContext({ profile: 'full' }),
+      confirm: alwaysProceed,
+      dedup,
+    })
+
+    const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    expect(result).toEqual({ content: [{ type: 'text', text: 'Verify the state first.' }], isError: true })
+  })
+
   it('returns the same tools it registered', () => {
     const { server } = createFakeServer()
     const tool = makeTool()
-    const selected = registerTools({ server, tools: [tool], ctx: makeContext(), confirm: alwaysProceed })
+    const selected = registerTools({
+      server,
+      tools: [tool],
+      ctx: makeContext(),
+      confirm: alwaysProceed,
+      dedup: alwaysExecute,
+    })
     expect(selected).toEqual([tool])
   })
 })
@@ -279,5 +416,14 @@ describe('alwaysProceed', () => {
     expect(alwaysProceed({ tool: makeTool(), args: {}, ctx: makeContext(), serverCtx: fakeServerCtx })).toEqual({
       proceed: true,
     })
+  })
+})
+
+describe('alwaysExecute', () => {
+  it('runs the operation and reports it as executed', async () => {
+    const run = vi.fn(async () => ({ echoed: 'hi' }))
+    const outcome = await alwaysExecute({ tool: makeTool(), args: {}, ctx: makeContext(), bypass: false, run })
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(outcome).toEqual({ kind: 'executed', data: { echoed: 'hi' } })
   })
 })

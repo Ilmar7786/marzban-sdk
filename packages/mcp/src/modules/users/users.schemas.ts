@@ -16,7 +16,7 @@ const proxiesInputSchema = z
   .record(z.string(), z.record(z.string(), z.unknown()))
   .optional()
   .describe(
-    'Protocol name -> settings, e.g. {"vless": {"id": "<uuid>"}}. Omit to leave unchanged (update) or use server defaults (create).'
+    'Protocol name -> settings, e.g. {"vless": {"id": "<uuid>"}} or {"shadowsocks": {}} to auto-generate credentials. Omit to leave unchanged on update. On create there is no server default — omitting this (without templateId) errors; provide at least one protocol with a matching inbound configured on the panel.'
   )
 
 const inboundsInputSchema = z

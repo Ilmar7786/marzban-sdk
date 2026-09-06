@@ -382,6 +382,31 @@ describe('registerTools', () => {
     expect(result.isError).toBeFalsy()
   })
 
+  it("appends the confirm decision's rerun hint to a replay notice (#129)", async () => {
+    const { server, registered } = createFakeServer()
+    const dedup = vi.fn<DedupFn>(async () => ({
+      kind: 'replayed',
+      data: { echoed: 'recorded' },
+      notice: 'NOTE: this already ran.',
+    }))
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive' })],
+      ctx: makeContext({ profile: 'full', format: 'json' }),
+      // What `auto` returns for a call proceeding on accumulated trust: that
+      // path mints no token of its own, so the hint is the only way the model
+      // can act on the notice's "confirm it afresh" advice.
+      confirm: () => ({ proceed: true, reason: 'trusted', rerunHint: 'Repeat with confirmToken: "tok".' }),
+      dedup,
+    })
+
+    const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    expect(result.content[0]).toEqual({
+      type: 'text',
+      text: 'NOTE: this already ran. Repeat with confirmToken: "tok".',
+    })
+  })
+
   it('returns an unknown outcome as an error result with no structuredContent', async () => {
     const { server, registered } = createFakeServer()
     const dedup = vi.fn<DedupFn>(async () => ({ kind: 'unknown', message: 'Verify the state first.' }))

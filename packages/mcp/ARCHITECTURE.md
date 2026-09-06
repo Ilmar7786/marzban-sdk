@@ -66,7 +66,11 @@ flowchart LR
   signing key; it's rejected on tool mismatch, argument mismatch, or reuse.
   `MARZBAN_MCP_CONFIRM` controls the mode: `off`, `auto` (confirm once per
   tool _and_ exact arguments, trusted for the same TTL as the token —
-  `core/confirm/confirm.ts`'s `trustedCalls`), `always`.
+  `core/confirm/confirm.ts`'s `trustedCalls`), `always`. A presented token is
+  verified _before_ that trust cache, so an explicit re-approval reports
+  `reason: 'token'` rather than `'trusted'`, and a trusted decision carries a
+  freshly minted one as `rerunHint` for the registry to append to a replay
+  notice — see ADR-0020.
 - **Dedup** applies to the same calls confirmation does, in every confirm
   mode, and answers a different question: not "may this run?" but "has this
   already run?". `core/idempotency/` remembers each destructive call by the

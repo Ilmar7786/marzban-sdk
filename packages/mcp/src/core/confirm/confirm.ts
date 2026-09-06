@@ -2,7 +2,9 @@ import { createTtlMap } from '@/shared/ttl-map'
 
 import type { ConfirmDecision, ConfirmFn } from '../tool'
 import { callKey } from './canonical'
-import { CONFIRM_TOKEN_TTL_SECONDS, createConfirmTokenCodec } from './token'
+import { CONFIRM_TOKEN_TTL_SECONDS, type ConfirmVerifyResult, createConfirmTokenCodec } from './token'
+
+type RejectionReason = Extract<ConfirmVerifyResult, { ok: false }>['reason']
 
 function extractConfirmToken(args: unknown): string | undefined {
   if (!args || typeof args !== 'object' || !('confirmToken' in args)) return undefined
@@ -31,6 +33,19 @@ function buildConfirmationMessage(consequences: string, token: string): string {
 }
 
 /**
+ * Carried on a `trusted` decision so the registry can append it to a replay
+ * notice: a call that proceeds on accumulated trust never reaches the branch
+ * that mints a token, so without this the notice's own "confirm it afresh"
+ * advice is impossible to follow in `auto` (issue #129, ADR-0020).
+ */
+function buildRerunHint(token: string): string {
+  return [
+    'Do not call this tool again until the user has explicitly said yes.',
+    `Once they have, repeat the exact same call with confirmToken: "${token}" to run it for real.`,
+  ].join(' ')
+}
+
+/**
  * Builds the real confirm strategy (plan §6.1–§6.2, confirm_token branch
  * only — native MRTR elicitation is left for a later iteration, see the
  * step-5 commit message for why). One instance owns one signing key and one
@@ -45,6 +60,11 @@ function buildConfirmationMessage(consequences: string, token: string): string {
  * a confirm token (`CONFIRM_TOKEN_TTL_SECONDS`): without an expiry, a tool
  * whose arguments never vary (`marzban_core_restart` always takes `{}`)
  * would get an unlimited number of free re-runs from a single confirmation.
+ *
+ * A presented token is checked *before* that cache (issue #129, ADR-0020),
+ * and a trusted decision carries a fresh one for the registry to hand back
+ * with a replay notice — together those make a deliberate second run of the
+ * same call expressible in `auto` instead of only in `always`.
  */
 export function createConfirmFn(): ConfirmFn {
   const codec = createConfirmTokenCodec(crypto.getRandomValues(new Uint8Array(32)))
@@ -55,14 +75,8 @@ export function createConfirmFn(): ConfirmFn {
 
     const key = callKey(tool.name, args)
 
-    if (ctx.config.confirm === 'auto') {
-      if (trustedCalls.get(key) !== undefined) {
-        ctx.logger.info(`Proceeding on accumulated confirm trust for ${tool.name} (same call, still within TTL).`)
-        return { proceed: true, reason: 'trusted' }
-      }
-    }
-
     const token = extractConfirmToken(args)
+    let rejection: RejectionReason | undefined
     if (token) {
       const result = await codec.verify(token, tool.name, args, serverCtx)
       if (result.ok) {
@@ -76,8 +90,23 @@ export function createConfirmFn(): ConfirmFn {
         // consumed token, which fails verification as `reused`.
         return { proceed: true, reason: 'token' }
       }
-      ctx.logger.warn(`Rejected confirmToken for ${tool.name}: ${result.reason}`)
+      rejection = result.reason
     }
+
+    if (ctx.config.confirm === 'auto' && trustedCalls.get(key) !== undefined) {
+      // An honest retry re-sends its already-consumed token and lands here
+      // with `rejection: 'reused'`. That is the normal case, not a problem,
+      // so it is reported alongside the trust it proceeds on rather than as
+      // a warning — the `warn` below is for a call that is actually refused.
+      const rejected = rejection ? ` (its confirmToken was rejected as ${rejection})` : ''
+      ctx.logger.info(
+        `Proceeding on accumulated confirm trust for ${tool.name}${rejected} (same call, still within TTL).`
+      )
+      const rerunToken = await codec.mint(tool.name, args, serverCtx)
+      return { proceed: true, reason: 'trusted', rerunHint: buildRerunHint(rerunToken) }
+    }
+
+    if (rejection) ctx.logger.warn(`Rejected confirmToken for ${tool.name}: ${rejection}`)
 
     const consequences = await describeConsequences(tool, args, ctx)
     const newToken = await codec.mint(tool.name, args, serverCtx)

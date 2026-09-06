@@ -237,7 +237,10 @@ To add a tool:
    type. Destructive tools need a `confirmToken` field.
 2. Add a `View<T>` to `modules/<area>/<area>.views.ts`.
 3. Call `defineTool({...})` in `modules/<area>/<area>.tools.ts`. The tool
-   name must start with `marzban_`.
+   name must follow `marzban_<area>_<verb>(_<noun>)?` — an action verb, never
+   a bare noun (Glama's Naming Consistency review flagged four tools that
+   broke this, fixed in #114). `tool-naming.test.ts` enforces the pattern
+   against an explicit verb whitelist, so a new verb needs adding there too.
 4. Add the tool to the module's export array; a new module needs one more
    line in `src/modules/index.ts`.
 5. Add tests — coverage is enforced at 100% (see

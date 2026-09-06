@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 
 import { createRequestStateCodec, type ServerContext } from '@modelcontextprotocol/server'
 
+import { createTtlMap } from '@/shared/ttl-map'
+
 import { hashCallArgs } from './canonical'
 
 /** How long a minted confirm_token stays valid (plan §6.1). */
@@ -36,13 +38,7 @@ export interface ConfirmTokenCodec {
  */
 export function createConfirmTokenCodec(key: Uint8Array): ConfirmTokenCodec {
   const codec = createRequestStateCodec<ConfirmPayload>({ key, ttlSeconds: CONFIRM_TOKEN_TTL_SECONDS })
-  const usedJti = new Map<string, number>()
-
-  function pruneExpired(now: number): void {
-    for (const [jti, expiresAt] of usedJti) {
-      if (expiresAt <= now) usedJti.delete(jti)
-    }
-  }
+  const usedJti = createTtlMap<true>()
 
   return {
     async mint(tool, args, ctx) {
@@ -60,10 +56,8 @@ export function createConfirmTokenCodec(key: Uint8Array): ConfirmTokenCodec {
       if (payload.tool !== tool) return { ok: false, reason: 'tool-mismatch' }
       if (payload.argsHash !== hashCallArgs(args)) return { ok: false, reason: 'args-mismatch' }
 
-      const now = Date.now()
-      pruneExpired(now)
-      if (usedJti.has(payload.jti)) return { ok: false, reason: 'reused' }
-      usedJti.set(payload.jti, now + CONFIRM_TOKEN_TTL_SECONDS * 1000)
+      if (usedJti.get(payload.jti) !== undefined) return { ok: false, reason: 'reused' }
+      usedJti.set(payload.jti, true, CONFIRM_TOKEN_TTL_SECONDS * 1000)
 
       return { ok: true }
     },

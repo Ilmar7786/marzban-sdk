@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { EXECUTION_META_KEY, registeredOutputSchema } from './core/tool/execution-meta'
 import { toolOutputJsonSchema } from './core/tool/json-schema'
 import { allTools } from './modules'
 
@@ -33,10 +34,28 @@ function findFormatPaths(node: unknown, path: string): string[] {
   return found
 }
 
+// `registeredOutputSchema`, not `tool.outputSchema`: for a destructive tool
+// the registry registers the author's shape plus its execution-provenance
+// field, and the invariant is about the schema a client actually receives —
+// checking the declared one would stop covering whatever the registry adds.
+// It also runs both of that derivation's guards once per real tool.
 describe('output schema regression: no tool outputSchema claims a JSON Schema format', () => {
   it.each(allTools.map(tool => [tool.name, tool] as const))('%s', (_name, tool) => {
-    const jsonSchema = toolOutputJsonSchema(tool.outputSchema)
+    const jsonSchema = toolOutputJsonSchema(registeredOutputSchema(tool))
 
     expect(findFormatPaths(jsonSchema, tool.name)).toEqual([])
+  })
+})
+
+// Provenance is what stops a replayed destructive call from being reported as
+// a fresh one (github.com/Ilmar7786/marzban-sdk#137). Asserting it here, over
+// every real tool, is what makes it impossible for a destructive tool added
+// later to ship without it — the registry derives the field, but only this
+// test proves the derivation covers the set it should.
+describe('every destructive tool advertises execution provenance, and no other tool does', () => {
+  it.each(allTools.map(tool => [tool.name, tool] as const))('%s', (_name, tool) => {
+    const required = toolOutputJsonSchema(registeredOutputSchema(tool)).required
+
+    expect(Array.isArray(required) && required.includes(EXECUTION_META_KEY)).toBe(tool.scope === 'destructive')
   })
 })

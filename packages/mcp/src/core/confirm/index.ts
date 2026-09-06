@@ -1,3 +1,4 @@
+export { callKey, canonicalize, hashCallArgs } from './canonical'
 export { createConfirmFn } from './confirm'
 export {
   CONFIRM_TOKEN_TTL_SECONDS,

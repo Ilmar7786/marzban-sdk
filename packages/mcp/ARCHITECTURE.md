@@ -20,19 +20,20 @@ and format responses to fit a model's context budget.
 
 ## Directory map
 
-| Directory            | Role                                                                                         |
-| -------------------- | -------------------------------------------------------------------------------------------- |
-| `src/index.ts`       | Binary entry point: load config, create the SDK client, create the server, serve over stdio. |
-| `src/server.ts`      | `createMarzbanMcpServer()` — builds the `McpServer` instance, registers tools and prompts.   |
-| `src/config/`        | Env-driven config schema, defaults, parsing.                                                 |
-| `src/core/tool/`     | Tool definition helper, registry (filtering, wiring), request context.                       |
-| `src/core/confirm/`  | Confirmation-token issuing and verification for destructive tools.                           |
-| `src/core/errors/`   | Maps SDK/tool errors to `CallToolResult`.                                                    |
-| `src/core/logger.ts` | stderr-only logger (see invariant below).                                                    |
-| `src/format/`        | Renders tool output: `view` → `text`/`table`/`json` → truncation.                            |
-| `src/modules/`       | Domain modules — one directory per area (users, config, nodes, system, subscription).        |
-| `src/prompts/`       | Pre-built MCP prompts that sequence existing tools for common investigations.                |
-| `src/shared/`        | Cross-module schemas and small utilities (pagination, duration parsing).                     |
+| Directory               | Role                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
+| `src/index.ts`          | Binary entry point: load config, create the SDK client, create the server, serve over stdio. |
+| `src/server.ts`         | `createMarzbanMcpServer()` — builds the `McpServer` instance, registers tools and prompts.   |
+| `src/config/`           | Env-driven config schema, defaults, parsing.                                                 |
+| `src/core/tool/`        | Tool definition helper, registry (filtering, wiring), request context.                       |
+| `src/core/confirm/`     | Confirmation-token issuing and verification for destructive tools.                           |
+| `src/core/idempotency/` | Remembers destructive calls so a repeat replays instead of running again.                    |
+| `src/core/errors/`      | Maps SDK/tool errors to `CallToolResult`.                                                    |
+| `src/core/logger.ts`    | stderr-only logger (see invariant below).                                                    |
+| `src/format/`           | Renders tool output: `view` → `text`/`table`/`json` → truncation.                            |
+| `src/modules/`          | Domain modules — one directory per area (users, config, nodes, system, subscription).        |
+| `src/prompts/`          | Pre-built MCP prompts that sequence existing tools for common investigations.                |
+| `src/shared/`           | Cross-module schemas and small utilities (pagination, duration parsing).                     |
 
 ## Server setup
 
@@ -50,7 +51,7 @@ Every registered tool runs through the same wrapper, defined once in
 
 ```mermaid
 flowchart LR
-    A["selectTools()<br/>filtering"] --> B["confirm<br/>(destructive only)"] --> C["handler(args, ctx)"] --> D["render(data, view)"] --> E["error mapping"]
+    A["selectTools()<br/>filtering"] --> B["confirm<br/>(destructive only)"] --> C["dedup<br/>(destructive only)"] --> D["handler(args, ctx)"] --> E["render(data, view)"] --> F["error mapping"]
 ```
 
 - **Filtering** happens once at startup: profile scope first
@@ -66,6 +67,15 @@ flowchart LR
   `MARZBAN_MCP_CONFIRM` controls the mode: `off`, `auto` (confirm once per
   tool _and_ exact arguments, trusted for the same TTL as the token —
   `core/confirm/confirm.ts`'s `trustedCalls`), `always`.
+- **Dedup** applies to the same calls confirmation does, in every confirm
+  mode, and answers a different question: not "may this run?" but "has this
+  already run?". `core/idempotency/` remembers each destructive call by the
+  same `callKey` the trust cache uses, for five minutes; an identical repeat
+  replays the recorded data with a notice instead of reaching the SDK, and a
+  call whose outcome was never observed (an unsafe request that got no
+  response) reports `unknown` and steers the model to verify state. A freshly
+  verified token (`ConfirmDecision.reason === 'token'`) bypasses the record —
+  see ADR-0019.
 - **Handlers return plain data**, never a `CallToolResult` — rendering and
   error mapping are the pipeline's job, not the tool's.
 
@@ -234,13 +244,16 @@ To add a tool:
    [`docs/testing.md`](../../docs/testing.md)).
 
 `server.ts` and `core/tool/registry.ts` need no changes — filtering,
-annotations, confirmation, rendering, and error mapping apply automatically.
+annotations, confirmation, deduplication, rendering, and error mapping apply
+automatically.
 
 ## Known trade-offs
 
 - The tool list is documented by hand in three places (code, `README.md`,
   the docs site) with nothing checking they agree — see
   [`docs/architecture.md`](../../docs/architecture.md).
-- `core/errors/to-tool-error.ts` reads `HttpError.details.response.status`
-  directly rather than through a typed SDK accessor — the one place this
-  package relies on SDK internals instead of its public API.
+- `core/idempotency/classify.ts` can't tell "the connection was refused, so
+  nothing was applied" from "an in-flight write timed out", because the
+  transport-level error code has no public accessor on `HttpError`. It
+  errs toward `unknown`, so an unreachable panel produces a needless "verify
+  the state" answer for the length of the dedup window — see ADR-0019.

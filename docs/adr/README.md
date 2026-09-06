@@ -59,3 +59,4 @@ What this enables, what it costs.
 | [0016](./0016-ws-stream-lifecycle-and-reconnect.md)                  | WebSocket stream lifecycle and reconnect policy                     |
 | [0017](./0017-ws-public-stream-surface.md)                           | WS stream public surface — replay, reconnect, and header auth       |
 | [0018](./0018-mcp-output-schemas-no-format-keyword.md)               | MCP `outputSchema`s never emit a JSON Schema `format` keyword       |
+| [0019](./0019-idempotency-for-destructive-tool-calls.md)             | Destructive tool calls are deduplicated, not just re-confirmed      |

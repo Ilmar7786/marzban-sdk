@@ -60,8 +60,12 @@ pnpm --filter marzban-sdk test:coverage
   ADR-0018 and the `output-schema-regression.test.ts` unit test for the rest
   of that guard). `smoke.integration.test.ts` covers that at the smallest
   scope: one passthrough tool, one with MCP-only logic, one destructive tool
-  through the confirm-flow, one output validated against a real ajv instance
-  the way a strict MCP client validates `structuredContent`.
+  through the confirm-flow, one destructive tool repeated to prove the dedup
+  store replays instead of running it twice (#76 — driven through
+  `registerTools` via `helpers/pipeline.ts`, since confirmation and dedup are
+  registry stages a direct `tool.handler` call would skip), one output
+  validated against a real ajv instance the way a strict MCP client validates
+  `structuredContent`.
   `users-lifecycle.integration.test.ts` covers the full
   path GitHub issue #65's Definition of Done asked for — create → extend →
   deactivate → activate → usage → delete through the actual MCP tools, plus

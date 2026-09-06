@@ -18,6 +18,14 @@ export interface ConfirmDecision {
   proceed: boolean
   /** Shown to the model instead of running the tool when `proceed` is false. */
   message?: string
+  /**
+   * Why the call was allowed. `'token'` means a fresh, single-use confirm
+   * token was just verified — a human re-approved this exact operation
+   * moments ago, which is the one signal allowed to override a recorded
+   * outcome in `core/idempotency`. Optional: a `ConfirmFn` that doesn't
+   * distinguish its reasons (`alwaysProceed`) simply omits it.
+   */
+  reason?: 'off' | 'trusted' | 'token'
 }
 
 export type ConfirmFn = (input: {
@@ -33,6 +41,30 @@ export type ConfirmFn = (input: {
  * `ConfirmFn` but aren't exercising confirmation itself.
  */
 export const alwaysProceed: ConfirmFn = () => ({ proceed: true })
+
+export type DedupOutcome =
+  /** The handler ran for this call. */
+  | { kind: 'executed'; data: unknown }
+  /** An identical call already ran; `data` is what it returned, `notice` says so, and nothing was sent to the panel. */
+  | { kind: 'replayed'; data: unknown; notice: string }
+  /** An identical call was interrupted before anyone saw its outcome; `message` steers the model to verify. */
+  | { kind: 'unknown'; message: string }
+
+export type DedupFn = (input: {
+  tool: ToolDefinition<z.ZodType, z.ZodType>
+  args: unknown
+  ctx: ToolContext
+  /** Run this operation anyway, discarding any recorded outcome — set when a fresh confirm token was just verified. */
+  bypass: boolean
+  run: () => Promise<unknown>
+}) => Promise<DedupOutcome>
+
+/**
+ * A `DedupFn` that remembers nothing and always runs the handler. The
+ * counterpart to `alwaysProceed`: `createMarzbanMcpServer` uses the real store
+ * from `core/idempotency`, this is for tests that aren't exercising dedup.
+ */
+export const alwaysExecute: DedupFn = async ({ run }) => ({ kind: 'executed', data: await run() })
 
 function globToRegExp(glob: string): RegExp {
   const escaped = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')
@@ -84,6 +116,23 @@ export interface RegisterToolsOptions {
   tools: readonly ToolDefinition<z.ZodType, z.ZodType>[]
   ctx: ToolContext
   confirm: ConfirmFn
+  dedup: DedupFn
+}
+
+/**
+ * Puts the "this already ran" notice in front of the rendered result, as its
+ * own content block. `content` is free-form even for a tool that declares an
+ * `outputSchema` — only `structuredContent` is schema-bound, and it stays
+ * exactly as recorded, so the replay is honest to a program and legible to a
+ * model. Without the notice the model would report a replay as a fresh
+ * execution, which is the one failure mode a safety feature must not have.
+ *
+ * The notice sits outside the `maxChars` budget `render` already applied:
+ * going a couple of hundred characters over is better than truncating the
+ * warning itself.
+ */
+function withReplayNotice(result: CallToolResult, notice: string): CallToolResult {
+  return { ...result, content: [{ type: 'text', text: notice }, ...result.content] }
 }
 
 /**
@@ -98,12 +147,20 @@ export interface RegisterToolsOptions {
  * diagnostics.
  */
 export function registerTools(options: RegisterToolsOptions): ToolDefinition<z.ZodType, z.ZodType>[] {
-  const { server, tools, ctx, confirm } = options
+  const { server, tools, ctx, confirm, dedup } = options
   const selected = selectTools(tools, {
     profile: ctx.config.profile,
     toolsAllow: ctx.config.toolsAllow,
     toolsDeny: ctx.config.toolsDeny,
   })
+  // Config is read once at startup and fixed for the process, so these are
+  // the same for every call and every tool.
+  const renderOptions = {
+    format: ctx.config.format,
+    verbosity: ctx.config.verbosity,
+    maxChars: ctx.config.maxChars,
+    showLinks: ctx.config.showLinks,
+  }
 
   for (const tool of selected) {
     server.registerTool(
@@ -117,28 +174,46 @@ export function registerTools(options: RegisterToolsOptions): ToolDefinition<z.Z
       },
       async (args: unknown, serverCtx: ServerContext): Promise<CallToolResult> => {
         try {
-          if (tool.scope === 'destructive' && !(tool.skipConfirm?.(args, ctx) ?? false)) {
-            const decision = await confirm({ tool, args, ctx, serverCtx })
-            if (!decision.proceed) {
-              // isError: true, not false — every destructive tool declares
-              // an outputSchema, and the SDK requires structuredContent on
-              // every non-error result that has one (it has no bearing on
-              // this tool's actual output shape, so there's nothing honest
-              // to put there). The model still reads `content` either way.
-              return {
-                content: [{ type: 'text', text: decision.message ?? 'Confirmation required.' }],
-                isError: true,
-              }
+          // One evaluation of `skipConfirm` for both guarded stages: it is
+          // author-supplied and need not be pure, and a dry run must reach
+          // neither of them.
+          const guarded = tool.scope === 'destructive' && !(tool.skipConfirm?.(args, ctx) ?? false)
+          if (!guarded) return render(await tool.handler(args, ctx), tool.view, renderOptions)
+
+          const decision = await confirm({ tool, args, ctx, serverCtx })
+          if (!decision.proceed) {
+            // isError: true, not false — every destructive tool declares
+            // an outputSchema, and the SDK requires structuredContent on
+            // every non-error result that has one (it has no bearing on
+            // this tool's actual output shape, so there's nothing honest
+            // to put there). The model still reads `content` either way.
+            return {
+              content: [{ type: 'text', text: decision.message ?? 'Confirmation required.' }],
+              isError: true,
             }
           }
 
-          const data = await tool.handler(args, ctx)
-          return render(data, tool.view, {
-            format: ctx.config.format,
-            verbosity: ctx.config.verbosity,
-            maxChars: ctx.config.maxChars,
-            showLinks: ctx.config.showLinks,
+          // Confirmation first, dedup second: the key deliberately ignores
+          // `confirmToken`, so a caller presenting no token hashes to the
+          // same key as the confirmed original. Deduping first would hand
+          // that caller the recorded result — for `marzban_config_update`,
+          // the entire previous core config — past the gate.
+          const outcome = await dedup({
+            tool,
+            args,
+            ctx,
+            bypass: decision.reason === 'token',
+            run: () => tool.handler(args, ctx),
           })
+
+          // isError for the same reason the decline branch above is: there
+          // is no honest structuredContent for an outcome nobody observed.
+          if (outcome.kind === 'unknown') {
+            return { content: [{ type: 'text', text: outcome.message }], isError: true }
+          }
+
+          const result = render(outcome.data, tool.view, renderOptions)
+          return outcome.kind === 'replayed' ? withReplayNotice(result, outcome.notice) : result
         } catch (err) {
           return toToolError(err)
         }

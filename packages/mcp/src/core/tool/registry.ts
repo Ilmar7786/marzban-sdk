@@ -26,6 +26,15 @@ export interface ConfirmDecision {
    * distinguish its reasons (`alwaysProceed`) simply omits it.
    */
   reason?: 'off' | 'trusted' | 'token'
+  /**
+   * Ready-to-show text (already carrying a fresh confirm token) appended to
+   * a replay notice, so a call that proceeded on accumulated trust can still
+   * be re-approved and run for real. Only a `trusted` decision carries one:
+   * that path never reaches the branch that mints a token, which is what made
+   * a deliberate second run inexpressible in `auto` (issue #129, ADR-0020).
+   * The registry passes the string through — minting stays in `core/confirm`.
+   */
+  rerunHint?: string
 }
 
 export type ConfirmFn = (input: {
@@ -213,7 +222,12 @@ export function registerTools(options: RegisterToolsOptions): ToolDefinition<z.Z
           }
 
           const result = render(outcome.data, tool.view, renderOptions)
-          return outcome.kind === 'replayed' ? withReplayNotice(result, outcome.notice) : result
+          if (outcome.kind !== 'replayed') return result
+          // The notice tells the model to confirm afresh; `rerunHint` is what
+          // makes that possible in `auto`, where a trusted call is never
+          // handed a token of its own.
+          const notice = decision.rerunHint ? `${outcome.notice} ${decision.rerunHint}` : outcome.notice
+          return withReplayNotice(result, notice)
         } catch (err) {
           return toToolError(err)
         }

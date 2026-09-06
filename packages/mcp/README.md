@@ -112,7 +112,8 @@ recorded result of the first one, with a note saying so, and never reaches
 the panel. When a request went out and no answer came back, the outcome is
 reported as unknown, with instructions to check the state with a read-only
 tool rather than retry. A fresh confirmation still runs the operation for
-real, and restarting the server clears the memory.
+real — in `auto` the replayed result carries a fresh token, so a second run
+can be approved on the spot — and restarting the server clears the memory.
 
 ## Documentation
 

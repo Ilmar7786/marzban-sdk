@@ -51,7 +51,7 @@ Every registered tool runs through the same wrapper, defined once in
 
 ```mermaid
 flowchart LR
-    A["selectTools()<br/>filtering"] --> B["confirm<br/>(destructive only)"] --> C["dedup<br/>(destructive only)"] --> D["handler(args, ctx)"] --> E["render(data, view)"] --> F["error mapping"]
+    A["selectTools()<br/>filtering"] --> B["confirm<br/>(destructive only)"] --> C["dedup<br/>(destructive only)"] --> D["handler(args, ctx)"] --> E["provenance tag<br/>(destructive only)"] --> F["render(data, view)"] --> G["error mapping"]
 ```
 
 - **Filtering** happens once at startup: profile scope first
@@ -80,6 +80,17 @@ flowchart LR
   response) reports `unknown` and steers the model to verify state. A freshly
   verified token (`ConfirmDecision.reason === 'token'`) bypasses the record —
   see ADR-0019.
+- **Provenance** rides in `structuredContent`, not in `content`. A destructive
+  tool is registered with `registeredOutputSchema(tool)` — its author's shape
+  plus a required `_execution` field saying whether this result was
+  `executed` just now or `replayed` from the dedup record, with the replay
+  notice inside it. The two channels of a `CallToolResult` do not have the
+  same delivery guarantee: a client that understands structured output may
+  ignore `content` entirely, and Claude Desktop and Claude Code do, which is
+  how a replay could be reported as a fresh execution for a release
+  (#137, ADR-0021). `content` still carries the notice as a fallback. The
+  field is derived, like the annotations above, so no tool author can forget
+  it and no per-tool copy can drift.
 - **Handlers return plain data**, never a `CallToolResult` — rendering and
   error mapping are the pipeline's job, not the tool's.
 

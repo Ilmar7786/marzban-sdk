@@ -101,6 +101,52 @@ pnpm --filter marzban-sdk test:coverage
   - [x] Logs (WebSocket) — smoke only, see "WS module" below for the detailed
         timing coverage
 
+## Testing a guarantee, not an implementation
+
+github.com/Ilmar7786/marzban-sdk#137 is the cautionary example, and it is
+worth reading before adding a test about anything safety-relevant.
+
+The MCP server put its "this destructive call already ran" notice in a
+`CallToolResult`'s `content`, and the recorded data it qualifies in
+`structuredContent`. Those two channels have different delivery guarantees:
+the spec lets a client that understands `structuredContent` ignore `content`
+entirely, and Claude Desktop and Claude Code do exactly that for a successful
+result. The notice never reached the model, and a replay was reported as a
+fresh deletion.
+
+Three tests covered that code and none of them could have caught it:
+
+- The unit test asserted `result.content` contained the notice — that is, it
+  restated the design decision that turned out to be the defect. A test that
+  checks "we wrote it where we meant to write it" can never falsify the
+  choice of where.
+- The integration test read the same channel through a helper whose comment
+  called it "what the model actually reads".
+- The one suite that goes through a real transport
+  (`tools-list-budget.test.ts`) only ever asked `tools/list`, so no
+  `tools/call` result was ever observed the way a client observes one.
+
+And the lesson of #112 — that what a strict client accepts differs from what
+`safeParse` accepts — had been applied to schema _validity_ but not to
+content _delivery_, so the same class of bug recurred one layer up.
+
+Two habits come out of it:
+
+- **Assert through the consumer's view.** Safety-relevant text is checked via
+  an `asSeenByStructuredClient(result)` projection (one copy in
+  `packages/mcp/src/core/tool/registry.test.ts`, one in
+  `test/integration/helpers/pipeline.ts`) that keeps only what a
+  structuredContent-preferring client would keep. Reading `content` directly
+  is still fine for asserting the fallback channel — just never as the only
+  proof that something is visible.
+- **Keep a vantage point outside the server.**
+  `packages/mcp/src/testing/in-memory-client.ts` drives a real, fully
+  registered server over a linked in-memory transport, handshake included.
+  `tools-call-wire.test.ts` uses it to watch a confirm → execute → replay
+  sequence as a client sees it, including the server SDK's own output
+  validation and result projection — neither of which runs when a test calls
+  a registered handler directly.
+
 ## WS module
 
 `core/ws` is the one module whose tests don't mock the transport with

@@ -7,6 +7,7 @@ import { render } from '@/format/render'
 import { toToolError } from '../errors'
 import type { ToolContext } from './context'
 import type { ToolDefinition, ToolScope } from './define-tool'
+import { registeredOutputSchema, withExecutionMeta } from './execution-meta'
 
 const PROFILE_SCOPES: Record<McpConfig['profile'], ReadonlySet<ToolScope>> = {
   readonly: new Set(['read']),
@@ -129,12 +130,11 @@ export interface RegisterToolsOptions {
 }
 
 /**
- * Puts the "this already ran" notice in front of the rendered result, as its
- * own content block. `content` is free-form even for a tool that declares an
- * `outputSchema` — only `structuredContent` is schema-bound, and it stays
- * exactly as recorded, so the replay is honest to a program and legible to a
- * model. Without the notice the model would report a replay as a fresh
- * execution, which is the one failure mode a safety feature must not have.
+ * Repeats the "this already ran" notice as a leading content block. The
+ * notice's guaranteed home is `structuredContent`, via `withExecutionMeta` —
+ * a client that understands structured output may drop `content` entirely
+ * (github.com/Ilmar7786/marzban-sdk#137), so this channel is the fallback for
+ * clients that don't, not the mechanism. Both carry the same string.
  *
  * The notice sits outside the `maxChars` budget `render` already applied:
  * going a couple of hundred characters over is better than truncating the
@@ -147,7 +147,8 @@ function withReplayNotice(result: CallToolResult, notice: string): CallToolResul
 /**
  * Registers the profile/allow/deny-filtered subset of `tools` on `server`.
  * Every registered handler goes through the same pipeline: confirm (only for
- * `destructive` scope) → call the module's handler → render per
+ * `destructive` scope) → dedup (same) → call the module's handler → tag a
+ * destructive result with its execution provenance → render per
  * format/verbosity → map any thrown error to `CallToolResult{isError:true}`.
  * Module handlers return plain data — they never see `CallToolResult`, only
  * `registry`/`render` do.
@@ -178,16 +179,28 @@ export function registerTools(options: RegisterToolsOptions): ToolDefinition<z.Z
         title: tool.title,
         description: tool.description,
         inputSchema: tool.inputSchema,
-        outputSchema: tool.outputSchema,
+        // Not the schema the author declared: a destructive tool is
+        // registered with that shape plus its execution-provenance field.
+        outputSchema: registeredOutputSchema(tool),
         annotations: deriveAnnotations(tool),
       },
       async (args: unknown, serverCtx: ServerContext): Promise<CallToolResult> => {
+        const destructive = tool.scope === 'destructive'
+        // Only a destructive result carries provenance, because only a
+        // destructive result can be a recording — `registeredOutputSchema`
+        // declares the field for exactly the same set of tools.
+        const renderData = (data: unknown, meta: Parameters<typeof withExecutionMeta>[1]): CallToolResult =>
+          render(destructive ? withExecutionMeta(data, meta) : data, tool.view, renderOptions)
+
         try {
           // One evaluation of `skipConfirm` for both guarded stages: it is
           // author-supplied and need not be pure, and a dry run must reach
           // neither of them.
-          const guarded = tool.scope === 'destructive' && !(tool.skipConfirm?.(args, ctx) ?? false)
-          if (!guarded) return render(await tool.handler(args, ctx), tool.view, renderOptions)
+          const guarded = destructive && !(tool.skipConfirm?.(args, ctx) ?? false)
+          // A dry run skips both gates but still ran just now, so it is
+          // `executed` — the field describes how this result was produced,
+          // not whether anything was mutated.
+          if (!guarded) return renderData(await tool.handler(args, ctx), { status: 'executed' })
 
           const decision = await confirm({ tool, args, ctx, serverCtx })
           if (!decision.proceed) {
@@ -195,7 +208,9 @@ export function registerTools(options: RegisterToolsOptions): ToolDefinition<z.Z
             // an outputSchema, and the SDK requires structuredContent on
             // every non-error result that has one (it has no bearing on
             // this tool's actual output shape, so there's nothing honest
-            // to put there). The model still reads `content` either way.
+            // to put there). Being error-shaped is also what keeps this
+            // message readable: with no structuredContent to prefer, even a
+            // structured-output client has nothing to read but `content`.
             return {
               content: [{ type: 'text', text: decision.message ?? 'Confirmation required.' }],
               isError: true,
@@ -216,18 +231,20 @@ export function registerTools(options: RegisterToolsOptions): ToolDefinition<z.Z
           })
 
           // isError for the same reason the decline branch above is: there
-          // is no honest structuredContent for an outcome nobody observed.
+          // is no honest structuredContent for an outcome nobody observed —
+          // which also means `content` is all there is to read, so this
+          // message reaches the model on every client.
           if (outcome.kind === 'unknown') {
             return { content: [{ type: 'text', text: outcome.message }], isError: true }
           }
 
-          const result = render(outcome.data, tool.view, renderOptions)
-          if (outcome.kind !== 'replayed') return result
+          if (outcome.kind === 'executed') return renderData(outcome.data, { status: 'executed' })
+
           // The notice tells the model to confirm afresh; `rerunHint` is what
           // makes that possible in `auto`, where a trusted call is never
           // handed a token of its own.
           const notice = decision.rerunHint ? `${outcome.notice} ${decision.rerunHint}` : outcome.notice
-          return withReplayNotice(result, notice)
+          return withReplayNotice(renderData(outcome.data, { status: 'replayed', notice }), notice)
         } catch (err) {
           return toToolError(err)
         }

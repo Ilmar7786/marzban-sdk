@@ -90,6 +90,8 @@ The last row is the important one. When a request goes out and no response comes
 
 This applies in every `MARZBAN_MCP_CONFIRM` mode, because it protects the panel rather than the prompt — in `off`, it's the only protection left. A **fresh** confirmation still runs the operation for real: if a human is asked again and says yes again, that's a deliberate second run, not a retry. An accidental retry can never look like one, because it re-sends the already-consumed token, which fails verification. In `auto`, the replayed result comes with a fresh token attached to that same notice — a trusted call is never asked to confirm, so it would otherwise have no way to obtain one, and "confirm it afresh" would be advice nobody could act on.
 
+Where that note lives matters as much as its wording. Every destructive result carries an `_execution` field in its structured output — `"executed"` when the call ran just now, `"replayed"` plus the note when it did not. A tool result has two channels to the model, and only the structured one is guaranteed to be delivered: a client is free to ignore the free-form text entirely, and some widely used ones do. A note that existed only in the text channel was, on those clients, a note the model never saw.
+
 <Callout type="info">
   The memory lives in the server process only. Restarting the server clears it, exactly like the confirm-token signing key — a fresh process makes no claims about what a previous one did.
 </Callout>

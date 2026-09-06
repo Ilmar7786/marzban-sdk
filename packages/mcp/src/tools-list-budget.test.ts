@@ -1,5 +1,4 @@
-import type { JSONRPCMessage, ListToolsResult, Tool } from '@modelcontextprotocol/server'
-import { InMemoryTransport, LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/server'
+import type { ListToolsResult, Tool } from '@modelcontextprotocol/server'
 import type { MarzbanSDK } from 'marzban-sdk'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -7,6 +6,7 @@ import type { McpConfig } from '@/config'
 import type { ToolContext } from '@/core/tool'
 
 import { createMarzbanMcpServer } from './server'
+import { connectInMemoryClient } from './testing/in-memory-client'
 
 /**
  * `tools/list` is sent in full at the start of every conversation, so its
@@ -31,13 +31,20 @@ import { createMarzbanMcpServer } from './server'
 
 /** Each profile's tool count, and the ceiling on its serialised `tools/list`.
  *
- * Measured 2026-09-06 at marzban-mcp 0.2.2 by this test (add a `console.log`
+ * Measured 2026-09-06 at marzban-mcp 0.3.0 by this test (add a `console.log`
  * of `measure().bytes`, or read the number off a failure message — it prints
  * both the actual and the budget):
  *
- *   readonly  9 tools  22 636 B
- *   standard 15 tools  48 223 B
- *   full     21 tools  62 816 B
+ *   readonly  9 tools  22 647 B
+ *   standard 15 tools  48 234 B
+ *   full     21 tools  65 401 B
+ *
+ * `full` sits close to its ceiling: ADR-0021 added a required provenance
+ * field to all six destructive tools' output schemas, ~2.5 KB in total, and
+ * the budget was deliberately left where it was rather than re-inflated in
+ * the same change. So the ~5% headroom described below no longer holds for
+ * that profile — the next tool, or any meaningful rewording, needs a budget
+ * decision made on purpose rather than absorbed silently.
  *
  * Budgets are those numbers plus ~5%, rounded to something legible. That
  * headroom is deliberate: 5% of `full` is ~3 KB, which is more than every
@@ -78,38 +85,18 @@ function makeContext(profile: McpConfig['profile']): ToolContext {
 
 /**
  * Asks a real, fully registered server for `tools/list` over a linked
- * in-memory transport pair, driving the handshake by hand (`initialize` →
- * `notifications/initialized` → `tools/list`) since this package depends on
- * the server SDK only — there's no client to borrow.
+ * in-memory transport pair (`testing/in-memory-client.ts`), so the measurement
+ * covers whatever `registerTools` and the server SDK add on top of the tool
+ * definitions.
  */
 async function fetchToolsList(profile: McpConfig['profile']): Promise<ListToolsResult> {
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
-  const server = createMarzbanMcpServer({ name: 'marzban-mcp', version: '0.0.0' }, makeContext(profile))
-
-  const pending = new Map<number, (result: unknown) => void>()
-  clientTransport.onmessage = message => {
-    if ('id' in message && 'result' in message) pending.get(Number(message.id))?.(message.result)
-  }
-
-  await clientTransport.start()
-  await server.connect(serverTransport)
-
-  async function request(id: number, method: string, params: Record<string, unknown>): Promise<unknown> {
-    const answered = new Promise<unknown>(resolve => pending.set(id, resolve))
-    await clientTransport.send({ jsonrpc: '2.0', id, method, params } as JSONRPCMessage)
-    return answered
-  }
-
+  const client = await connectInMemoryClient(
+    createMarzbanMcpServer({ name: 'marzban-mcp', version: '0.0.0' }, makeContext(profile))
+  )
   try {
-    await request(1, 'initialize', {
-      protocolVersion: LATEST_PROTOCOL_VERSION,
-      capabilities: {},
-      clientInfo: { name: 'tools-list-budget', version: '0.0.0' },
-    })
-    await clientTransport.send({ jsonrpc: '2.0', method: 'notifications/initialized' } as JSONRPCMessage)
-    return (await request(2, 'tools/list', {})) as ListToolsResult
+    return (await client.request('tools/list', {})).result as ListToolsResult
   } finally {
-    await clientTransport.close()
+    await client.close()
   }
 }
 

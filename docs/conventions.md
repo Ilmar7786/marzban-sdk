@@ -1,6 +1,6 @@
 # Conventions
 
-**Covers:** code style enforcement, commit format, branching model.
+**Covers:** code style enforcement, commit format, the context budget, branching model.
 **Excludes:** how to run lint/test locally (see [workspace.md](./workspace.md)),
 what CI enforces (see [ci.md](./ci.md)).
 **Next:** [testing.md](./testing.md).
@@ -55,6 +55,28 @@ type) for an sdk commit that also changes marzban-mcp's observable behavior
 commits scoped this way and surfaces them in mcp's changelog too, since
 mcp's changelog is otherwise generated only from `packages/mcp/**` commits.
 See [release.md](./release.md) for the full mechanism.
+
+## Context budget
+
+`marzban-mcp` sends its whole `tools/list` at the start of every
+conversation, so the size of that payload is a cost every user pays in every
+session. `packages/mcp/src/tools-list-budget.test.ts` pins it: per profile
+(`readonly`, `standard`, `full`), the tool count exactly and the serialised
+byte size against a ceiling in `TOOLS_LIST_BUDGET`. It fails in CI like any
+other broken assertion — see [ci.md](./ci.md).
+
+The budgets carry ~5% headroom, which is more than every tool description in
+the server put together, so ordinary rewording never trips them. Going over
+therefore means something structural changed — a new tool, or a schema that
+grew.
+
+**Raising a number in `TOOLS_LIST_BUDGET` is its own commit, and the commit
+message says why the extra context is worth paying for.** Never fold a
+budget bump into the change that caused it: the whole point of the test is
+that growth gets noticed and argued for once, rather than accumulating a
+sentence at a time inside unrelated diffs. The same rule applies to the tool
+count — adding a tool is a deliberate decision about what every conversation
+pays for, not a detail of the commit that implements it.
 
 ## Pre-commit
 

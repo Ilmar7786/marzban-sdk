@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { canonicalize, hashCallArgs } from './canonical'
+import { callKey, canonicalize, hashCallArgs } from './canonical'
 
 describe('canonicalize', () => {
   it('produces the same string regardless of key order', () => {
@@ -45,5 +45,31 @@ describe('hashCallArgs', () => {
 
   it('handles undefined args', () => {
     expect(hashCallArgs(undefined)).toBe(hashCallArgs({}))
+  })
+})
+
+describe('callKey', () => {
+  it('is the same for the same tool and arguments', () => {
+    expect(callKey('marzban_users_delete', { username: 'alice' })).toBe(
+      callKey('marzban_users_delete', { username: 'alice' })
+    )
+  })
+
+  it('ignores confirmToken, so a retry carrying one matches the original call', () => {
+    expect(callKey('marzban_users_delete', { username: 'alice', confirmToken: 'v1.abc' })).toBe(
+      callKey('marzban_users_delete', { username: 'alice' })
+    )
+  })
+
+  it('differs for the same arguments on a different tool', () => {
+    expect(callKey('marzban_users_delete', { username: 'alice' })).not.toBe(
+      callKey('marzban_users_reset_traffic', { username: 'alice' })
+    )
+  })
+
+  it('differs for different arguments on the same tool', () => {
+    expect(callKey('marzban_users_delete', { username: 'alice' })).not.toBe(
+      callKey('marzban_users_delete', { username: 'bob' })
+    )
   })
 })

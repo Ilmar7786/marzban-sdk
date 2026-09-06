@@ -66,11 +66,31 @@ The signing key lives only in the server process's memory — a restart invalida
 
 | Mode | Behavior | Best for |
 |---|---|---|
-| `auto` (default) | Confirm once per tool name *and* exact arguments; a repeat of that same call proceeds without re-asking, but only within a 5-minute window | Interactive use — a genuine retry (a timeout, a reconnect) doesn't need re-confirming, but nothing broader is ever inferred from it |
+| `auto` (default) | Confirm once per tool name *and* exact arguments; a repeat of that same call proceeds without re-asking, but only within a 5-minute window | Interactive use — a genuine retry (a timeout, a reconnect) isn't re-confirmed, and isn't re-executed either (see below), but nothing broader is ever inferred from it |
 | `always` | Confirm every single call, with no memory of what was already confirmed | Shared or interactive environments where even one accumulated trust is undesirable |
 | `off` | Skip confirmation entirely, from the very first call | Fully automated, unattended environments only — there is no safety net once this is set |
 
 Trust in `auto` mode is granted per tool *and* per exact call arguments, not per tool name alone — confirming a delete for `alice` does **not** trust a delete for `bob`, and confirming `marzban_users_reset_traffic { username: "alice" }` does not trust the same tool called with `{ all: true }`. Each grant also expires after the same 5-minute window a confirm token uses, so a tool whose arguments never vary (`marzban_core_restart` always takes `{}`) can't turn one confirmation into unlimited free re-runs for the rest of the connection. Every call that proceeds on accumulated trust — rather than a freshly verified token — is logged at `info` level (the default `MARZBAN_MCP_LOG_LEVEL=warn` suppresses it — set it to `info` or lower to see these).
+
+### Repeated calls and unknown outcomes
+
+Confirmation decides whether a call may run. It doesn't decide whether a call has *already* run — and those come apart exactly when it matters. A client that times out waiting for a tool call re-issues it; without a second mechanism, that second call restarts the core again, or overwrites the config again, and nothing in the conversation reveals that it happened twice.
+
+So every destructive call is remembered for **5 minutes**, keyed by the tool name and the exact arguments (the `confirmToken` is deliberately left out of that key, so a retry carrying one still matches the original call). Three things can happen:
+
+| Situation | What you get |
+|---|---|
+| First call of its kind | It runs normally |
+| Identical repeat within 5 minutes | The **recorded result of the first call**, with a note saying so. Nothing is sent to the panel |
+| The first call's outcome was never observed — an unsafe request that got no answer at all | An explicit **unknown** result telling the model to check the current state with a read-only tool instead of guessing or retrying |
+
+The last row is the important one. When a request goes out and no response comes back, nobody can honestly say whether the panel applied it — a core restart is, after all, the request most likely to kill the connection carrying it. Saying "I don't know, go look" is the only safe answer: a model told "failed" retries, a model told "unknown" reads.
+
+This applies in every `MARZBAN_MCP_CONFIRM` mode, because it protects the panel rather than the prompt — in `off`, it's the only protection left. A **fresh** confirmation still runs the operation for real: if a human is asked again and says yes again, that's a deliberate second run, not a retry. An accidental retry can never look like one, because it re-sends the already-consumed token, which fails verification.
+
+<Callout type="info">
+  The memory lives in the server process only. Restarting the server clears it, exactly like the confirm-token signing key — a fresh process makes no claims about what a previous one did. Note also that in `auto` mode a deliberate immediate re-run of a tool that takes no arguments (`marzban_core_restart`) isn't possible: wait out the 5-minute window, or run with `MARZBAN_MCP_CONFIRM=always`.
+</Callout>
 
 ## Credential masking
 

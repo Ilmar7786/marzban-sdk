@@ -34,7 +34,7 @@ describe('trafficReportPrompt', () => {
 
   it('mentions the relevant tools', () => {
     const body = text(trafficReportPrompt.handler({}))
-    expect(body).toContain('marzban_system_stats')
-    expect(body).toContain('marzban_users_usage')
+    expect(body).toContain('marzban_system_get_stats')
+    expect(body).toContain('marzban_users_get_usage')
   })
 })

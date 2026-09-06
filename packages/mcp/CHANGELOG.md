@@ -1,5 +1,37 @@
 # Changelog
 
+## [mcp-v0.3.0] - 2026-09-06
+
+### <!-- 0 -->🚀 Features
+
+- Stop a repeated destructive call from running twice by @Ilmar7786 ([07ec9685](https://github.com/Ilmar7786/marzban-sdk/commit/07ec968551fca9cef89c699aa02b623d7b2989b8))
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Correct proxies description for marzban_users_create by @Ilmar7786 ([94ced54c](https://github.com/Ilmar7786/marzban-sdk/commit/94ced54c3f5a49deae1959c74862c2f816ad4b64))
+- Stop MCP output schemas rejecting Marzban's real datetimes by @Ilmar7786 ([36622b38](https://github.com/Ilmar7786/marzban-sdk/commit/36622b38c245790fe2bcef72f53f39a4745d25fb))
+- Correct mcp entries, drop duplicate sdk-v3.0.2 section by @Ilmar7786 ([32b386b3](https://github.com/Ilmar7786/marzban-sdk/commit/32b386b39b2d7241f2458676d14d29b7fa2c86d7))
+
+### <!-- 2 -->🚜 Refactor
+
+- Share the call key between confirmation and future reuse by @Ilmar7786 ([b0c2fa85](https://github.com/Ilmar7786/marzban-sdk/commit/b0c2fa85f582ede378d1e4e7d42c0a47b2d89471))
+
+### <!-- 6 -->🧪 Testing
+
+- Fail CI when the tool list gets bigger by @Ilmar7786 ([a85a64bc](https://github.com/Ilmar7786/marzban-sdk/commit/a85a64bc1711dbdfd40fb1b58acec19d38b96047))
+- Check that a repeated destructive call is not run twice by @Ilmar7786 ([a0095729](https://github.com/Ilmar7786/marzban-sdk/commit/a009572994fc5e52efb277c921e55c25821d0442))
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Bump marzban-mcp to 0.3.0 by @Ilmar7786 ([d189a5d3](https://github.com/Ilmar7786/marzban-sdk/commit/d189a5d3d8be6c41f69c25a69adc472667ce2970))
+- Add a shared map whose entries expire by @Ilmar7786 ([b98469e2](https://github.com/Ilmar7786/marzban-sdk/commit/b98469e234bec7ef905e8e1c83b319c571fd7615))
+- Add glama.json metadata by @Ilmar7786 ([7f28da3b](https://github.com/Ilmar7786/marzban-sdk/commit/7f28da3b9dca9698650719003b9fc6543a956bc3))
+- Drop merge commits, link each changelog entry to its commit by @Ilmar7786 ([c9c30177](https://github.com/Ilmar7786/marzban-sdk/commit/c9c30177feb3a1da4be5016b1265588baacf3af7))
+
+### 🔗 From marzban-sdk
+
+- Bundles **marzban-sdk 4.0.0** (was 3.3.0) — see the [SDK release notes](https://github.com/Ilmar7786/marzban-sdk/releases/tag/sdk-v4.0.0).
+
 ## [mcp-v0.2.2] - 2026-08-31
 
 ### <!-- 1 -->🐛 Bug Fixes

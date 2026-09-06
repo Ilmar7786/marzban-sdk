@@ -21,6 +21,7 @@ const FIXTURE = `# Changelog
 ### <!-- 1 -->🐛 Bug Fixes
 
 - Tolerate the removeUser 500 that follows a successful delete by @Ilmar7786 ([c7c0c261](https://github.com/Ilmar7786/marzban-sdk/commit/c7c0c261a971a83ed9de7c4f8b01e481f042633a))
+- **BREAKING:** Rename four tools to verb-based names — MARZBAN_MCP_TOOLS_ALLOW and MARZBAN_MCP_TOOLS_DENY entries naming an old tool need updating by @Ilmar7786 ([abcdef01](https://github.com/Ilmar7786/marzban-sdk/commit/abcdef0123456789012345678901234567890123))
 
 ### <!-- 10 -->💼 Other
 
@@ -73,6 +74,20 @@ describe('parseChangelog', () => {
     expect(fix.commitUrl).toBe(
       'https://github.com/Ilmar7786/marzban-sdk/commit/c7c0c261a971a83ed9de7c4f8b01e481f042633a'
     )
+  })
+
+  it('strips the **BREAKING:** prefix into a flag, keeping the description and suffixes', () => {
+    const [, breaking] = releases[0].groups[0].entries
+    expect(breaking.breaking).toBe(true)
+    expect(breaking.text).toBe(
+      'Rename four tools to verb-based names — MARZBAN_MCP_TOOLS_ALLOW and MARZBAN_MCP_TOOLS_DENY entries naming an old tool need updating'
+    )
+    expect(breaking.sha).toBe('abcdef01')
+  })
+
+  it('leaves non-breaking entries with an undefined breaking flag', () => {
+    const [fix] = releases[0].groups[0].entries
+    expect(fix.breaking).toBeUndefined()
   })
 
   it('handles an entry carrying both a PR link and a hash', () => {

@@ -52,7 +52,7 @@ describe('createConfirmFn', () => {
     const tool = makeTool()
     const ctx = makeContext('off')
     const decision = await confirm({ tool, args: { username: 'alice' }, ctx, serverCtx: fakeServerCtx })
-    expect(decision).toEqual({ proceed: true })
+    expect(decision).toEqual({ proceed: true, reason: 'off' })
   })
 
   it('first call with no confirmToken asks for confirmation and includes a token in the message', async () => {
@@ -92,7 +92,9 @@ describe('createConfirmFn', () => {
     const token = first.message!.match(/confirmToken: "([^"]+)"/)![1]
 
     const second = await confirm({ tool, args: { ...args, confirmToken: token }, ctx, serverCtx: fakeServerCtx })
-    expect(second).toEqual({ proceed: true })
+    // `reason: 'token'` — a human approved this exact call moments ago, which
+    // is what lets core/idempotency run it rather than replay a record.
+    expect(second).toEqual({ proceed: true, reason: 'token' })
   })
 
   it('an invalid confirmToken is rejected, logged, and a fresh confirmation is requested', async () => {
@@ -147,7 +149,7 @@ describe('createConfirmFn', () => {
     await confirm({ tool, args: { ...args, confirmToken: token }, ctx, serverCtx: fakeServerCtx })
 
     const again = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
-    expect(again).toEqual({ proceed: true })
+    expect(again).toEqual({ proceed: true, reason: 'trusted' })
     expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('accumulated confirm trust'))
   })
 

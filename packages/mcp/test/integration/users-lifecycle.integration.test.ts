@@ -72,7 +72,7 @@ describe('MCP full user lifecycle + config read/dry-run (real SDK, real panel)',
         ctx,
         serverCtx: fakeServerCtx,
       })
-      expect(second).toEqual({ proceed: true })
+      expect(second).toEqual({ proceed: true, reason: 'token' })
 
       try {
         const deleted = await usersDeleteTool.handler(args, ctx)

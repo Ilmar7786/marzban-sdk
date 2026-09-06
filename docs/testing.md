@@ -41,6 +41,15 @@ pnpm --filter marzban-sdk test:coverage
   (open-ended OpenAPI objects silently losing keys on parse) so a future
   `codegen` run against an imprecise spec fails the suite instead of shipping
   a bug. See [`packages/sdk/ARCHITECTURE.md`](../packages/sdk/ARCHITECTURE.md).
+- **Budget** — `packages/mcp/src/tools-list-budget.test.ts` drives a real
+  server over an in-memory transport, asks it the actual `tools/list`
+  question, and asserts the serialised answer stays under a per-profile
+  ceiling. Coverage says nothing about payload size — a description can
+  triple in length with every line still covered — and this payload is sent
+  in full at the start of every conversation. On failure it prints a
+  per-tool breakdown (description / input schema / output schema), so the
+  message says what grew. The budgets themselves and the rule for raising
+  one live in [conventions.md](./conventions.md#context-budget).
 - **Integration** — `packages/sdk/test/integration/**/*.integration.test.ts`
   and `packages/mcp/test/integration/**/*.integration.test.ts` run against a
   real Marzban panel (no mocked transport). Separate configs
@@ -54,10 +63,19 @@ pnpm --filter marzban-sdk test:coverage
   suite stays deliberately smaller than `sdk`'s — not a re-run of `sdk`'s
   edge cases, since the mocked-SDK unit tests in `packages/mcp/src/modules/**`
   already prove each tool calls the SDK correctly; what they can't catch is
-  drift between an MCP tool's zod schema and the SDK's real types.
-  `smoke.integration.test.ts` covers that at the smallest scope: one
-  passthrough tool, one with MCP-only logic, one destructive tool through
-  the confirm-flow. `users-lifecycle.integration.test.ts` covers the full
+  drift between an MCP tool's zod schema and the SDK's real types — including
+  drift a mocked `.safeParse()` can't see at all, like an `outputSchema`
+  claiming a JSON Schema `format` a real response value doesn't hold to (see
+  ADR-0018 and the `output-schema-regression.test.ts` unit test for the rest
+  of that guard). `smoke.integration.test.ts` covers that at the smallest
+  scope: one passthrough tool, one with MCP-only logic, one destructive tool
+  through the confirm-flow, one destructive tool repeated to prove the dedup
+  store replays instead of running it twice (#76 — driven through
+  `registerTools` via `helpers/pipeline.ts`, since confirmation and dedup are
+  registry stages a direct `tool.handler` call would skip), one output
+  validated against a real ajv instance the way a strict MCP client validates
+  `structuredContent`.
+  `users-lifecycle.integration.test.ts` covers the full
   path GitHub issue #65's Definition of Done asked for — create → extend →
   deactivate → activate → usage → delete through the actual MCP tools, plus
   reading and dry-running a core config change. Real Marzban behavior these

@@ -24,9 +24,9 @@ export const trafficReportPrompt = definePrompt({
             text: `Produce a traffic report ${period}.
 
 Steps:
-1. Call marzban_system_stats for panel-wide totals (incoming/outgoing bandwidth and current speed) and user counts.
+1. Call marzban_system_get_stats for panel-wide totals (incoming/outgoing bandwidth and current speed) and user counts.
 2. Call marzban_nodes_list${usageArgs} for per-node uplink/downlink over the period.
-3. Call marzban_users_list, then marzban_users_usage for the heaviest-looking users (by used_traffic or usage_percent), to break their traffic down by node.
+3. Call marzban_users_list, then marzban_users_get_usage for the heaviest-looking users (by used_traffic or usage_percent), to break their traffic down by node.
 4. Summarize: total bandwidth for the period, the top 5 users by usage, and any node carrying disproportionate load relative to the others.`,
           },
         },

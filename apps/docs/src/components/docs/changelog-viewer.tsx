@@ -30,6 +30,11 @@ function PackageReleases({ releases }: { releases: ReturnType<typeof getChangelo
                     <li key={i} className="flex items-start gap-1.5 text-sm text-fd-foreground">
                       <span className="mt-2 size-1 shrink-0 rounded-full bg-fd-muted-foreground/50" />
                       <span>
+                        {entry.breaking && (
+                          <span className="mr-1.5 inline-block rounded bg-fd-primary/10 px-1.5 py-0.5 align-middle text-[0.7em] leading-none font-semibold tracking-wide text-fd-primary uppercase">
+                            Breaking
+                          </span>
+                        )}
                         {entry.text}
                         {entry.prNumber && entry.prUrl && (
                           <>

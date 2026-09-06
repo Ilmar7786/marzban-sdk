@@ -1,3 +1,5 @@
+import { createTtlMap } from '@/shared/ttl-map'
+
 import type { ConfirmDecision, ConfirmFn } from '../tool'
 import { callKey } from './canonical'
 import { CONFIRM_TOKEN_TTL_SECONDS, createConfirmTokenCodec } from './token'
@@ -46,13 +48,7 @@ function buildConfirmationMessage(consequences: string, token: string): string {
  */
 export function createConfirmFn(): ConfirmFn {
   const codec = createConfirmTokenCodec(crypto.getRandomValues(new Uint8Array(32)))
-  const trustedCalls = new Map<string, number>()
-
-  function pruneExpired(now: number): void {
-    for (const [key, expiresAt] of trustedCalls) {
-      if (expiresAt <= now) trustedCalls.delete(key)
-    }
-  }
+  const trustedCalls = createTtlMap<true>()
 
   return async function confirm({ tool, args, ctx, serverCtx }): Promise<ConfirmDecision> {
     if (ctx.config.confirm === 'off') return { proceed: true, reason: 'off' }
@@ -60,9 +56,7 @@ export function createConfirmFn(): ConfirmFn {
     const key = callKey(tool.name, args)
 
     if (ctx.config.confirm === 'auto') {
-      const now = Date.now()
-      pruneExpired(now)
-      if (trustedCalls.has(key)) {
+      if (trustedCalls.get(key) !== undefined) {
         ctx.logger.info(`Proceeding on accumulated confirm trust for ${tool.name} (same call, still within TTL).`)
         return { proceed: true, reason: 'trusted' }
       }
@@ -73,7 +67,7 @@ export function createConfirmFn(): ConfirmFn {
       const result = await codec.verify(token, tool.name, args, serverCtx)
       if (result.ok) {
         if (ctx.config.confirm === 'auto') {
-          trustedCalls.set(key, Date.now() + CONFIRM_TOKEN_TTL_SECONDS * 1000)
+          trustedCalls.set(key, true, CONFIRM_TOKEN_TTL_SECONDS * 1000)
         }
         // `token` and not `trusted`: a single-use token verified just now is
         // a human saying yes to this operation a moment ago, which is what

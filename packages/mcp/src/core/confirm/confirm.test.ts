@@ -149,8 +149,73 @@ describe('createConfirmFn', () => {
     await confirm({ tool, args: { ...args, confirmToken: token }, ctx, serverCtx: fakeServerCtx })
 
     const again = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
-    expect(again).toEqual({ proceed: true, reason: 'trusted' })
+    expect(again.proceed).toBe(true)
+    expect(again.reason).toBe('trusted')
     expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('accumulated confirm trust'))
+  })
+
+  it('auto: a trusted decision carries a fresh token, so a replayed call can still be re-approved (#129)', async () => {
+    const confirm = createConfirmFn()
+    const tool = makeTool()
+    const ctx = makeContext('auto')
+    const args = { username: 'alice' }
+
+    const first = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
+    const token = first.message!.match(/confirmToken: "([^"]+)"/)![1]
+    await confirm({ tool, args: { ...args, confirmToken: token }, ctx, serverCtx: fakeServerCtx })
+
+    // The trust path never reaches the branch that mints a token, so without
+    // this hint the replay notice's own "confirm it afresh" advice would be
+    // impossible to follow in `auto`.
+    const trusted = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
+    expect(trusted.reason).toBe('trusted')
+    const rerunToken = trusted.rerunHint!.match(/confirmToken: "([^"]+)"/)![1]
+
+    const rerun = await confirm({ tool, args: { ...args, confirmToken: rerunToken }, ctx, serverCtx: fakeServerCtx })
+    expect(rerun).toEqual({ proceed: true, reason: 'token' })
+  })
+
+  it('auto: a fresh token wins over the trust cache, so a deliberate re-run is expressible (#129)', async () => {
+    const confirm = createConfirmFn()
+    const tool = makeTool()
+    const ctx = makeContext('auto')
+    const args = { username: 'alice' }
+
+    // Two declined calls before any trust exists — trust is granted only by a
+    // successful verification — so the caller ends up holding two valid
+    // tokens for the same call.
+    const first = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
+    const second = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
+    const tokenA = first.message!.match(/confirmToken: "([^"]+)"/)![1]
+    const tokenB = second.message!.match(/confirmToken: "([^"]+)"/)![1]
+
+    const executed = await confirm({ tool, args: { ...args, confirmToken: tokenA }, ctx, serverCtx: fakeServerCtx })
+    expect(executed.reason).toBe('token')
+
+    // Before #129 the trust cache answered first and this reported `trusted`,
+    // which core/idempotency reads as "a retry" and replays.
+    const deliberate = await confirm({ tool, args: { ...args, confirmToken: tokenB }, ctx, serverCtx: fakeServerCtx })
+    expect(deliberate).toEqual({ proceed: true, reason: 'token' })
+  })
+
+  it('auto: an already-consumed token falls back to the trust cache without warning (#129)', async () => {
+    const confirm = createConfirmFn()
+    const tool = makeTool()
+    const ctx = makeContext('auto')
+    const args = { username: 'alice' }
+
+    const first = await confirm({ tool, args, ctx, serverCtx: fakeServerCtx })
+    const token = first.message!.match(/confirmToken: "([^"]+)"/)![1]
+    await confirm({ tool, args: { ...args, confirmToken: token }, ctx, serverCtx: fakeServerCtx })
+
+    // The retry a timing-out client sends: the same call, re-sending the token
+    // it already spent. It must stay an honest retry — proceeding on trust and
+    // replayed by core/idempotency — not become a fresh prompt or a warning.
+    const retry = await confirm({ tool, args: { ...args, confirmToken: token }, ctx, serverCtx: fakeServerCtx })
+    expect(retry.proceed).toBe(true)
+    expect(retry.reason).toBe('trusted')
+    expect(ctx.logger.warn).not.toHaveBeenCalled()
+    expect(ctx.logger.info).toHaveBeenCalledWith(expect.stringContaining('rejected as reused'))
   })
 
   it('auto: trust for the same arguments expires after the confirm-token TTL', async () => {

@@ -60,3 +60,4 @@ What this enables, what it costs.
 | [0017](./0017-ws-public-stream-surface.md)                           | WS stream public surface — replay, reconnect, and header auth       |
 | [0018](./0018-mcp-output-schemas-no-format-keyword.md)               | MCP `outputSchema`s never emit a JSON Schema `format` keyword       |
 | [0019](./0019-idempotency-for-destructive-tool-calls.md)             | Destructive tool calls are deduplicated, not just re-confirmed      |
+| [0020](./0020-confirm-auto-checks-a-token-before-the-trust-cache.md) | `confirm: 'auto'` checks a presented token before the trust cache   |

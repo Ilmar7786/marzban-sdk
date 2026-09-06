@@ -140,6 +140,42 @@ describe('MCP tool smoke tests (real SDK, real panel)', () => {
     await expect(ctx.sdk.user.getUser(username, freshConnectionConfig())).rejects.toMatchObject({ status: 404 })
   })
 
+  it('marzban_users_delete: a fresh confirmation runs the call for real instead of replaying it (#129)', async () => {
+    const base = await createTestToolContext()
+    // 'auto': the mode where the trust cache used to answer before the token
+    // was even read, so a deliberate re-run was replayed instead of executed.
+    ctx = { ...base, config: { ...base.config, confirm: 'auto' } }
+    const username = uniqueUsername('rerun')
+    await ctx.sdk.user.addUser({ username, status: 'active', proxies: SHADOWSOCKS_PROXY })
+
+    const call = registerForCall(usersDeleteTool, ctx)
+
+    const declined = await call({ username })
+    const token = resultText(declined).match(/confirmToken: "([^"]+)"/)![1]
+    expect((await call({ username, confirmToken: token })).isError).toBeUndefined()
+    await expect(ctx.sdk.user.getUser(username, freshConnectionConfig())).rejects.toMatchObject({ status: 404 })
+
+    // The same user, recreated: the call's arguments are identical, so both
+    // the trust cache and the dedup store still hold the first run.
+    await ctx.sdk.user.addUser({ username, status: 'active', proxies: SHADOWSOCKS_PROXY })
+
+    const replayed = await call({ username })
+    expect(resultText(replayed)).toContain('already ran')
+    // Proof it really was a replay and not a second delete — and the panel
+    // state is the proof, not just the response shape.
+    await expect(ctx.sdk.user.getUser(username, freshConnectionConfig())).resolves.toMatchObject({ username })
+
+    // The token the replay notice hands back. Before #129 there was none to
+    // hand back, and presenting one would have been swallowed by the trust
+    // cache anyway.
+    const rerunToken = resultText(replayed).match(/confirmToken: "([^"]+)" to run it for real/)![1]
+
+    const rerun = await call({ username, confirmToken: rerunToken })
+    expect(rerun.isError).toBeUndefined()
+    expect(resultText(rerun)).not.toContain('already ran')
+    await expect(ctx.sdk.user.getUser(username, freshConnectionConfig())).rejects.toMatchObject({ status: 404 })
+  })
+
   it('marzban_users_create: structuredContent validates under a strict client, even though Marzban returns created_at without a UTC offset (#112)', async () => {
     ctx = await createTestToolContext()
     const username = uniqueUsername('datetime')

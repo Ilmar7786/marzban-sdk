@@ -41,6 +41,15 @@ pnpm --filter marzban-sdk test:coverage
   (open-ended OpenAPI objects silently losing keys on parse) so a future
   `codegen` run against an imprecise spec fails the suite instead of shipping
   a bug. See [`packages/sdk/ARCHITECTURE.md`](../packages/sdk/ARCHITECTURE.md).
+- **Budget** — `packages/mcp/src/tools-list-budget.test.ts` drives a real
+  server over an in-memory transport, asks it the actual `tools/list`
+  question, and asserts the serialised answer stays under a per-profile
+  ceiling. Coverage says nothing about payload size — a description can
+  triple in length with every line still covered — and this payload is sent
+  in full at the start of every conversation. On failure it prints a
+  per-tool breakdown (description / input schema / output schema), so the
+  message says what grew. The budgets themselves and the rule for raising
+  one live in [conventions.md](./conventions.md#context-budget).
 - **Integration** — `packages/sdk/test/integration/**/*.integration.test.ts`
   and `packages/mcp/test/integration/**/*.integration.test.ts` run against a
   real Marzban panel (no mocked transport). Separate configs

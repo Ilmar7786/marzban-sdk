@@ -54,4 +54,20 @@ describe('classifyFailure', () => {
   it('treats an unanswered DELETE as unknown', () => {
     expect(classifyFailure(new HttpError({ config: { method: 'delete' } }))).toBe('unknown')
   })
+
+  it('treats a refused connection as not applied, regardless of method', () => {
+    expect(classifyFailure(new HttpError({ code: 'ECONNREFUSED', config: { method: 'delete' } }))).toBe('not-applied')
+  })
+
+  it('treats an unresolved host as not applied', () => {
+    expect(classifyFailure(new HttpError({ code: 'ENOTFOUND', config: { method: 'post' } }))).toBe('not-applied')
+  })
+
+  it('treats a DNS lookup timeout as not applied', () => {
+    expect(classifyFailure(new HttpError({ code: 'EAI_AGAIN', config: { method: 'post' } }))).toBe('not-applied')
+  })
+
+  it('treats an in-flight write timeout as unknown — the transport code does not rule out delivery', () => {
+    expect(classifyFailure(new HttpError({ code: 'ETIMEDOUT', config: { method: 'delete' } }))).toBe('unknown')
+  })
 })

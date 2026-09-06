@@ -28,7 +28,7 @@ Investigates why a node might be unhealthy.
 
 What it does:
 1. Calls `marzban_nodes_list` for status, Xray version, and any error message per node.
-2. Calls `marzban_system_stats` for panel-wide context — whether the core itself is running.
+2. Calls `marzban_system_get_stats` for panel-wide context — whether the core itself is running.
 3. Flags any node not in `connected` status, quoting its message verbatim.
 4. Compares Xray versions across nodes — a stale or missing version on one node often points to a failed update rather than a network issue.
 5. Summarizes per node, without attempting a fix (a real fix would mean `marzban_core_restart`, which is destructive and affects every node, not just the unhealthy one).
@@ -40,7 +40,7 @@ Summarizes bandwidth usage across the panel, nodes, and top users for a period.
 **Arguments:** `start`, `end` (both optional, ISO datetimes) — omit either for no bound on that side.
 
 What it does:
-1. Calls `marzban_system_stats` for panel-wide totals and current speed.
+1. Calls `marzban_system_get_stats` for panel-wide totals and current speed.
 2. Calls `marzban_nodes_list` for per-node uplink/downlink over the period.
-3. Calls `marzban_users_list`, then `marzban_users_usage` for the heaviest-looking users, to break their traffic down by node.
+3. Calls `marzban_users_list`, then `marzban_users_get_usage` for the heaviest-looking users, to break their traffic down by node.
 4. Summarizes total bandwidth, the top 5 users by usage, and any node carrying disproportionate load.

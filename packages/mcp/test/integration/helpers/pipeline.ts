@@ -34,7 +34,27 @@ export function registerForCall(
   return (args: unknown) => handler(args, fakeServerCtx)
 }
 
-/** The text channel of a tool result, joined — what the model actually reads. */
+/**
+ * The text channel of a tool result, joined. One of two channels, and the one
+ * with no delivery guarantee — see `asSeenByStructuredClient` below before
+ * asserting anything safety-relevant through this.
+ */
 export function resultText(result: CallToolResult): string {
   return (result.content as { type: string; text: string }[]).map(part => part.text).join('\n')
+}
+
+/**
+ * What actually reaches the model on a client that prefers
+ * `structuredContent`. The spec says such a client SHOULD prefer it and MAY
+ * ignore `content` entirely, and Claude Desktop and Claude Code do exactly
+ * that for a successful result (github.com/Ilmar7786/marzban-sdk#137) — so a
+ * safety statement that survives only in `content` is a statement the model
+ * never sees.
+ *
+ * `src/core/tool/registry.test.ts` keeps its own copy: the two suites share
+ * no module, and duplicating four lines beats making one of them import
+ * across that boundary.
+ */
+export function asSeenByStructuredClient(result: CallToolResult): unknown {
+  return result.isError || result.structuredContent === undefined ? result.content : result.structuredContent
 }

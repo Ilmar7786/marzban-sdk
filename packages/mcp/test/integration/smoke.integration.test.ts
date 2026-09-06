@@ -11,7 +11,7 @@ import { type ToolContext, toolOutputJsonSchema } from '../../src/core/tool'
 import { nodesListTool } from '../../src/modules/nodes/nodes.tools'
 import { usersCreateTool, usersDeleteTool, usersExtendTool } from '../../src/modules/users/users.tools'
 import { createTestToolContext } from './helpers/client'
-import { registerForCall, resultText } from './helpers/pipeline'
+import { asSeenByStructuredClient, registerForCall, resultText } from './helpers/pipeline'
 import { freshConnectionConfig, removeUserTolerantly } from './helpers/quirks'
 
 // Same validator shape a strict MCP client applies to structuredContent: a
@@ -124,7 +124,7 @@ describe('MCP tool smoke tests (real SDK, real panel)', () => {
 
     const executed = await call({ username, confirmToken: token })
     expect(executed.isError).toBeUndefined()
-    expect(executed.structuredContent).toEqual({ username, deleted: true })
+    expect(executed.structuredContent).toEqual({ _execution: { status: 'executed' }, username, deleted: true })
 
     // The retry a timing-out client sends: same arguments, no token. Before
     // #76 this reached the panel a second time and came back 404 — the user
@@ -133,9 +133,15 @@ describe('MCP tool smoke tests (real SDK, real panel)', () => {
     // was never asked again, not just that the shapes happen to match.
     const replayed = await call({ username })
     expect(replayed.isError).toBeUndefined()
-    expect(replayed.structuredContent).toEqual({ username, deleted: true })
+    expect(replayed.structuredContent).toMatchObject({ username, deleted: true })
+    // Through the projection a real client applies, not through `content`:
+    // the notice being *written* was never the failure (#137), the notice
+    // being *delivered* was.
+    const seen = JSON.stringify(asSeenByStructuredClient(replayed))
+    expect(seen).toContain('already ran')
+    expect(seen).toContain('nothing was sent to the panel just now')
+    // The fallback channel still carries it for clients that read only text.
     expect(resultText(replayed)).toContain('already ran')
-    expect(resultText(replayed)).toContain('nothing was sent to the panel just now')
 
     await expect(ctx.sdk.user.getUser(username, freshConnectionConfig())).rejects.toMatchObject({ status: 404 })
   })
@@ -160,7 +166,7 @@ describe('MCP tool smoke tests (real SDK, real panel)', () => {
     await ctx.sdk.user.addUser({ username, status: 'active', proxies: SHADOWSOCKS_PROXY })
 
     const replayed = await call({ username })
-    expect(resultText(replayed)).toContain('already ran')
+    expect(JSON.stringify(asSeenByStructuredClient(replayed))).toContain('already ran')
     // Proof it really was a replay and not a second delete — and the panel
     // state is the proof, not just the response shape.
     await expect(ctx.sdk.user.getUser(username, freshConnectionConfig())).resolves.toMatchObject({ username })
@@ -168,7 +174,10 @@ describe('MCP tool smoke tests (real SDK, real panel)', () => {
     // The token the replay notice hands back. Before #129 there was none to
     // hand back, and presenting one would have been swallowed by the trust
     // cache anyway.
-    const rerunToken = resultText(replayed).match(/confirmToken: "([^"]+)" to run it for real/)![1]
+    // Read out of `structuredContent`, not `content`: a hint the model cannot
+    // see is a hint that does not exist (#137).
+    const notice = (replayed.structuredContent as { _execution: { notice: string } })._execution.notice
+    const rerunToken = notice.match(/confirmToken: "([^"]+)" to run it for real/)![1]
 
     const rerun = await call({ username, confirmToken: rerunToken })
     expect(rerun.isError).toBeUndefined()

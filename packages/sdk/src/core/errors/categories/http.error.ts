@@ -46,4 +46,10 @@ export class HttpError extends SdkError {
     const value = property(property(this.details, 'config'), 'url')
     return typeof value === 'string' ? value : undefined
   }
+
+  /** Transport-level error code of the failed request (`ECONNREFUSED`, `ETIMEDOUT`, `ERR_CANCELED`, …). `undefined` when the failure carried no such code. */
+  get transportCode(): string | undefined {
+    const value = property(this.details, 'code')
+    return typeof value === 'string' ? value : undefined
+  }
 }

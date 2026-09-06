@@ -104,7 +104,7 @@ Set `MARZBAN_MCP_SHOW_LINKS=true` to reveal them in full. This is a startup-time
 
 ## No token or URL passthrough
 
-Related to the credentials rule above but worth calling out on its own: nothing in this server accepts a token, panel URL, or hostname from a model and uses it to make a request. The one narrow, intentional exception is `marzban_subscription_info`, which takes a *subscription* token (the low-privilege, per-user token embedded in a subscription link — not an admin credential) and queries the same public, unauthenticated endpoint a user's own client apps already hit, against the one fixed `MARZBAN_BASE_URL` configured at startup. It never accepts an arbitrary URL.
+Related to the credentials rule above but worth calling out on its own: nothing in this server accepts a token, panel URL, or hostname from a model and uses it to make a request. The one narrow, intentional exception is `marzban_subscription_get`, which takes a *subscription* token (the low-privilege, per-user token embedded in a subscription link — not an admin credential) and queries the same public, unauthenticated endpoint a user's own client apps already hit, against the one fixed `MARZBAN_BASE_URL` configured at startup. It never accepts an arbitrary URL.
 
 ## Config-write safety net
 

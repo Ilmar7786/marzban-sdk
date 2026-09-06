@@ -255,8 +255,10 @@ automatically.
 - The tool list is documented by hand in three places (code, `README.md`,
   the docs site) with nothing checking they agree — see
   [`docs/architecture.md`](../../docs/architecture.md).
-- `core/idempotency/classify.ts` can't tell "the connection was refused, so
-  nothing was applied" from "an in-flight write timed out", because the
-  transport-level error code has no public accessor on `HttpError`. It
-  errs toward `unknown`, so an unreachable panel produces a needless "verify
-  the state" answer for the length of the dedup window — see ADR-0019.
+- ~~`core/idempotency/classify.ts` can't tell "the connection was refused, so
+  nothing was applied" from "an in-flight write timed out"~~ — closed.
+  `HttpError.transportCode` (marzban-sdk) exposes the transport-level code,
+  and `classify.ts` now treats `ECONNREFUSED`/`ENOTFOUND`/`EAI_AGAIN` as
+  `not-applied` since the request never left the client. `ETIMEDOUT` and
+  similar codes still resolve to `unknown` — a timeout can happen after an
+  in-flight write was already sent. See ADR-0019.

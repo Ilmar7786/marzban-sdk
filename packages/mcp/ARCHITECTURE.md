@@ -60,6 +60,12 @@ flowchart LR
   name so `tools/list` output is deterministic (needed for prompt caching).
 - **Annotations** (`readOnlyHint`, `destructiveHint`) are derived from each
   tool's `scope` — authors don't set them by hand.
+- **Schemas** are registered through `withWireJsonSchema`
+  (`core/tool/json-schema.ts`): arguments and `structuredContent` are still
+  validated by zod, transforms included, but the JSON Schema advertised in
+  `tools/list` goes through `compactJsonSchema`
+  (`core/tool/compact-json-schema.ts`) first, which strips about a fifth of
+  the payload without changing what validates (#130).
 - **Confirm** applies only to `destructive`-scoped tools, unless the tool's
   `skipConfirm(args)` returns true (used for dry-run previews). A token
   carries a TTL, a hash of the canonicalized arguments, and a per-process

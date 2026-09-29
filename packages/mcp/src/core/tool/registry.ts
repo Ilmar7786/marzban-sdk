@@ -8,6 +8,7 @@ import { toToolError } from '../errors'
 import type { ToolContext } from './context'
 import type { ToolDefinition, ToolScope } from './define-tool'
 import { registeredOutputSchema, withExecutionMeta } from './execution-meta'
+import { withWireJsonSchema } from './json-schema'
 
 const PROFILE_SCOPES: Record<McpConfig['profile'], ReadonlySet<ToolScope>> = {
   readonly: new Set(['read']),
@@ -178,10 +179,12 @@ export function registerTools(options: RegisterToolsOptions): ToolDefinition<z.Z
       {
         title: tool.title,
         description: tool.description,
-        inputSchema: tool.inputSchema,
+        // Validated by zod as declared; advertised in `tools/list` as the
+        // compacted JSON Schema — see `withWireJsonSchema`.
+        inputSchema: withWireJsonSchema(tool.inputSchema),
         // Not the schema the author declared: a destructive tool is
         // registered with that shape plus its execution-provenance field.
-        outputSchema: registeredOutputSchema(tool),
+        outputSchema: withWireJsonSchema(registeredOutputSchema(tool)),
         annotations: deriveAnnotations(tool),
       },
       async (args: unknown, serverCtx: ServerContext): Promise<CallToolResult> => {

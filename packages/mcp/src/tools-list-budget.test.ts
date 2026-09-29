@@ -31,20 +31,17 @@ import { connectInMemoryClient } from './testing/in-memory-client'
 
 /** Each profile's tool count, and the ceiling on its serialised `tools/list`.
  *
- * Measured 2026-09-06 at marzban-mcp 0.3.0 by this test (add a `console.log`
+ * Measured 2026-09-29 at marzban-mcp 0.3.0 by this test (add a `console.log`
  * of `measure().bytes`, or read the number off a failure message — it prints
  * both the actual and the budget):
  *
- *   readonly  9 tools  22 647 B
- *   standard 15 tools  48 234 B
- *   full     21 tools  65 401 B
+ *   readonly  9 tools  17 986 B
+ *   standard 15 tools  37 981 B
+ *   full     21 tools  53 013 B
  *
- * `full` sits close to its ceiling: ADR-0021 added a required provenance
- * field to all six destructive tools' output schemas, ~2.5 KB in total, and
- * the budget was deliberately left where it was rather than re-inflated in
- * the same change. So the ~5% headroom described below no longer holds for
- * that profile — the next tool, or any meaningful rewording, needs a budget
- * decision made on purpose rather than absorbed silently.
+ * Down from 22 647 / 48 234 / 65 401 B once `compactJsonSchema` started
+ * stripping the filler zod's JSON Schema output carries (#130). The budgets
+ * came down with it, so the saving can't be quietly spent later.
  *
  * Budgets are those numbers plus ~5%, rounded to something legible. That
  * headroom is deliberate: 5% of `full` is ~3 KB, which is more than every
@@ -59,9 +56,9 @@ import { connectInMemoryClient } from './testing/in-memory-client'
  * message — see docs/conventions.md, "Context budget".
  */
 const TOOLS_LIST_BUDGET: Record<McpConfig['profile'], { tools: number; bytes: number }> = {
-  readonly: { tools: 9, bytes: 24_000 },
-  standard: { tools: 15, bytes: 51_000 },
-  full: { tools: 21, bytes: 66_000 },
+  readonly: { tools: 9, bytes: 19_000 },
+  standard: { tools: 15, bytes: 40_000 },
+  full: { tools: 21, bytes: 56_000 },
 }
 
 function makeContext(profile: McpConfig['profile']): ToolContext {

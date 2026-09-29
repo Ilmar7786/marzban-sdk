@@ -1,5 +1,12 @@
 export type { ToolContext } from './context'
 export { defineTool, type ToolDefinition, type ToolScope } from './define-tool'
+export {
+  EXECUTION_META_KEY,
+  type ExecutionMeta,
+  executionMetaSchema,
+  registeredOutputSchema,
+  withExecutionMeta,
+} from './execution-meta'
 export { toolOutputJsonSchema } from './json-schema'
 export {
   alwaysExecute,

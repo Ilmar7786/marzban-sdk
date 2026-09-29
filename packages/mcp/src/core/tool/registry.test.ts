@@ -70,6 +70,23 @@ function makeContext(configOverrides: Partial<McpConfig> = {}): ToolContext {
 
 const fakeServerCtx = {} as ServerContext
 
+/**
+ * What actually reaches the model on a client that prefers
+ * `structuredContent`. The spec says such a client SHOULD prefer it and MAY
+ * ignore `content` entirely, and Claude Desktop and Claude Code do exactly
+ * that for a successful result (github.com/Ilmar7786/marzban-sdk#137) — so a
+ * safety statement that survives only in `content` is a statement the model
+ * never sees.
+ *
+ * Assertions about safety-relevant text go through this rather than reading
+ * `result.content` directly: the point is what a consumer is guaranteed, not
+ * where this package happens to write it. `test/integration/helpers/pipeline.ts`
+ * keeps its own copy for the same reason.
+ */
+function asSeenByStructuredClient(result: CallToolResult): unknown {
+  return result.isError || result.structuredContent === undefined ? result.content : result.structuredContent
+}
+
 describe('selectTools', () => {
   const readTool = makeTool({ name: 'marzban_a_read', scope: 'read' })
   const writeTool = makeTool({ name: 'marzban_b_write', scope: 'write' })
@@ -194,7 +211,7 @@ describe('registerTools', () => {
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(result.isError).toBeFalsy()
-    expect(result.structuredContent).toEqual({ echoed: 'hi' })
+    expect(result.structuredContent).toEqual({ _execution: { status: 'executed' }, echoed: 'hi' })
   })
 
   it('short-circuits without calling the handler when confirm declines', async () => {
@@ -245,7 +262,9 @@ describe('registerTools', () => {
 
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'skip' }, fakeServerCtx)
     expect(confirm).not.toHaveBeenCalled()
-    expect(result.structuredContent).toEqual({ echoed: 'skip' })
+    // A dry run reaches neither gate but still ran just now — `executed`
+    // describes how the result was produced, not whether it mutated anything.
+    expect(result.structuredContent).toEqual({ _execution: { status: 'executed' }, echoed: 'skip' })
   })
 
   it('still calls confirm when skipConfirm returns false for these args', async () => {
@@ -278,6 +297,22 @@ describe('registerTools', () => {
     expect(result.content).toEqual([{ type: 'text', text: 'handler failed' }])
   })
 
+  it('leaves a non-destructive result untagged (#137)', async () => {
+    const { server, registered } = createFakeServer()
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'write' })],
+      ctx: makeContext({ profile: 'full' }),
+      confirm: alwaysProceed,
+      dedup: alwaysExecute,
+    })
+
+    const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    // Provenance is declared only on a destructive tool's outputSchema, so
+    // adding it here would be an undeclared field a strict client rejects.
+    expect(result.structuredContent).toEqual({ echoed: 'hi' })
+  })
+
   it('never calls dedup for a non-destructive tool', async () => {
     const { server, registered } = createFakeServer()
     const dedup = vi.fn<DedupFn>(async ({ run }) => ({ kind: 'executed', data: await run() }))
@@ -306,7 +341,7 @@ describe('registerTools', () => {
 
     const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
     expect(dedup).not.toHaveBeenCalled()
-    expect(result.structuredContent).toEqual({ echoed: 'hi' })
+    expect(result.structuredContent).toEqual({ _execution: { status: 'executed' }, echoed: 'hi' })
   })
 
   it('evaluates skipConfirm once per call, not once per guarded stage', async () => {
@@ -378,7 +413,13 @@ describe('registerTools', () => {
       { type: 'text', text: 'NOTE: this already ran.' },
       { type: 'text', text: '{"echoed":"recorded"}' },
     ])
-    expect(result.structuredContent).toEqual({ echoed: 'recorded' })
+    // The recorded data is passed through untouched; only the provenance
+    // field is added, and it leads so a long payload can't bury it.
+    expect(result.structuredContent).toEqual({
+      _execution: { status: 'replayed', notice: 'NOTE: this already ran.' },
+      echoed: 'recorded',
+    })
+    expect(Object.keys(result.structuredContent as object)[0]).toBe('_execution')
     expect(result.isError).toBeFalsy()
   })
 
@@ -405,6 +446,48 @@ describe('registerTools', () => {
       type: 'text',
       text: 'NOTE: this already ran. Repeat with confirmToken: "tok".',
     })
+  })
+
+  it('keeps a replay recognisable to a client that reads only structuredContent (#137)', async () => {
+    const { server, registered } = createFakeServer()
+    const dedup = vi.fn<DedupFn>(async () => ({
+      kind: 'replayed',
+      data: { echoed: 'recorded' },
+      notice: 'NOTE: "marzban_test_tool" already ran 12s ago with these exact arguments.',
+    }))
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive' })],
+      ctx: makeContext({ profile: 'full', format: 'json' }),
+      confirm: () => ({ proceed: true, reason: 'trusted', rerunHint: 'Repeat with confirmToken: "tok".' }),
+      dedup,
+    })
+
+    const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    const seen = JSON.stringify(asSeenByStructuredClient(result))
+
+    // Both halves matter: without the notice the model reports a recording as
+    // a fresh execution, and without the rerun hint the notice's own advice —
+    // "confirm it afresh" — is impossible to follow in `auto` (ADR-0020).
+    expect(seen).toContain('already ran')
+    expect(seen).toContain('confirmToken')
+  })
+
+  it('marks a freshly executed destructive call as executed, not replayed (#137)', async () => {
+    const { server, registered } = createFakeServer()
+    registerTools({
+      server,
+      tools: [makeTool({ scope: 'destructive' })],
+      ctx: makeContext({ profile: 'full' }),
+      confirm: alwaysProceed,
+      dedup: alwaysExecute,
+    })
+
+    const result = await registered.get('marzban_test_tool')!.handler({ value: 'hi' }, fakeServerCtx)
+    // "executed" is a positive assertion, not the absence of a notice: a model
+    // that has to infer freshness from a missing field infers it from a
+    // dropped one just as readily.
+    expect(result.structuredContent).toEqual({ _execution: { status: 'executed' }, echoed: 'hi' })
   })
 
   it('returns an unknown outcome as an error result with no structuredContent', async () => {

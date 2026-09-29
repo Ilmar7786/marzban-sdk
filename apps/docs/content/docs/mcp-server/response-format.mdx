@@ -49,7 +49,9 @@ Switch to `full` when you're actually inspecting configuration details, not for 
 
 ## `content` vs `structuredContent`
 
-Every response actually carries two representations: `content` is the compact, format/verbosity-shaped text described above, meant for the model to read cheaply. `structuredContent` is always the complete, unprojected data, meant for a client to consume programmatically. Switching `verbosity`/`format` only changes `content` — nothing is ever actually hidden from a client capable of reading `structuredContent` directly.
+Every response actually carries two representations: `content` is the compact, format/verbosity-shaped text described above, kept small so a model can read it cheaply. `structuredContent` is always the complete, unprojected data. Switching `verbosity`/`format` only changes `content` — nothing is ever actually hidden from a client capable of reading `structuredContent` directly.
+
+The two are not equally reliable, though, and it's worth knowing which is which. The MCP spec lets a client that understands `structuredContent` prefer it and ignore `content` altogether, and several widely used clients do exactly that for a successful call — the model then sees only the structured half. So `content` is a presentation of the data, never the only place something lives: anything a model *must* see, such as the note marking a [replayed destructive call](/docs/mcp-server/security#repeated-calls-and-unknown-outcomes), is carried in `structuredContent` and merely repeated in the text.
 
 ## Pagination
 

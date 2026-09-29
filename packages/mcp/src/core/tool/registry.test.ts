@@ -1,4 +1,4 @@
-import type { CallToolResult, McpServer, ServerContext } from '@modelcontextprotocol/server'
+import type { CallToolResult, McpServer, ServerContext, StandardSchemaWithJSON } from '@modelcontextprotocol/server'
 import type { MarzbanSDK } from 'marzban-sdk'
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
@@ -12,7 +12,13 @@ import { defineTool } from './define-tool'
 import { alwaysExecute, alwaysProceed, type ConfirmFn, type DedupFn, registerTools, selectTools } from './registry'
 
 type RegisteredEntry = {
-  config: { title?: string; description?: string; annotations?: Record<string, unknown> }
+  config: {
+    title?: string
+    description?: string
+    annotations?: Record<string, unknown>
+    inputSchema: StandardSchemaWithJSON
+    outputSchema: StandardSchemaWithJSON
+  }
   handler: (args: unknown, serverCtx: ServerContext) => Promise<CallToolResult>
 }
 
@@ -156,6 +162,27 @@ describe('registerTools', () => {
     expect(registered.has('marzban_destroy_one')).toBe(false)
     const entry = registered.get('marzban_read_one')!
     expect(entry.config.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false })
+  })
+
+  it('advertises compacted JSON Schemas while still validating with zod', async () => {
+    const { server, registered } = createFakeServer()
+    const tool = makeTool({
+      inputSchema: z.object({ size: z.string().transform(value => value.length) }),
+      outputSchema: z.object({ count: z.number().int() }),
+    })
+
+    registerTools({ server, tools: [tool], ctx: makeContext(), confirm: alwaysProceed, dedup: alwaysExecute })
+
+    const { inputSchema, outputSchema } = registered.get('marzban_test_tool')!.config
+    const target = { target: 'draft-2020-12' } as const
+    expect(inputSchema['~standard'].jsonSchema.input(target)).not.toHaveProperty('$schema')
+    expect(outputSchema['~standard'].jsonSchema.output(target)).toEqual({
+      type: 'object',
+      properties: { count: { type: 'integer' } },
+      required: ['count'],
+      additionalProperties: false,
+    })
+    expect(await inputSchema['~standard'].validate({ size: '10GB' })).toEqual({ value: { size: 4 } })
   })
 
   it('merges author-supplied idempotentHint/openWorldHint on top of the derived hints', () => {

@@ -1,5 +1,37 @@
 # Changelog
 
+## [mcp-v0.4.0] - 2026-10-21
+
+### <!-- 0 -->🚀 Features
+
+- Expose transport-level error code on HttpError by @Ilmar7786 ([ce56a958](https://github.com/Ilmar7786/marzban-sdk/commit/ce56a958c32436c28d747bdd11d80b4696a0352e))
+- **BREAKING:** Rename four tools to verb-based names — marzban_subscription_info, marzban_system_inbounds, marzban_system_stats and marzban_users_usage are now marzban_subscription_get, marzban_system_get_inbounds, marzban_system_get_stats and marzban_users_get_usage. No aliases are registered for the old names. MARZBAN_MCP_TOOLS_ALLOW and MARZBAN_MCP_TOOLS_DENY entries naming an old tool silently stop matching - a denied tool comes back with no error - so update those lists. by @Ilmar7786 ([de0ced14](https://github.com/Ilmar7786/marzban-sdk/commit/de0ced14bbf9d8efcf6c6f3d07b07efb63780e88))
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Make the "this already ran" notice reach the model by @Ilmar7786 ([7bc33466](https://github.com/Ilmar7786/marzban-sdk/commit/7bc334662c54d277320fd70303159a3c89720dee))
+- Let a fresh confirmation re-run a destructive tool in auto mode by @Ilmar7786 ([6467c12e](https://github.com/Ilmar7786/marzban-sdk/commit/6467c12e54085f1552b4b30b3e6dc727adc8d8b3))
+
+### <!-- 2 -->🚜 Refactor
+
+- Use the shared TTL map for used tokens and trusted calls by @Ilmar7786 ([c47a027b](https://github.com/Ilmar7786/marzban-sdk/commit/c47a027b40971c5eaed3d910846214b9cbccf299))
+
+### <!-- 4 -->⚡ Performance
+
+- Make tool schemas smaller in tools/list by @Ilmar7786 ([156febc5](https://github.com/Ilmar7786/marzban-sdk/commit/156febc5946a69402e5c3fdc5b69051a4fc40dce))
+
+### <!-- 6 -->🧪 Testing
+
+- Lower the tools/list budget to the new size by @Ilmar7786 ([01fe54f5](https://github.com/Ilmar7786/marzban-sdk/commit/01fe54f5f68967f4e4a7e2f2c6dd1426159985af))
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Bump marzban-mcp to 0.4.0 by @Ilmar7786 ([8e4c328f](https://github.com/Ilmar7786/marzban-sdk/commit/8e4c328f40664c63a63e46aecb1036fc432760d8))
+
+### 🔗 From marzban-sdk
+
+- Bundles **marzban-sdk 4.1.0** (was 4.0.0) — see the [SDK release notes](https://github.com/Ilmar7786/marzban-sdk/releases/tag/sdk-v4.1.0).
+
 ## [mcp-v0.3.0] - 2026-09-06
 
 ### <!-- 0 -->🚀 Features

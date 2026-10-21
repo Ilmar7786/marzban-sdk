@@ -1,5 +1,15 @@
 # Changelog
 
+## [sdk-v4.1.0] - 2026-10-21
+
+### <!-- 0 -->🚀 Features
+
+- Expose transport-level error code on HttpError by @Ilmar7786 ([ce56a958](https://github.com/Ilmar7786/marzban-sdk/commit/ce56a958c32436c28d747bdd11d80b4696a0352e))
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Bump marzban-sdk to 4.1.0 by @Ilmar7786 ([95b1e473](https://github.com/Ilmar7786/marzban-sdk/commit/95b1e47301579bf9b72d5b277a3b49529ffb384b))
+
 ## [sdk-v4.0.0] - 2026-09-04
 
 ### <!-- 0 -->🚀 Features

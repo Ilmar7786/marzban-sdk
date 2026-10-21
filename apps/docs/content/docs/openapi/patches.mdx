@@ -3,7 +3,7 @@ title: Spec Patches
 description: Patches applied on top of upstream Marzban's OpenAPI spec, and why — so you know when a type differs from what the panel actually returns.
 ---
 
-MarzbanSDK vendors `packages/sdk/openapi/openapi.json` in the repository instead of fetching Marzban's spec at build time (see [ADR-0003](https://github.com/Ilmar7786/marzban-sdk/blob/main/docs/adr/0003-vendored-openapi-spec.md)), and hand-patches schemas that upstream leaves under-specified. Every patch currently applied is listed here.
+MarzbanSDK vendors `packages/sdk/openapi/openapi.json` in the repository instead of fetching Marzban's spec at build time, and hand-patches schemas that upstream leaves under-specified. Every patch currently applied is listed here.
 
 ## Under-specified schemas no longer drop fields on parse
 

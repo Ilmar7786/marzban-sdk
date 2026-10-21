@@ -51,7 +51,7 @@ Every registered tool runs through the same wrapper, defined once in
 
 ```mermaid
 flowchart LR
-    A["selectTools()<br/>filtering"] --> B["confirm<br/>(destructive only)"] --> C["dedup<br/>(destructive only)"] --> D["handler(args, ctx)"] --> E["render(data, view)"] --> F["error mapping"]
+    A["selectTools()<br/>filtering"] --> B["confirm<br/>(destructive only)"] --> C["dedup<br/>(destructive only)"] --> D["handler(args, ctx)"] --> E["provenance tag<br/>(destructive only)"] --> F["render(data, view)"] --> G["error mapping"]
 ```
 
 - **Filtering** happens once at startup: profile scope first
@@ -60,13 +60,23 @@ flowchart LR
   name so `tools/list` output is deterministic (needed for prompt caching).
 - **Annotations** (`readOnlyHint`, `destructiveHint`) are derived from each
   tool's `scope` — authors don't set them by hand.
+- **Schemas** are registered through `withWireJsonSchema`
+  (`core/tool/json-schema.ts`): arguments and `structuredContent` are still
+  validated by zod, transforms included, but the JSON Schema advertised in
+  `tools/list` goes through `compactJsonSchema`
+  (`core/tool/compact-json-schema.ts`) first, which strips about a fifth of
+  the payload without changing what validates (#130).
 - **Confirm** applies only to `destructive`-scoped tools, unless the tool's
   `skipConfirm(args)` returns true (used for dry-run previews). A token
   carries a TTL, a hash of the canonicalized arguments, and a per-process
   signing key; it's rejected on tool mismatch, argument mismatch, or reuse.
   `MARZBAN_MCP_CONFIRM` controls the mode: `off`, `auto` (confirm once per
   tool _and_ exact arguments, trusted for the same TTL as the token —
-  `core/confirm/confirm.ts`'s `trustedCalls`), `always`.
+  `core/confirm/confirm.ts`'s `trustedCalls`), `always`. A presented token is
+  verified _before_ that trust cache, so an explicit re-approval reports
+  `reason: 'token'` rather than `'trusted'`, and a trusted decision carries a
+  freshly minted one as `rerunHint` for the registry to append to a replay
+  notice — see ADR-0020.
 - **Dedup** applies to the same calls confirmation does, in every confirm
   mode, and answers a different question: not "may this run?" but "has this
   already run?". `core/idempotency/` remembers each destructive call by the
@@ -76,6 +86,17 @@ flowchart LR
   response) reports `unknown` and steers the model to verify state. A freshly
   verified token (`ConfirmDecision.reason === 'token'`) bypasses the record —
   see ADR-0019.
+- **Provenance** rides in `structuredContent`, not in `content`. A destructive
+  tool is registered with `registeredOutputSchema(tool)` — its author's shape
+  plus a required `_execution` field saying whether this result was
+  `executed` just now or `replayed` from the dedup record, with the replay
+  notice inside it. The two channels of a `CallToolResult` do not have the
+  same delivery guarantee: a client that understands structured output may
+  ignore `content` entirely, and Claude Desktop and Claude Code do, which is
+  how a replay could be reported as a fresh execution for a release
+  (#137, ADR-0021). `content` still carries the notice as a fallback. The
+  field is derived, like the annotations above, so no tool author can forget
+  it and no per-tool copy can drift.
 - **Handlers return plain data**, never a `CallToolResult` — rendering and
   error mapping are the pipeline's job, not the tool's.
 
@@ -237,7 +258,10 @@ To add a tool:
    type. Destructive tools need a `confirmToken` field.
 2. Add a `View<T>` to `modules/<area>/<area>.views.ts`.
 3. Call `defineTool({...})` in `modules/<area>/<area>.tools.ts`. The tool
-   name must start with `marzban_`.
+   name must follow `marzban_<area>_<verb>(_<noun>)?` — an action verb, never
+   a bare noun (Glama's Naming Consistency review flagged four tools that
+   broke this, fixed in #114). `tool-naming.test.ts` enforces the pattern
+   against an explicit verb whitelist, so a new verb needs adding there too.
 4. Add the tool to the module's export array; a new module needs one more
    line in `src/modules/index.ts`.
 5. Add tests — coverage is enforced at 100% (see
@@ -252,8 +276,10 @@ automatically.
 - The tool list is documented by hand in three places (code, `README.md`,
   the docs site) with nothing checking they agree — see
   [`docs/architecture.md`](../../docs/architecture.md).
-- `core/idempotency/classify.ts` can't tell "the connection was refused, so
-  nothing was applied" from "an in-flight write timed out", because the
-  transport-level error code has no public accessor on `HttpError`. It
-  errs toward `unknown`, so an unreachable panel produces a needless "verify
-  the state" answer for the length of the dedup window — see ADR-0019.
+- ~~`core/idempotency/classify.ts` can't tell "the connection was refused, so
+  nothing was applied" from "an in-flight write timed out"~~ — closed.
+  `HttpError.transportCode` (marzban-sdk) exposes the transport-level code,
+  and `classify.ts` now treats `ECONNREFUSED`/`ENOTFOUND`/`EAI_AGAIN` as
+  `not-applied` since the request never left the client. `ETIMEDOUT` and
+  similar codes still resolve to `unknown` — a timeout can happen after an
+  in-flight write was already sent. See ADR-0019.

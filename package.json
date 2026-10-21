@@ -1,6 +1,6 @@
 {
   "name": "marzban-sdk-monorepo",
-  "description": "Monorepo for the Marzban toolkit — the marzban-sdk TypeScript SDK (typed API, auth, resilient retries and WebSocket reconnects, webhooks, lifecycle) and marzban-mcp, the MCP server built on it for AI agents.",
+  "description": "TypeScript SDK and MCP server for the Marzban panel: fully typed API client, auth, retries, WebSocket logs, webhooks, plus AI-agent tooling.",
   "keywords": [
     "marzban",
     "marzban-sdk",

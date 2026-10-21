@@ -1,8 +1,55 @@
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion'
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 import { ExternalLink } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import { getChangelog } from '@/lib/changelog'
+
+// Entry text comes straight from git-cliff (commit subjects) or
+// scripts/downstream-notes.mjs (the "Bundles **sdk X.Y.Z**... see
+// [SDK release notes](url)" bullet), so it can carry inline `**bold**`,
+// `` `code` `` and `[text](url)` markdown. Neither source ever nests or
+// spans these across a line, so a single non-recursive pass is enough —
+// no need to pull in a full Markdown renderer for one line of text.
+const INLINE_MARKDOWN = /\*\*(.+?)\*\*|`([^`]+)`|\[([^\]]+)\]\((\S+?)\)/g
+
+function renderInlineMarkdown(text: string): ReactNode[] {
+  const nodes: ReactNode[] = []
+  let lastIndex = 0
+  let key = 0
+
+  for (const match of text.matchAll(INLINE_MARKDOWN)) {
+    const index = match.index ?? 0
+    if (index > lastIndex) nodes.push(text.slice(lastIndex, index))
+
+    const [, bold, code, linkText, linkUrl] = match
+    if (bold !== undefined) {
+      nodes.push(<strong key={key++}>{bold}</strong>)
+    } else if (code !== undefined) {
+      nodes.push(
+        <code key={key++} className="rounded bg-fd-muted px-1 py-0.5 font-mono text-[0.85em]">
+          {code}
+        </code>
+      )
+    } else {
+      nodes.push(
+        <a
+          key={key++}
+          href={linkUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-fd-primary no-underline hover:underline"
+        >
+          {linkText}
+        </a>
+      )
+    }
+    lastIndex = index + match[0].length
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
+
+  return nodes
+}
 
 /** Renders one package's releases, newest first, straight from its git-cliff CHANGELOG.md. */
 function PackageReleases({ releases }: { releases: ReturnType<typeof getChangelog>[number]['releases'] }) {
@@ -30,7 +77,12 @@ function PackageReleases({ releases }: { releases: ReturnType<typeof getChangelo
                     <li key={i} className="flex items-start gap-1.5 text-sm text-fd-foreground">
                       <span className="mt-2 size-1 shrink-0 rounded-full bg-fd-muted-foreground/50" />
                       <span>
-                        {entry.text}
+                        {entry.breaking && (
+                          <span className="mr-1.5 inline-block rounded bg-fd-primary/10 px-1.5 py-0.5 align-middle text-[0.7em] leading-none font-semibold tracking-wide text-fd-primary uppercase">
+                            Breaking
+                          </span>
+                        )}
+                        {renderInlineMarkdown(entry.text)}
                         {entry.prNumber && entry.prUrl && (
                           <>
                             {' '}

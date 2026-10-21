@@ -194,7 +194,7 @@ export const usersExtendTool = defineTool({
 })
 
 export const usersUsageTool = defineTool({
-  name: 'marzban_users_usage',
+  name: 'marzban_users_get_usage',
   title: 'Get user traffic usage',
   description:
     'Reports how much data a user has used: total, lifetime total, their current limit, and a breakdown by node. `start`/`end` (ISO datetimes) narrow the per-node breakdown to a period; omit both for all-time.',

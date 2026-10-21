@@ -9,7 +9,7 @@ import {
 import { subscriptionInfoView, usersRevokeSubscriptionView } from './subscription.views'
 
 export const subscriptionInfoTool = defineTool({
-  name: 'marzban_subscription_info',
+  name: 'marzban_subscription_get',
   title: 'Get subscription info',
   description:
     'Reads subscription status/usage/expiry using the token from a subscription URL (the same public, unauthenticated endpoint client apps use) — for diagnosing a broken subscription link without needing the username. For an admin-side lookup by username, use marzban_users_get instead.',

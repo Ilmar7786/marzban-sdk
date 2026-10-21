@@ -21,7 +21,7 @@ describe('nodeDiagnosticsPrompt', () => {
   it('mentions the relevant tools and the restart caveat', () => {
     const body = text(nodeDiagnosticsPrompt.handler({}))
     expect(body).toContain('marzban_nodes_list')
-    expect(body).toContain('marzban_system_stats')
+    expect(body).toContain('marzban_system_get_stats')
     expect(body).toContain('marzban_core_restart')
   })
 })

@@ -131,15 +131,18 @@ try {
   const user = await sdk.user.getUser('non-existent')
 } catch (err) {
   if (isHttpError(err)) {
-    console.error('HTTP status:', err.status)       // 404, or undefined if the request never got a response
-    console.error('Status text:', err.statusText)    // "Not Found"
-    console.error('Response body:', err.data)        // whatever the server returned
-    console.error('Request:', err.method, err.url)    // "GET", "/api/user/non-existent"
+    console.error('HTTP status:', err.status)             // 404, or undefined if the request never got a response
+    console.error('Status text:', err.statusText)          // "Not Found"
+    console.error('Response body:', err.data)              // whatever the server returned
+    console.error('Request:', err.method, err.url)          // "GET", "/api/user/non-existent"
+    console.error('Transport code:', err.transportCode)    // "ECONNREFUSED", "ETIMEDOUT", … — set only when there was no response
   }
 }
 ```
 
 `status`/`statusText`/`data`/`method`/`url` are all `undefined` when there was no response to read them from — a network failure, a timeout, or a DNS error never reaches the server, so there's no status code to report. Check for `undefined` rather than assuming a response always exists.
+
+When there's no response, `transportCode` fills in the reason: it carries the underlying transport-level error code (`ECONNREFUSED`, `ETIMEDOUT`, `ENOTFOUND`, `ERR_CANCELED`, …), letting you distinguish "the connection was refused" from "the request timed out mid-flight" — a distinction that matters when deciding whether a failed write is safe to retry.
 
 ### Handling config errors
 

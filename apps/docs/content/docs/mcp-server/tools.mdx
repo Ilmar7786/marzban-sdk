@@ -17,7 +17,7 @@ Every tool is namespaced `marzban_<area>_<action>`. The **Scope** column determi
 | `marzban_users_deactivate` | write | Set status to `disabled`, blocking access without deleting the account |
 | `marzban_users_hold` | write | Set status to `on_hold` — inactive until first connection, then the hold timer starts |
 | `marzban_users_extend` | write | Renew: extend expiry and/or add data, relative to the user's current values (not an absolute overwrite) |
-| `marzban_users_usage` | read | Traffic usage, with a per-node breakdown |
+| `marzban_users_get_usage` | read | Traffic usage, with a per-node breakdown |
 | `marzban_users_delete` | destructive | Permanently delete a user and their subscription link |
 | `marzban_users_reset_traffic` | destructive | Reset used traffic to zero, for one user or every user at once (`all: true`) |
 
@@ -39,15 +39,15 @@ See [Security](/docs/mcp-server/security#config-write-safety-net) for the backup
 
 | Tool | Scope | Description |
 |---|---|---|
-| `marzban_system_stats` | read | Panel-wide CPU/memory/user-count/bandwidth stats, plus core version and running state |
-| `marzban_system_inbounds` | read | List configured inbound proxies, grouped by protocol |
+| `marzban_system_get_stats` | read | Panel-wide CPU/memory/user-count/bandwidth stats, plus core version and running state |
+| `marzban_system_get_inbounds` | read | List configured inbound proxies, grouped by protocol |
 | `marzban_nodes_list` | read | List nodes with status, Xray version, and bandwidth usage over a period |
 
 ## Subscription
 
 | Tool | Scope | Description |
 |---|---|---|
-| `marzban_subscription_info` | read | Look up subscription status/usage by the token from a subscription URL — no username needed |
+| `marzban_subscription_get` | read | Look up subscription status/usage by the token from a subscription URL — no username needed |
 | `marzban_users_revoke_subscription` | destructive | Issue a new subscription link for a user, invalidating the old one |
 
 ## What's not here

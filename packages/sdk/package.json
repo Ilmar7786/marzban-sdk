@@ -1,6 +1,6 @@
 {
   "name": "marzban-sdk",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "The complete TypeScript SDK for the Marzban API — fully typed endpoints, auto token refresh, resilient retries, a WebSocket reconnect state machine for log streaming, HMAC-verified webhooks, Zod validation and a terminal shutdown lifecycle. Isomorphic for Node.js and the browser.",
   "keywords": [
     "marzban-sdk",

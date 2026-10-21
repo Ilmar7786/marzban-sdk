@@ -246,6 +246,28 @@ describe('HttpError', () => {
       expect(err.method).toBeUndefined()
     })
   })
+
+  describe('transportCode', () => {
+    it('extracts the code from a transport-level failure', () => {
+      const err = new HttpError({ code: 'ECONNREFUSED' })
+      expect(err.transportCode).toBe('ECONNREFUSED')
+    })
+
+    it('is undefined when details has no code', () => {
+      const err = new HttpError({ response: { status: 404 } })
+      expect(err.transportCode).toBeUndefined()
+    })
+
+    it('is undefined when code is not a string', () => {
+      const err = new HttpError({ code: 111 })
+      expect(err.transportCode).toBeUndefined()
+    })
+
+    it('is undefined when constructed with no details at all', () => {
+      const err = new HttpError()
+      expect(err.transportCode).toBeUndefined()
+    })
+  })
 })
 
 describe('WebhookSignatureError', () => {

@@ -7,6 +7,14 @@ import { isHttpError } from 'marzban-sdk'
  */
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
+/**
+ * Transport-level codes that prove the request never left the client — the
+ * connection was refused, or the host couldn't be resolved at all. Excludes
+ * `ETIMEDOUT`/`ECONNABORTED`: a timeout can happen after an in-flight write
+ * was already sent, so those stay `unknown`.
+ */
+const NEVER_DISPATCHED_CODES = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN'])
+
 /** Whether a failed call could have changed anything on the panel. */
 export type Applicability = 'not-applied' | 'unknown'
 
@@ -17,15 +25,8 @@ export type Applicability = 'not-applied' | 'unknown'
  * This is the whole reason the dedup store can be safe: a call that provably
  * did nothing must stay retryable, while a call whose outcome nobody observed
  * must never be retried blindly. Only one shape means "unknown" — an unsafe
- * HTTP method that was dispatched and never answered.
- *
- * Known limitation: `ECONNREFUSED`/`ENOTFOUND` (nothing ever left the host, so
- * provably not applied) land in the `unknown` bucket too, because the
- * transport-level code sits in `HttpError.details` with no public accessor.
- * The cost is a needless "verify state" answer while a panel is unreachable,
- * bounded by the store's TTL — never a wrong answer. Narrowing it needs a
- * small SDK addition (a `transportCode` getter on `HttpError`), tracked
- * separately.
+ * HTTP method that was dispatched, got no transport code ruling that out,
+ * and never answered. See ADR-0019.
  */
 export function classifyFailure(error: unknown): Applicability {
   // A ZodError, ToolError, ConfigurationError or AuthError never represents a
@@ -34,6 +35,10 @@ export function classifyFailure(error: unknown): Applicability {
 
   // The panel answered, with a 4xx or 5xx: it rejected the request.
   if (error.status !== undefined) return 'not-applied'
+
+  // The connection was refused, or the host never resolved: nothing ever
+  // left the client, whatever method it would have used.
+  if (error.transportCode !== undefined && NEVER_DISPATCHED_CODES.has(error.transportCode)) return 'not-applied'
 
   // No method at all means the failure happened before a request was built.
   const method = error.method

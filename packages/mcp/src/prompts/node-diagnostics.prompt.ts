@@ -21,7 +21,7 @@ export const nodeDiagnosticsPrompt = definePrompt({
 
 Steps:
 1. Call marzban_nodes_list to see status, Xray version, and any error message per node${nodeName ? ` (focus on "${nodeName}")` : ''}.
-2. Call marzban_system_stats for panel-wide context — in particular whether the core itself is running.
+2. Call marzban_system_get_stats for panel-wide context — in particular whether the core itself is running.
 3. Flag any node whose status is not "connected", quoting its message field verbatim rather than paraphrasing.
 4. For a disconnected or errored node, compare its Xray version against the others — a stale or missing version often points to a failed node update rather than a network problem.
 5. Summarize findings per node. Do not attempt to reconnect or restart anything without the user's explicit go-ahead — a fix would mean marzban_core_restart, which is destructive and restarts every node's connections, not just this one.`,

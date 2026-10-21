@@ -9,7 +9,7 @@ import {
 import { systemInboundsView, systemStatsView } from './system.views'
 
 export const systemStatsTool = defineTool({
-  name: 'marzban_system_stats',
+  name: 'marzban_system_get_stats',
   title: 'Get system stats',
   description:
     'Reports panel-wide stats: CPU/memory usage, user counts by status, and bandwidth totals/speeds, plus the Xray core version and whether it is currently running.',
@@ -24,7 +24,7 @@ export const systemStatsTool = defineTool({
 })
 
 export const systemInboundsTool = defineTool({
-  name: 'marzban_system_inbounds',
+  name: 'marzban_system_get_inbounds',
   title: 'List inbounds',
   description:
     'Lists configured inbound proxies grouped by protocol, with tag, network, TLS mode, and port for each. For the raw Xray inbound JSON (routing, stream settings, etc.) use marzban_config_get with section: "inbounds" instead.',

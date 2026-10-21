@@ -1,6 +1,14 @@
+export { compactJsonSchema } from './compact-json-schema'
 export type { ToolContext } from './context'
 export { defineTool, type ToolDefinition, type ToolScope } from './define-tool'
-export { toolOutputJsonSchema } from './json-schema'
+export {
+  EXECUTION_META_KEY,
+  type ExecutionMeta,
+  executionMetaSchema,
+  registeredOutputSchema,
+  withExecutionMeta,
+} from './execution-meta'
+export { toolJsonSchema, toolOutputJsonSchema, withWireJsonSchema } from './json-schema'
 export {
   alwaysExecute,
   alwaysProceed,
